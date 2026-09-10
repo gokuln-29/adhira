@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEffectivePrice } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
+import { SITE_URL } from "@/lib/seo/site";
 import type { CartLineItem } from "@/lib/cart/types";
 import type { EMIRATES } from "@/lib/constants/emirates";
 
@@ -158,7 +159,6 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
   // Card: leave the order `pending` — the Stripe webhook is the source of
   // truth that flips it to `paid`, not this redirect (the buyer can close
   // the tab before returning).
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
@@ -187,8 +187,8 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
     ],
     customer_email: input.customer.email.trim(),
     metadata: { order_number: orderNumber },
-    success_url: `${siteUrl}/${input.locale}/order-confirmation/${orderNumber}`,
-    cancel_url: `${siteUrl}/${input.locale}/checkout`,
+    success_url: `${SITE_URL}/${input.locale}/order-confirmation/${orderNumber}`,
+    cancel_url: `${SITE_URL}/${input.locale}/checkout`,
   });
 
   const { error: sessionUpdateError } = await supabase
