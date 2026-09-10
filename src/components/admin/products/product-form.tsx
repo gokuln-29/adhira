@@ -1,0 +1,447 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Input, Select, Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { MonoLabel } from "@/components/ui/mono-label";
+import { Card } from "@/components/ui/card";
+import { ProductCard, type ProductCardData } from "@/components/product/product-card";
+import { createClient } from "@/lib/supabase/client";
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  type ProductFormInput,
+  type ProductImageInput,
+} from "@/lib/actions/admin/products";
+import type { CategoryRow, ProductRow } from "@/lib/data/types";
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+export function ProductForm({
+  categories,
+  product,
+}: {
+  categories: CategoryRow[];
+  product?: ProductRow;
+}) {
+  const router = useRouter();
+
+  const [name, setName] = useState(product?.name ?? "");
+  const [slug, setSlug] = useState(product?.slug ?? "");
+  const [slugTouched, setSlugTouched] = useState(!!product);
+  const [shortDescription, setShortDescription] = useState(product?.short_description ?? "");
+  const [details, setDetails] = useState<{ label: string; value: string }[]>(
+    product?.details ?? [],
+  );
+  const [basePrice, setBasePrice] = useState(String(product?.base_price ?? ""));
+  const [discountType, setDiscountType] = useState<"" | "percent" | "flat">(
+    product?.discount_type ?? "",
+  );
+  const [discountValue, setDiscountValue] = useState(String(product?.discount_value ?? ""));
+  const [saleStart, setSaleStart] = useState(product?.sale_start?.slice(0, 10) ?? "");
+  const [saleEnd, setSaleEnd] = useState(product?.sale_end?.slice(0, 10) ?? "");
+  const [categoryId, setCategoryId] = useState(product?.category_id ?? "");
+  const [tagsInput, setTagsInput] = useState(product?.tags?.join(", ") ?? "");
+  const [images, setImages] = useState<ProductImageInput[]>(
+    (product?.product_images ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((img) => ({ url: img.url, alt: img.alt, is_primary: img.is_primary })),
+  );
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  function addDetailRow() {
+    setDetails((d) => [...d, { label: "", value: "" }]);
+  }
+  function updateDetailRow(i: number, field: "label" | "value", value: string) {
+    setDetails((d) => d.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
+  }
+  function removeDetailRow(i: number) {
+    setDetails((d) => d.filter((_, idx) => idx !== i));
+  }
+
+  async function handleUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const uploaded: ProductImageInput[] = [];
+
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(path, file);
+
+      if (uploadError) {
+        setError(uploadError.message);
+        continue;
+      }
+
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      uploaded.push({ url: data.publicUrl, alt: "", is_primary: false });
+    }
+
+    setImages((prev) => {
+      const next = [...prev, ...uploaded];
+      if (!next.some((img) => img.is_primary) && next.length > 0) next[0].is_primary = true;
+      return next;
+    });
+    setUploading(false);
+  }
+
+  function setPrimary(index: number) {
+    setImages((prev) => prev.map((img, i) => ({ ...img, is_primary: i === index })));
+  }
+  function removeImage(index: number) {
+    setImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((img) => img.is_primary)) next[0].is_primary = true;
+      return next;
+    });
+  }
+  function updateImageAlt(index: number, alt: string) {
+    setImages((prev) => prev.map((img, i) => (i === index ? { ...img, alt } : img)));
+  }
+  function reorderImages(from: number, to: number) {
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  const previewData: ProductCardData = useMemo(() => {
+    const primary = images.find((i) => i.is_primary) ?? images[0];
+    return {
+      name: name || "Product name",
+      slug: slug || "product-slug",
+      short_description: shortDescription || null,
+      details,
+      image: primary ? { url: primary.url, alt: primary.alt || name } : null,
+      base_price: Number(basePrice) || 0,
+      discount_type: discountType || null,
+      discount_value: discountValue ? Number(discountValue) : null,
+      sale_start: saleStart ? new Date(saleStart).toISOString() : null,
+      sale_end: saleEnd ? new Date(saleEnd).toISOString() : null,
+      vat_rate: 5,
+    };
+  }, [name, slug, shortDescription, details, images, basePrice, discountType, discountValue, saleStart, saleEnd]);
+
+  function buildInput(status: "draft" | "active"): ProductFormInput {
+    return {
+      name,
+      slug: slug || slugify(name),
+      short_description: shortDescription,
+      details: details.filter((d) => d.label.trim() && d.value.trim()),
+      base_price: Number(basePrice) || 0,
+      discount_type: discountType || null,
+      discount_value: discountType ? Number(discountValue) || 0 : null,
+      sale_start: discountType && saleStart ? new Date(saleStart).toISOString() : null,
+      sale_end: discountType && saleEnd ? new Date(saleEnd).toISOString() : null,
+      category_id: categoryId || null,
+      tags: tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      status,
+      images,
+    };
+  }
+
+  async function handleSave(status: "draft" | "active") {
+    setSaving(true);
+    setError(null);
+
+    const input = buildInput(status);
+    const result = product
+      ? await updateProduct(product.id, input)
+      : await createProduct(input);
+
+    setSaving(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.push("/admin/products");
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    if (!product) return;
+    if (!confirm(`Delete "${product.name}"? This can't be undone.`)) return;
+    setSaving(true);
+    const result = await deleteProduct(product.id);
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.push("/admin/products");
+    router.refresh();
+  }
+
+  return (
+    <div className="pb-24">
+      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="flex flex-col gap-6">
+          <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Images</MonoLabel>
+            <div className="grid grid-cols-4 gap-3">
+              {images.map((img, i) => (
+                <div
+                  key={img.url}
+                  draggable
+                  onDragStart={() => setDragIndex(i)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex !== null && dragIndex !== i) reorderImages(dragIndex, i);
+                    setDragIndex(null);
+                  }}
+                  className="relative flex flex-col gap-1 border border-(--color-hairline) p-1"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt="" className="aspect-square w-full object-cover" />
+                  <input
+                    value={img.alt}
+                    onChange={(e) => updateImageAlt(i, e.target.value)}
+                    placeholder="Alt text"
+                    className="w-full border border-(--color-hairline) px-1 py-0.5 text-[10px]"
+                  />
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setPrimary(i)}
+                      className={`font-mono-label text-[9px] ${img.is_primary ? "text-(--color-primary)" : "text-(--color-muted)"}`}
+                    >
+                      {img.is_primary ? "PRIMARY" : "SET PRIMARY"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="font-mono-label text-[9px] text-(--color-muted) hover:text-red-600"
+                    >
+                      REMOVE
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center border border-dashed border-(--color-hairline) font-mono-label text-[10px] text-(--color-muted) hover:border-(--color-primary)">
+                {uploading ? "Uploading..." : "+ Add"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleUpload(e.target.files)}
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Details</MonoLabel>
+            <Input
+              label="Name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (!slugTouched) setSlug(slugify(e.target.value));
+              }}
+              required
+            />
+            <Input
+              label="Slug"
+              value={slug}
+              onChange={(e) => {
+                setSlug(e.target.value);
+                setSlugTouched(true);
+              }}
+              required
+            />
+            <Textarea
+              label="Short description"
+              value={shortDescription}
+              onChange={(e) => setShortDescription(e.target.value)}
+              rows={2}
+            />
+          </Card>
+
+          <Card className="flex flex-col gap-3 p-6">
+            <div className="flex items-center justify-between">
+              <MonoLabel muted={false}>Spec lines</MonoLabel>
+              <button
+                type="button"
+                onClick={addDetailRow}
+                className="font-mono-label text-[10px] text-(--color-primary)"
+              >
+                + Add row
+              </button>
+            </div>
+            {details.map((row, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={row.label}
+                  onChange={(e) => updateDetailRow(i, "label", e.target.value)}
+                  placeholder="Label (e.g. Size)"
+                  className="w-1/3 border border-(--color-hairline) px-3 py-2 text-sm"
+                />
+                <input
+                  value={row.value}
+                  onChange={(e) => updateDetailRow(i, "value", e.target.value)}
+                  placeholder="Value (e.g. Medium)"
+                  className="flex-1 border border-(--color-hairline) px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeDetailRow(i)}
+                  className="font-mono-label text-[10px] text-(--color-muted) hover:text-red-600"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Price</MonoLabel>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Base price (AED)"
+                type="number"
+                step="0.01"
+                value={basePrice}
+                onChange={(e) => setBasePrice(e.target.value)}
+                required
+              />
+              <MonoLabel as="p" className="self-end pb-2.5 text-[11px]">
+                incl. 5% VAT at checkout
+              </MonoLabel>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Select
+                label="Discount"
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value as "" | "percent" | "flat")}
+              >
+                <option value="">None</option>
+                <option value="percent">Percent</option>
+                <option value="flat">Flat (AED)</option>
+              </Select>
+              {discountType && (
+                <>
+                  <Input
+                    label={discountType === "percent" ? "Percent off" : "AED off"}
+                    type="number"
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                  />
+                </>
+              )}
+            </div>
+            {discountType && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Sale start"
+                  type="date"
+                  value={saleStart}
+                  onChange={(e) => setSaleStart(e.target.value)}
+                />
+                <Input
+                  label="Sale end"
+                  type="date"
+                  value={saleEnd}
+                  onChange={(e) => setSaleEnd(e.target.value)}
+                />
+              </div>
+            )}
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Organize</MonoLabel>
+            <Select
+              label="Category"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+            >
+              <option value="">Uncategorized</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Tags (comma-separated)"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              placeholder="bestseller, roses"
+            />
+          </Card>
+
+          {error && (
+            <p className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="lg:sticky lg:top-6 lg:h-fit">
+          <MonoLabel muted={false} className="mb-3">
+            Live preview
+          </MonoLabel>
+          <div className="max-w-[280px] border border-(--color-hairline) p-4">
+            <ProductCard product={previewData} navigable={false} className="pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 border-t border-(--color-hairline) bg-(--color-surface) px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <div>
+            {product && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={saving}
+                className="font-mono-label text-[11px] text-red-600 hover:text-red-800"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => handleSave("draft")}
+            >
+              Save draft
+            </Button>
+            <Button type="button" disabled={saving} onClick={() => handleSave("active")}>
+              {saving ? "Saving..." : "Publish"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
