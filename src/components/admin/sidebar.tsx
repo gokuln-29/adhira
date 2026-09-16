@@ -11,6 +11,7 @@ const navGroups = [
   {
     heading: "Sell",
     items: [
+      { label: "Categories", href: "/admin/categories" },
       { label: "Products", href: "/admin/products" },
       { label: "Orders", href: "/admin/orders" },
       { label: "Offers & Coupons", href: "/admin/offers" },
