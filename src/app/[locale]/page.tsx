@@ -118,7 +118,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 href="/corporate#quote"
                 className="font-mono-label text-xs text-white underline decoration-white/40 underline-offset-8 transition-colors hover:decoration-white"
               >
-                {t("heroLink")} →
+                {t("heroLink")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
               </Link>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                   <div className="relative flex w-full items-end justify-between gap-4 p-6 text-white md:p-8">
                     <span className="font-display text-3xl md:text-4xl">{t(title)}</span>
                     <span className="font-mono-label shrink-0 pb-1 text-[11px] opacity-90 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-                      {t("shopNow")} →
+                      {t("shopNow")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
                     </span>
                   </div>
                 </Link>
@@ -185,7 +185,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 <h2 className="font-display text-4xl md:text-6xl">{t("newArrivals")}</h2>
               </div>
               <Link href="/shop" className="font-mono-label shrink-0 pb-2 text-xs text-(--color-primary) underline-offset-8 hover:underline">
-                {t("viewAll")} →
+                {t("viewAll")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
               </Link>
             </div>
             {products.length === 0 ? (
