@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { authorize } from "@/lib/admin/auth";
 
 export interface OfferFormInput {
   title: string;
@@ -17,6 +18,8 @@ export interface OfferFormInput {
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 export async function createOffer(input: OfferFormInput): Promise<ActionResult<{ id: string }>> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("offers")
@@ -39,6 +42,8 @@ export async function createOffer(input: OfferFormInput): Promise<ActionResult<{
 }
 
 export async function updateOffer(id: string, input: OfferFormInput): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase
     .from("offers")
@@ -60,6 +65,8 @@ export async function updateOffer(id: string, input: OfferFormInput): Promise<Ac
 }
 
 export async function deleteOffer(id: string): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("offers").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

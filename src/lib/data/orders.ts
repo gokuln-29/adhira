@@ -14,19 +14,23 @@ export interface OrderConfirmation {
   order_items: { name: string; qty: number; unit_price: number; line_total: number }[];
 }
 
-// Reads by order number (an unguessable token), not by user session — this is
-// what backs the guest-checkout confirmation page. Server Component use only;
-// never import into a Client Component.
-export async function getOrderByNumber(
-  number: string,
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Reads by `orders.public_token` (a random UUID that only the buyer's browser
+// and Stripe redirect ever see), not by the human-readable order number —
+// numbers are shareable and must never unlock an order page. Backs the
+// guest-checkout confirmation page. Server Component use only.
+export async function getOrderByToken(
+  token: string,
 ): Promise<OrderConfirmation | null> {
+  if (!UUID.test(token)) return null;
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("orders")
     .select(
       "number, status, subtotal, vat, delivery_fee, total, currency, emirate, delivery_date, created_at, order_items(name, qty, unit_price, line_total)",
     )
-    .eq("number", number)
+    .eq("public_token", token)
     .maybeSingle();
 
   if (error) throw error;

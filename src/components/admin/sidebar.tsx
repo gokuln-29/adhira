@@ -3,39 +3,43 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { roleCan, type AdminRole, type Permission } from "@/lib/admin/roles";
 
-const navGroups = [
+const navGroups: {
+  heading?: string;
+  items: { label: string; href: string; needs?: Permission }[];
+}[] = [
   {
     items: [{ label: "Dashboard", href: "/admin" }],
   },
   {
     heading: "Sell",
     items: [
-      { label: "Categories", href: "/admin/categories" },
-      { label: "Products", href: "/admin/products" },
+      { label: "Categories", href: "/admin/categories", needs: "editContent" },
+      { label: "Products", href: "/admin/products", needs: "editContent" },
       { label: "Orders", href: "/admin/orders" },
-      { label: "Offers & Coupons", href: "/admin/offers" },
-      { label: "Payment Links", href: "/admin/payment-links" },
+      { label: "Offers & Coupons", href: "/admin/offers", needs: "editContent" },
+      { label: "Payment Links", href: "/admin/payment-links", needs: "ownerOnly" },
     ],
   },
   {
     heading: "Grow",
     items: [
       { label: "CRM", href: "/admin/crm" },
-      { label: "Blog", href: "/admin/blog" },
+      { label: "Blog", href: "/admin/blog", needs: "editContent" },
     ],
   },
   {
     heading: "Manage",
     items: [
       { label: "Customers", href: "/admin/customers" },
-      { label: "Reports", href: "/admin/reports" },
-      { label: "Settings", href: "/admin/settings" },
+      { label: "Reports", href: "/admin/reports", needs: "editContent" },
+      { label: "Settings", href: "/admin/settings", needs: "ownerOnly" },
     ],
   },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ role }: { role: AdminRole }) {
   const pathname = usePathname();
 
   return (
@@ -45,7 +49,13 @@ export function AdminSidebar() {
       </Link>
 
       <nav className="mt-8 flex flex-col gap-6">
-        {navGroups.map((group, i) => (
+        {navGroups
+          .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.needs || roleCan(role, item.needs)),
+          }))
+          .filter((group) => group.items.length > 0)
+          .map((group, i) => (
           <div key={i} className="flex flex-col gap-1">
             {group.heading && (
               <span className="px-2 font-mono-label text-[10px] text-(--color-muted)">

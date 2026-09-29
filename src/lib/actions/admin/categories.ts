@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { authorize } from "@/lib/admin/auth";
 
 export interface CategoryFormInput {
   name: string;
@@ -15,6 +16,8 @@ type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string 
 export async function createCategory(
   input: CategoryFormInput,
 ): Promise<ActionResult<{ id: string }>> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categories")
@@ -36,6 +39,8 @@ export async function updateCategory(
   id: string,
   input: CategoryFormInput,
 ): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase
     .from("categories")
@@ -53,6 +58,8 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

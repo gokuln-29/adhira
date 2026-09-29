@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { authorize } from "@/lib/admin/auth";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -19,6 +20,15 @@ export interface PaymentLinkInput {
 export async function createPaymentLink(
   input: PaymentLinkInput,
 ): Promise<ActionResult<{ id: string }>> {
+  const auth = await authorize("ownerOnly");
+  if (!auth.ok) return auth;
+
+  if (!Number.isFinite(input.amount) || input.amount <= 0 || input.amount > 1_000_000) {
+    return { ok: false, error: "Enter an amount between 0.01 and 1,000,000." };
+  }
+  if (input.url.trim() && !/^https:\/\//i.test(input.url.trim())) {
+    return { ok: false, error: "The payment link must start with https://" };
+  }
   const supabase = await createClient();
 
   let customerId: string | null = null;
@@ -73,6 +83,8 @@ export async function markPaymentLinkStatus(
   id: string,
   status: "pending" | "paid" | "expired",
 ): Promise<ActionResult> {
+  const auth = await authorize("ownerOnly");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase
     .from("payment_links")

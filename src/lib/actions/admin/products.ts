@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { authorize } from "@/lib/admin/auth";
 import type { ProductCardDetail } from "@/components/product/product-card";
 
 export interface ProductImageInput {
@@ -56,6 +57,8 @@ async function replaceImages(
 export async function createProduct(
   input: ProductFormInput,
 ): Promise<ActionResult<{ id: string }>> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -93,6 +96,8 @@ export async function updateProduct(
   id: string,
   input: ProductFormInput,
 ): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -127,6 +132,8 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(id: string): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -138,6 +145,8 @@ export async function bulkUpdateProductStatus(
   ids: string[],
   status: "draft" | "active",
 ): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("products").update({ status }).in("id", ids);
   if (error) return { ok: false, error: error.message };
@@ -146,6 +155,8 @@ export async function bulkUpdateProductStatus(
 }
 
 export async function bulkDeleteProducts(ids: string[]): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().in("id", ids);
   if (error) return { ok: false, error: error.message };

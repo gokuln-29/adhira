@@ -7,7 +7,7 @@ import { MonoLabel } from "@/components/ui/mono-label";
 import { buttonVariants } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { ClearCartOnMount } from "@/components/product/clear-cart-on-mount";
-import { getOrderByNumber } from "@/lib/data/orders";
+import { getOrderByToken } from "@/lib/data/orders";
 import { formatAED } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 
 export default async function OrderConfirmationPage({
   params,
-}: PageProps<"/[locale]/order-confirmation/[number]">) {
-  const { number } = await params;
-  const order = await getOrderByNumber(number);
+}: PageProps<"/[locale]/order-confirmation/[token]">) {
+  const { token } = await params;
+  const order = await getOrderByToken(token);
   if (!order) notFound();
 
   const [t, tEmirates] = await Promise.all([

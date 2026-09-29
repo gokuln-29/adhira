@@ -334,6 +334,7 @@ export type Database = {
           id: string
           notes: string | null
           number: string
+          public_token: string
           status: string
           stripe_checkout_session_id: string | null
           stripe_payment_intent_id: string | null
@@ -354,6 +355,7 @@ export type Database = {
           id?: string
           notes?: string | null
           number: string
+          public_token?: string
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           id?: string
           notes?: string | null
           number?: string
+          public_token?: string
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -542,11 +545,36 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_role: { Args: never; Returns: string }
+      create_order_tx: { Args: { p: Json }; Returns: Json }
+      has_admin_role: { Args: { roles: string[] }; Returns: boolean }
+      hit_rate_limit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {

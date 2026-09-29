@@ -13,7 +13,7 @@ export default async function AdminDashboardLayout({
 
   return (
     <div className="flex min-h-screen">
-      <AdminSidebar />
+      <AdminSidebar role={admin.role} />
       <div className="flex flex-1 flex-col">
         <AdminTopbar admin={admin} />
         <main className="flex-1 overflow-x-auto p-6">{children}</main>

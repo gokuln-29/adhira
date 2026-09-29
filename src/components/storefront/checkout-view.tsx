@@ -68,8 +68,9 @@ export function CheckoutView() {
       giftMessage: String(formData.get("giftMessage") || "") || undefined,
       poNumber: isBusiness ? String(formData.get("poNumber") || "") || undefined : undefined,
       paymentMethod: payment,
-      items,
-      locale,
+      // Only WHICH products and HOW MANY: the server prices the order itself.
+      items: items.map((item) => ({ productId: item.productId, qty: item.qty })),
+      locale: locale as "en" | "ar",
     });
 
     if (!result.ok) {
@@ -86,7 +87,7 @@ export function CheckoutView() {
       return;
     }
 
-    router.push(`/order-confirmation/${result.orderNumber}`);
+    router.push(`/order-confirmation/${result.token}`);
   }
 
   if (items.length === 0) {

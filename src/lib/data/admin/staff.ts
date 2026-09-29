@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 export interface StaffRow {
   id: string;
   name: string;
-  role: "owner" | "admin" | "staff";
+  role: "owner" | "manager" | "staff";
   created_at: string;
 }
 

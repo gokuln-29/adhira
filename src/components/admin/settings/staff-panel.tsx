@@ -14,7 +14,7 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"owner" | "admin" | "staff">("staff");
+  const [role, setRole] = useState<"owner" | "manager" | "staff">("staff");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,15 +43,16 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Temporary password"
-            type="text"
+            label="Temporary password (12+ chars, upper, lower, number)"
+            type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-            <option value="owner">Owner</option>
+            <option value="staff">Staff: orders, leads, customers</option>
+            <option value="manager">Manager: staff + products, offers, blog</option>
+            <option value="owner">Owner: everything, incl. staff &amp; payment links</option>
           </Select>
         </div>
         {error && <p className="text-sm text-red-700">{error}</p>}

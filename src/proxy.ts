@@ -11,9 +11,13 @@ export default async function proxy(request: NextRequest) {
   const isAdmin = request.nextUrl.pathname.startsWith("/admin");
   const response = isAdmin ? NextResponse.next() : handleI18nRouting(request);
 
-  // Keep the Supabase auth session cookie fresh alongside locale routing so
-  // Server Components in `[locale]/account` and `/admin` see an up-to-date
-  // session.
+  // Refreshing the Supabase session is a network round trip, so do it only
+  // where a session is actually read: /admin and the locale-prefixed account
+  // pages. Public storefront pages skip it entirely (faster TTFB, and they
+  // stay cacheable).
+  const needsSession = isAdmin || /^\/(en|ar)\/account(\/|$)/.test(request.nextUrl.pathname);
+  if (!needsSession) return response;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return response;

@@ -51,11 +51,12 @@ export function LeadForm({
       company: String(formData.get("company") || "") || undefined,
       email: String(formData.get("email") || "") || undefined,
       phone: String(formData.get("phone") || "") || undefined,
-      emirate: String(formData.get("emirate") || "") || undefined,
+      emirate: (String(formData.get("emirate") || "") || undefined) as LeadInput["emirate"],
       frequency: String(formData.get("frequency") || "") || undefined,
       budget: String(formData.get("budget") || "") || undefined,
       requirement: String(formData.get("requirement") || "") || undefined,
       message: String(formData.get("message") || "") || undefined,
+      website: String(formData.get("website") || ""),
     };
 
     const res = await createLead(input);
@@ -116,6 +117,14 @@ export function LeadForm({
         rows={3}
       />
       <Textarea name="message" label={t("anythingElse")} rows={2} />
+
+      {/* Honeypot: hidden from people and screen readers, bots fill it in. */}
+      <div aria-hidden="true" className="absolute -start-[9999px] h-0 w-0 overflow-hidden">
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
 

@@ -26,7 +26,9 @@ export default function AdminLoginPage() {
 
     if (signInError) {
       setSubmitting(false);
-      setError(signInError.message);
+      // Same message whether the email or the password was wrong, so the form
+      // can't be used to discover which staff emails exist.
+      setError("Incorrect email or password.");
       return;
     }
 
