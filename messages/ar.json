@@ -69,7 +69,11 @@
     "emptyTitle": "لم يتم العثور على منتجات",
     "emptyBody": "جرّب فئة أخرى، أو تواصل معنا لطلب تنسيق مخصص.",
     "searchResultsFor": "نتائج البحث عن \"{query}\"",
-    "clearSearch": "مسح"
+    "clearSearch": "مسح",
+    "pagination": "التنقل بين الصفحات",
+    "pagePrev": "السابق",
+    "pageNext": "التالي",
+    "pageNumber": "صفحة {page}"
   },
   "Pdp": {
     "addToCart": "أضف إلى السلة",

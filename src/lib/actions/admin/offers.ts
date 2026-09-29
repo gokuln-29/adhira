@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authorize } from "@/lib/admin/auth";
+import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
 export interface OfferFormInput {
   title: string;
@@ -38,6 +39,7 @@ export async function createOffer(input: OfferFormInput): Promise<ActionResult<{
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/offers");
+  refreshStorefront();
   return { ok: true, id: data.id };
 }
 
@@ -61,6 +63,7 @@ export async function updateOffer(id: string, input: OfferFormInput): Promise<Ac
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/offers");
+  refreshStorefront();
   return { ok: true };
 }
 
@@ -71,5 +74,6 @@ export async function deleteOffer(id: string): Promise<ActionResult> {
   const { error } = await supabase.from("offers").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/offers");
+  refreshStorefront();
   return { ok: true };
 }

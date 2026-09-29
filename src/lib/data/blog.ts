@@ -28,3 +28,15 @@ export async function getPostBySlug(slug: string): Promise<BlogPostRow | null> {
   if (error) throw error;
   return data as unknown as BlogPostRow | null;
 }
+
+export async function getPublishedPostSlugs(): Promise<string[]> {
+  try {
+    const { data } = await createPublicClient()
+      .from("blog_posts")
+      .select("slug")
+      .eq("status", "published");
+    return (data ?? []).map((p) => p.slug);
+  } catch {
+    return [];
+  }
+}

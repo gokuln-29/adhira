@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authorize } from "@/lib/admin/auth";
+import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
 export interface PostFormInput {
   title: string;
@@ -47,6 +48,7 @@ export async function createPost(input: PostFormInput): Promise<ActionResult<{ i
     .single();
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/blog");
+  refreshStorefront();
   return { ok: true, id: data.id };
 }
 
@@ -67,6 +69,7 @@ export async function updatePost(id: string, input: PostFormInput): Promise<Acti
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/blog");
+  refreshStorefront();
   revalidatePath(`/admin/blog/${id}`);
   return { ok: true };
 }
@@ -78,5 +81,6 @@ export async function deletePost(id: string): Promise<ActionResult> {
   const { error } = await supabase.from("blog_posts").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/blog");
+  refreshStorefront();
   return { ok: true };
 }

@@ -6,10 +6,16 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
 import { MonoLabel } from "@/components/ui/mono-label";
-import { getPostBySlug } from "@/lib/data/blog";
+import { getPostBySlug, getPublishedPostSlugs } from "@/lib/data/blog";
+import { routing } from "@/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const slugs = await getPublishedPostSlugs();
+  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug: slug })));
+}
 
 export async function generateMetadata({
   params,

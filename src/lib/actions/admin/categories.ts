@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authorize } from "@/lib/admin/auth";
+import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
 export interface CategoryFormInput {
   name: string;
@@ -32,6 +33,7 @@ export async function createCategory(
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/categories");
+  refreshStorefront();
   return { ok: true, id: data.id };
 }
 
@@ -54,6 +56,7 @@ export async function updateCategory(
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/categories");
+  refreshStorefront();
   return { ok: true };
 }
 
@@ -64,5 +67,6 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/categories");
+  refreshStorefront();
   return { ok: true };
 }

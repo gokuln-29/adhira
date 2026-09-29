@@ -15,6 +15,8 @@ export function Plp({
   q,
   products,
   basePath,
+  page = 1,
+  hasMore = false,
 }: {
   title: string;
   categories: CategoryRow[];
@@ -24,6 +26,8 @@ export function Plp({
   q?: string;
   products: ProductRow[];
   basePath: string;
+  page?: number;
+  hasMore?: boolean;
 }) {
   const t = useTranslations("Plp");
   const pdp = useTranslations("Pdp");
@@ -40,6 +44,8 @@ export function Plp({
     if (sort !== "newest") search.set("sort", sort);
     if (tag) search.set("tag", tag);
     if (q) search.set("q", q);
+    // Changing sort/search restarts at page 1; only the pager passes `page`.
+    search.delete("page");
     Object.entries(params).forEach(([key, value]) => {
       if (value) search.set(key, value);
       else search.delete(key);
@@ -132,6 +138,32 @@ export function Plp({
               />
             ))}
           </div>
+
+          {(page > 1 || hasMore) && (
+            <nav aria-label={t("pagination")} className="mt-12 flex items-center justify-between">
+              {page > 1 ? (
+                <Link
+                  href={withQuery({ page: page > 2 ? String(page - 1) : undefined })}
+                  className="font-mono-label text-xs text-(--color-primary)"
+                >
+                  ← {t("pagePrev")}
+                </Link>
+              ) : (
+                <span />
+              )}
+              <MonoLabel className="text-[11px]">{t("pageNumber", { page })}</MonoLabel>
+              {hasMore ? (
+                <Link
+                  href={withQuery({ page: String(page + 1) })}
+                  className="font-mono-label text-xs text-(--color-primary)"
+                >
+                  {t("pageNext")} →
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
+          )}
         </>
       )}
     </div>

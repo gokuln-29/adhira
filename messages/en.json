@@ -69,7 +69,11 @@
     "emptyTitle": "No products found",
     "emptyBody": "Try a different category, or contact us for a custom arrangement.",
     "searchResultsFor": "Search results for \"{query}\"",
-    "clearSearch": "Clear"
+    "clearSearch": "Clear",
+    "pagination": "Pagination",
+    "pagePrev": "Previous",
+    "pageNext": "Next",
+    "pageNumber": "Page {page}"
   },
   "Pdp": {
     "addToCart": "Add to cart",

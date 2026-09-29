@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authorize } from "@/lib/admin/auth";
+import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import type { ProductCardDetail } from "@/components/product/product-card";
 
 export interface ProductImageInput {
@@ -89,6 +90,7 @@ export async function createProduct(
   }
 
   revalidatePath("/admin/products");
+  refreshStorefront();
   return { ok: true, id: data.id };
 }
 
@@ -127,6 +129,7 @@ export async function updateProduct(
   }
 
   revalidatePath("/admin/products");
+  refreshStorefront();
   revalidatePath(`/admin/products/${id}`);
   return { ok: true };
 }
@@ -138,6 +141,7 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/products");
+  refreshStorefront();
   return { ok: true };
 }
 
@@ -151,6 +155,7 @@ export async function bulkUpdateProductStatus(
   const { error } = await supabase.from("products").update({ status }).in("id", ids);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/products");
+  refreshStorefront();
   return { ok: true };
 }
 
@@ -161,5 +166,6 @@ export async function bulkDeleteProducts(ids: string[]): Promise<ActionResult> {
   const { error } = await supabase.from("products").delete().in("id", ids);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/products");
+  refreshStorefront();
   return { ok: true };
 }

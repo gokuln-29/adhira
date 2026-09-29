@@ -9,13 +9,19 @@ import { ProductGallery } from "@/components/product/product-gallery";
 import { AddToCartForm } from "@/components/product/add-to-cart-form";
 import { DeliveryEstimator } from "@/components/product/delivery-estimator";
 import { ProductCard } from "@/components/product/product-card";
-import { getActiveProducts, getProductBySlug, toProductCard } from "@/lib/data/products";
+import { getActiveProducts, getProductBySlug, toProductCard, getActiveProductSlugs } from "@/lib/data/products";
 import { formatAED, getEffectivePrice, vatNote } from "@/lib/pricing";
+import { routing } from "@/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { productJsonLd } from "@/lib/seo/product";
 import { JsonLd } from "@/components/seo/json-ld";
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const slugs = await getActiveProductSlugs();
+  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug: slug })));
+}
 
 export async function generateMetadata({
   params,

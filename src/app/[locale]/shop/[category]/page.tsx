@@ -9,6 +9,7 @@ import {
   getActiveProducts,
   getCategories,
   getCategoryBySlug,
+  PAGE_SIZE,
   type ProductSort,
 } from "@/lib/data/products";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -51,13 +52,15 @@ export default async function CategoryPage({
   if (!category) notFound();
 
   const sortParam = Array.isArray(search.sort) ? search.sort[0] : search.sort;
+  const pageParam = Number(Array.isArray(search.page) ? search.page[0] : search.page);
+  const page = Number.isInteger(pageParam) && pageParam > 0 && pageParam <= 500 ? pageParam : 1;
   const sort: ProductSort = validSorts.includes(sortParam as ProductSort)
     ? (sortParam as ProductSort)
     : "newest";
 
   const [categories, products, b] = await Promise.all([
     getCategories(),
-    getActiveProducts({ categorySlug, sort }),
+    getActiveProducts({ categorySlug, sort, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE }),
     getTranslations("Breadcrumbs"),
   ]);
 
@@ -77,7 +80,9 @@ export default async function CategoryPage({
           categories={categories}
           activeCategorySlug={category.slug}
           sort={sort}
-          products={products}
+          products={products.slice(0, PAGE_SIZE)}
+          page={page}
+          hasMore={products.length > PAGE_SIZE}
           basePath={`/shop/${category.slug}`}
         />
       </main>
