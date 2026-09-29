@@ -70,7 +70,8 @@ export function formatAED(amount: number): string {
 }
 
 export function vatNote(vatRate: number): string {
-  return `incl. ${vatRate}% VAT`;
+  // Prices are stored and shown VAT-exclusive; VAT is added at checkout.
+  return `+ ${vatRate}% VAT`;
 }
 
 // ---------------------------------------------------------------------------

@@ -28,6 +28,17 @@ export async function Footer() {
       ],
     },
     {
+      heading: t("companyHeading"),
+      links: [
+        { label: t("about"), href: "/about" },
+        { label: t("contact"), href: "/contact" },
+        { label: t("delivery"), href: "/delivery" },
+        { label: t("returns"), href: "/returns" },
+        { label: t("privacy"), href: "/privacy" },
+        { label: t("terms"), href: "/terms" },
+      ],
+    },
+    {
       heading: t("resourcesHeading"),
       links: [
         { label: t("blog"), href: "/blog" },
@@ -38,7 +49,7 @@ export async function Footer() {
 
   return (
     <footer className="border-t border-(--color-hairline)">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 md:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 md:grid-cols-5">
         <div className="flex flex-col gap-3 md:col-span-1">
           <span className="font-mono-label text-sm text-(--color-ink)">
             Flowers N Plants

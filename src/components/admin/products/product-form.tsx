@@ -374,7 +374,7 @@ export function ProductForm({
                 required={!isRental}
               />
               <MonoLabel as="p" className="self-end pb-2.5 text-[11px]">
-                incl. 5% VAT at checkout
+                Price excludes VAT. 5% VAT is added at checkout.
               </MonoLabel>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">

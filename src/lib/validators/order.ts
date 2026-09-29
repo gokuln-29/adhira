@@ -48,6 +48,7 @@ export const orderInputSchema = z.object({
     .min(1, "Your cart is empty.")
     .max(MAX_CART_LINES),
   locale: z.enum(["en", "ar"]),
+  acceptTerms: z.literal(true, "Please accept the terms and conditions to place your order."),
 });
 
 export type ValidatedOrderInput = z.infer<typeof orderInputSchema>;

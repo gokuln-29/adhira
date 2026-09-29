@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -106,6 +106,8 @@ export function CheckoutView() {
         months: item.months,
       })),
       locale: locale as "en" | "ar",
+      // The server re-checks this; the cast only satisfies the literal `true` type.
+      acceptTerms: (formData.get("acceptTerms") === "on") as true,
     });
 
     if (!result.ok) {
@@ -263,6 +265,24 @@ export function CheckoutView() {
             {error}
           </p>
         )}
+
+        <label className="flex items-start gap-3 text-sm">
+          <input type="checkbox" name="acceptTerms" required className="mt-1 h-4 w-4 accent-(--color-primary)" />
+          <span>
+            {t.rich("acceptTerms", {
+              terms: (chunks) => (
+                <Link href="/terms" target="_blank" className="underline hover:text-(--color-primary)">
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link href="/privacy" target="_blank" className="underline hover:text-(--color-primary)">
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </span>
+        </label>
 
         <Button type="submit" size="lg" disabled={submitting}>
           {submitting ? t("placingOrder") : t("placeOrder")}

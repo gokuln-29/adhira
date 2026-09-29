@@ -95,7 +95,14 @@
     "indoorSetups": "Indoor Setups",
     "requestQuote": "Request a Quote",
     "blog": "Blog",
-    "account": "Account"
+    "account": "Account",
+    "companyHeading": "Company",
+    "about": "About us",
+    "contact": "Contact",
+    "delivery": "Delivery",
+    "returns": "Returns & deposits",
+    "privacy": "Privacy policy",
+    "terms": "Terms & conditions"
   },
   "Breadcrumbs": {
     "home": "Home",
@@ -215,7 +222,8 @@
     "withVessel": "With glass vessel",
     "moreAddress": "Apartment, area or landmark (optional)",
     "deliveryDateHint": "Leave empty for the earliest delivery",
-    "addGiftMessage": "Add a gift message (optional)"
+    "addGiftMessage": "Add a gift message (optional)",
+    "acceptTerms": "I agree to the <terms>Terms & conditions</terms> and <privacy>Privacy policy</privacy>."
   },
   "OrderConfirmation": {
     "eyebrow": "Order confirmed",
@@ -395,5 +403,230 @@
   "Whatsapp": {
     "label": "Chat on WhatsApp",
     "message": "Hello Flowers N Plants, I have a question about an order."
+  },
+  "NotFound": {
+    "title": "We couldn't find that page",
+    "body": "The link may be old or mistyped. Try the shop or head back home.",
+    "home": "Back to home",
+    "shop": "Browse the shop"
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "body": "Sorry about that. Please try again, or come back in a moment.",
+    "retry": "Try again",
+    "home": "Back to home"
+  },
+  "Info": {
+    "about": {
+      "title": "About Flowers N Plants",
+      "intro": "We supply fresh flowers, plant arrangements and plant rentals for offices, events and celebrations across the UAE.",
+      "sections": [
+        {
+          "heading": "What we do",
+          "body": [
+            "Weekly and one-off flower arrangements for reception areas, meeting rooms and events.",
+            "Indoor plants, plant fit-outs and monthly plant rentals for workspaces.",
+            "Bouquets, flower boxes and wedding florals for birthdays and celebrations."
+          ]
+        },
+        {
+          "heading": "Who we work with",
+          "body": [
+            "Offices and corporate teams, event organisers, and individuals planning a birthday or a wedding."
+          ]
+        },
+        {
+          "heading": "Buying for a business",
+          "body": [
+            "We issue VAT invoices, accept purchase order numbers and can arrange recurring deliveries. For larger or regular orders, request a quote and our team will get back to you."
+          ]
+        }
+      ]
+    },
+    "delivery": {
+      "title": "Delivery",
+      "intro": "How and where we deliver your flowers and plants.",
+      "sections": [
+        {
+          "heading": "Where we deliver",
+          "body": [
+            "We deliver across the UAE: Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Fujairah and Umm Al Quwain."
+          ]
+        },
+        {
+          "heading": "Dates and time slots",
+          "body": [
+            "Choose your preferred date and time slot at checkout. Same-day delivery in Dubai is available for orders placed before 2 PM, subject to availability.",
+            "After you order, we confirm the delivery details with you."
+          ]
+        },
+        {
+          "heading": "Your delivery address",
+          "body": [
+            "Please give a complete address and a phone number that will be answered on the day, so our driver can reach you.",
+            "If nobody can receive the delivery, contact us as soon as possible."
+          ]
+        },
+        {
+          "heading": "Delivery charges",
+          "body": [
+            "Any delivery charge is shown at checkout before you pay."
+          ]
+        },
+        {
+          "heading": "Looking after your flowers",
+          "body": [
+            "Fresh flowers are natural and perishable. Please unpack them on arrival and place them in fresh water."
+          ]
+        }
+      ]
+    },
+    "returns": {
+      "title": "Returns, refunds and deposits",
+      "intro": "Our policy for fresh flowers, glass vessels and rental plants.",
+      "sections": [
+        {
+          "heading": "Fresh flowers and plants",
+          "body": [
+            "Because flowers are perishable, we can't accept returns of fresh flowers.",
+            "If your order arrives damaged or not as described, contact us as soon as possible, ideally on the day of delivery, with your order number and a photo, and we will put it right."
+          ]
+        },
+        {
+          "heading": "Cancelling an order",
+          "body": [
+            "You can cancel an order before it is out for delivery by contacting us with your order number. Card payments cancelled in time are refunded to the original card."
+          ]
+        },
+        {
+          "heading": "Glass vessels",
+          "body": [
+            "When you add a glass vessel to a product, a refundable deposit is charged in addition to the vessel price. The deposit is refunded when the vessel is returned in good condition."
+          ]
+        },
+        {
+          "heading": "Rental plants",
+          "body": [
+            "Rental plants are charged monthly for the term you choose, plus a refundable deposit. The deposit is refunded when the plants are returned in good condition. Damaged or missing items may be deducted from the deposit."
+          ]
+        },
+        {
+          "heading": "Refunds",
+          "body": [
+            "Once a refund or deposit return has been processed, we will confirm it to you by email or phone."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "intro": "How we collect and use your personal information.",
+      "sections": [
+        {
+          "heading": "What we collect",
+          "body": [
+            "When you order or contact us: your name, email address, phone number, delivery address, and, for business orders, your company name, TRN and purchase order number.",
+            "Details of your orders, and any messages you send us."
+          ]
+        },
+        {
+          "heading": "How we use it",
+          "body": [
+            "To take and deliver your order, issue invoices, contact you about your delivery, answer your enquiries, and meet our legal and accounting obligations."
+          ]
+        },
+        {
+          "heading": "Who we share it with",
+          "body": [
+            "Only the services we need to run the shop: our payment provider (Stripe) for card payments, our hosting and database provider (Supabase), and delivery or email services where required.",
+            "We do not sell your personal information."
+          ]
+        },
+        {
+          "heading": "Cookies and browser storage",
+          "body": [
+            "We use only what the site needs to work: your language preference, your sign-in session, and your cart and checkout details, which stay in your own browser."
+          ]
+        },
+        {
+          "heading": "How long we keep it",
+          "body": [
+            "We keep order records for as long as needed for delivery, accounting and legal requirements."
+          ]
+        },
+        {
+          "heading": "Your choices",
+          "body": [
+            "You can ask us to show you, correct or delete the personal information we hold about you by contacting us."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms and conditions",
+      "intro": "The terms that apply when you order from Flowers N Plants.",
+      "sections": [
+        {
+          "heading": "Orders",
+          "body": [
+            "Placing an order is a request to buy. We confirm delivery details after you order, and may contact you if an item or date is unavailable."
+          ]
+        },
+        {
+          "heading": "Prices and VAT",
+          "body": [
+            "Prices are in UAE dirhams (AED) and are shown excluding VAT. VAT is added at checkout and shown before you pay. Refundable deposits are not subject to VAT."
+          ]
+        },
+        {
+          "heading": "Payment",
+          "body": [
+            "You can pay by cash on delivery or by card, depending on what is available at checkout. Card payments are processed securely by Stripe; we do not store your card details."
+          ]
+        },
+        {
+          "heading": "Delivery, cancellations and refunds",
+          "body": [
+            "Our Delivery page and our Returns, refunds and deposits page form part of these terms."
+          ]
+        },
+        {
+          "heading": "Substitutions",
+          "body": [
+            "Flowers and plants are natural products. If an exact item or vessel is unavailable, we may substitute a similar one of equal or higher value and will tell you where we can."
+          ]
+        },
+        {
+          "heading": "Business customers",
+          "body": [
+            "We issue VAT invoices for business orders. Please enter your company name, TRN and purchase order number at checkout."
+          ]
+        },
+        {
+          "heading": "Our responsibility",
+          "body": [
+            "We take care to deliver what you ordered. Nothing in these terms limits any rights you have under UAE law."
+          ]
+        },
+        {
+          "heading": "Governing law and changes",
+          "body": [
+            "These terms are governed by the laws of the United Arab Emirates. We may update them from time to time; the version on this page applies to orders placed while it is published."
+          ]
+        }
+      ]
+    }
+  },
+  "Contact": {
+    "title": "Contact us",
+    "intro": "Questions about an order, a quote or a delivery? Get in touch.",
+    "phone": "Phone",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "chat": "Chat with us",
+    "formTitle": "Send us a message",
+    "submit": "Send message",
+    "requirementLabel": "How can we help?",
+    "requirementPlaceholder": "Tell us what you need, including dates and quantities if you know them."
   }
 }
