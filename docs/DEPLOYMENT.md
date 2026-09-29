@@ -123,6 +123,18 @@ Leave the Stripe values empty to accept Cash on Delivery only.
 4. Pay a test order with card `4242 4242 4242 4242`. The order should change to **PAID** by itself.
 5. Only then switch to live keys and a live webhook endpoint.
 
+## 6b. Order emails, optional
+
+With email on, customers get an order confirmation and your team gets a "new order" and
+"new enquiry" alert.
+
+1. Create a free account at resend.com and **verify your domain** (add the DNS records it shows).
+2. Create an API key and set `RESEND_API_KEY`, `EMAIL_FROM` (an address on your verified
+   domain) and optionally `ORDER_NOTIFY_EMAIL` in `.env`.
+3. `docker compose -f docker-compose.prod.yml up -d`, then place a test order.
+
+Leave `RESEND_API_KEY` empty to send nothing. Orders still work. A failed email never blocks an order.
+
 ## 7. Go-live checklist
 
 - [ ] `https://YOUR-DOMAIN` loads with a valid padlock; `http://` redirects to `https://`
@@ -130,6 +142,7 @@ Leave the Stripe values empty to accept Cash on Delivery only.
 - [ ] Owner can sign in to `/admin`; a Staff test account cannot open Products or Settings
 - [ ] A test order works (Cash on Delivery), and the confirmation page opens
 - [ ] A customer sign-in email arrives (`/en/account/sign-in`)
+- [ ] If email is on: the test order sent a confirmation to the customer and an alert to your team
 - [ ] Store details filled in (TRN, WhatsApp) and the WhatsApp button opens the right chat
 - [ ] Test data deleted (test orders, test customers)
 - [ ] Uptime monitor pointed at `/api/health` (UptimeRobot / BetterStack, free plans work)

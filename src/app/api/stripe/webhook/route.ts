@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getStripe } from "@/lib/stripe/client";
+import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendOrderNotifications } from "@/lib/notify/order-emails";
 import type Stripe from "stripe";
 
 // Stripe webhooks need the raw request body for signature verification —
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       // Only flip `pending` -> `paid`: a duplicate/late delivery must not
       // regress an order an admin has already moved further along.
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("orders")
         .update({
           status: "paid",
@@ -64,10 +66,17 @@ export async function POST(request: NextRequest) {
             typeof session.payment_intent === "string" ? session.payment_intent : null,
         })
         .eq("number", orderNumber)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .select("number");
       if (error) {
         console.error("[stripe webhook] order update failed", error);
         return NextResponse.json({ error: "Temporary error" }, { status: 500 });
+      }
+      // Email only when THIS delivery flipped the order to paid, so Stripe's
+      // retries and duplicate events never send a second confirmation.
+      if (updated && updated.length > 0) {
+        const locale = session.metadata?.locale === "ar" ? "ar" : "en";
+        after(() => sendOrderNotifications(orderNumber, locale));
       }
     } else if (session.payment_link) {
       const paymentLinkId =

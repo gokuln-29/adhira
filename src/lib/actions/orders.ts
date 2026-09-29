@@ -1,8 +1,10 @@
 "use server";
 
+import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { priceLine, type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
+import { sendOrderNotifications } from "@/lib/notify/order-emails";
 import { withinRateLimit } from "@/lib/security/rate-limit";
 import { orderInputSchema, MAX_LINE_QTY } from "@/lib/validators/order";
 import { SITE_URL } from "@/lib/seo/site";
@@ -193,6 +195,9 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
   }
 
   if (input.paymentMethod !== "card") {
+    // Cash on delivery: the order is final now, so email right away (after the
+    // response is sent, so it never slows checkout).
+    after(() => sendOrderNotifications(order.number, input.locale));
     return { ok: true, token: order.public_token, orderNumber: order.number };
   }
 
@@ -245,7 +250,7 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
           },
         ].filter((l) => l.price_data.unit_amount > 0),
         customer_email: input.customer.email,
-        metadata: { order_number: order.number },
+        metadata: { order_number: order.number, locale: input.locale },
         success_url: `${SITE_URL}/${input.locale}/order-confirmation/${order.public_token}`,
         cancel_url: `${SITE_URL}/${input.locale}/checkout`,
       },
