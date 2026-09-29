@@ -37,6 +37,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Self-contained server bundle for the Docker image (VPS deploy).
+  output: "standalone",
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

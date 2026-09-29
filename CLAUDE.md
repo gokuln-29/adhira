@@ -140,4 +140,6 @@ See `.env.example`: Supabase (URL, anon key, service role key), site URL, Stripe
 - Public tables have no anon write policies (`leads` inserts go through the `createLead` action). Return generic errors to visitors and `console.error` the detail.
 - Security headers/CSP live in `next.config.ts`; the proxy only refreshes the Supabase session for `/admin` and `/account`.
 - **Product rules** (min qty, min order value, glass vessel + refundable deposit, monthly rental + deposit) live on `products`; all pricing goes through `priceLine()` in `src/lib/pricing.ts`, used by both the cart (display) and `createOrder` (authority). Deposits are outside the VAT base and tracked in `orders.deposit_total` / `deposit_status`.
+- **Deploy target is a Hostinger VPS (Docker + Caddy), not Vercel.** See `docs/DEPLOYMENT.md`. Database/auth/storage stay in Supabase cloud. `NEXT_PUBLIC_*` are build args; the service-role key and Stripe keys are runtime env only. Apply `supabase db push` BEFORE deploying new code.
+- Store-wide values (WhatsApp, contacts, TRN, hero image) live in the `store_settings` table, edited in Admin > Settings, never hard-coded. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
 
