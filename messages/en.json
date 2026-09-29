@@ -19,75 +19,66 @@
     "viewAllResults": "View all results for \"{query}\""
   },
   "Home": {
-    "heroEyebrow": "Flowers N Plants for Every Occasion — UAE",
-    "heroTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",
-    "heroSubtitle": "Corporate arrangements, event florals, birthday and wedding gifting, and recurring plant care — delivered across Dubai, Abu Dhabi and Sharjah.",
+    "metaTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",
+    "metaDescription": "Corporate arrangements, event florals, birthday and wedding gifting, and recurring plant care — delivered across Dubai, Abu Dhabi and Sharjah.",
+    "heroEyebrow": "Flowers N Plants · UAE",
+    "heroHeadline": "Flowers and plants, beautifully considered.",
+    "heroLead": "Fresh arrangements, event florals and plant rentals for offices, weddings and celebrations across Dubai, Abu Dhabi and Sharjah.",
     "heroCta": "Shop the collection",
-    "heroCtaSecondary": "Talk to corporate sales",
-    "shopCollection": "Shop the collection",
-    "viewAll": "View all",
-    "emptyProducts": "No products published yet — add one from the admin panel.",
+    "heroLink": "Request a corporate quote",
     "trust": [
-      "Same-day delivery in Dubai for orders before 2 PM",
-      "VAT invoices and purchase orders accepted",
-      "Weekly and monthly flower and plant plans",
-      "Glass vessel and plant rental with refundable deposit"
-    ],
-    "occasionsTitle": "Shop by occasion",
-    "occasionsSubtitle": "Start with what you're planning.",
-    "occOffice": "Offices & reception",
-    "occOfficeBody": "Weekly arrangements that keep every desk and lobby fresh.",
-    "occEvents": "Events & conferences",
-    "occEventsBody": "Stage, table and entrance florals for corporate events.",
-    "occWeddings": "Weddings",
-    "occWeddingsBody": "Bridal bouquets, stage decor and centrepieces.",
-    "occBirthdays": "Birthdays & gifts",
-    "occBirthdaysBody": "Bouquets, flower boxes and balloon bundles.",
-    "rentalEyebrow": "Plant rental",
-    "rentalTitle": "Rent plants for your office",
-    "rentalBody": "Choose a monthly plan and we deliver, care for and replace your plants. A refundable deposit is returned when the plants come back in good condition.",
-    "rentalCta": "See rental plants",
-    "rentalFrom": "From {price} per month",
-    "categoriesTitle": "Browse all categories",
-    "howTitle": "How it works",
-    "steps": [
       {
-        "title": "Choose",
-        "body": "Pick arrangements or plants. Minimum order quantities are shown on every product."
+        "title": "Same-day delivery",
+        "body": "In Dubai, for orders placed before 2 PM."
       },
       {
-        "title": "Set your date",
-        "body": "Tell us where and when. Same-day delivery in Dubai for orders placed before 2 PM."
-      },
-      {
-        "title": "We deliver and care",
-        "body": "Weekly refreshes, plant care, and easy return of glass vessels and rental plants."
-      }
-    ],
-    "whyTitle": "Built for business buyers",
-    "whys": [
-      {
-        "title": "VAT invoices and POs",
+        "title": "VAT invoices",
         "body": "Add your TRN and PO number at checkout."
       },
       {
-        "title": "Refundable deposits",
-        "body": "Return glass vessels and rental plants and get your deposit back."
+        "title": "Rentals and plans",
+        "body": "Weekly, monthly or one-off, for offices and events."
+      }
+    ],
+    "collectionsEyebrow": "Collections",
+    "collectionsTitle": "Shop by occasion",
+    "shopNow": "Shop now",
+    "occOffice": "Offices & reception",
+    "occEvents": "Events & conferences",
+    "occWeddings": "Weddings",
+    "occBirthdays": "Birthdays & gifts",
+    "newArrivalsEyebrow": "Fresh in",
+    "newArrivals": "New arrivals",
+    "viewAll": "View all",
+    "emptyProducts": "No products published yet — add one from the admin panel.",
+    "rentalEyebrow": "Plant rental",
+    "rentalTitle": "Greenery for your workspace, on a monthly plan",
+    "rentalBody": "Choose your plants, choose a term, and we deliver them to your office. A refundable deposit is returned when the plants come back.",
+    "rentalPoints": [
+      "Monthly plans, minimum term shown on each plant",
+      "Refundable deposit",
+      "Delivered to your office"
+    ],
+    "rentalCta": "See rental plants",
+    "howEyebrow": "How it works",
+    "howTitle": "Simple, from first click to delivery",
+    "steps": [
+      {
+        "title": "Choose",
+        "body": "Pick arrangements or plants. Minimum orders are shown up front."
       },
       {
-        "title": "Clear minimums",
-        "body": "Minimum quantity and order value are shown before you add to cart."
+        "title": "Set your date",
+        "body": "Tell us where and when you'd like them delivered."
       },
       {
-        "title": "Recurring plans",
-        "body": "Ask for weekly or monthly deliveries for offices and reception areas."
+        "title": "We deliver",
+        "body": "Fresh flowers and healthy plants at your door, with a VAT invoice."
       }
     ],
     "ctaTitle": "Planning an event or a recurring office plan?",
-    "ctaBody": "Tell us what you need and our team will send you a quote.",
-    "ctaButton": "Request a quote",
-    "ctaSecondary": "Browse rental plants",
-    "newArrivals": "New arrivals"
+    "ctaBody": "Tell us what you need and we'll send you a quote.",
+    "ctaButton": "Request a quote"
   },
   "Footer": {
     "trn": "TRN",

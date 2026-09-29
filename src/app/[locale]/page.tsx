@@ -3,7 +3,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { MonoLabel } from "@/components/ui/mono-label";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
@@ -25,23 +24,32 @@ export async function generateMetadata({
   const t = await getTranslations("Home");
 
   return {
-    title: t("heroTitle"),
-    description: t("heroSubtitle"),
+    title: t("metaTitle"),
+    description: t("metaDescription"),
     alternates: buildAlternates(locale, ""),
-    openGraph: { title: t("heroTitle"), description: t("heroSubtitle") },
+    openGraph: { title: t("metaTitle"), description: t("metaDescription") },
   };
 }
 
 const DEFAULT_HERO = "https://images.unsplash.com/photo-1487070183336-b863922373d4?w=1920&q=80";
 
-// Occasion cards reuse the admin-managed category photos, matched by slug.
-// A card is skipped if the matching category doesn't exist (yet).
+// Occasion tiles reuse the admin-managed category photos, matched by slug. A
+// tile is skipped if its category doesn't exist (yet). Spans make the 2x2 grid
+// deliberately uneven, which reads as editorial rather than a template.
 const OCCASIONS = [
-  { slug: "weekly-flower-arrangements", title: "occOffice", body: "occOfficeBody" },
-  { slug: "mixed-flowers-arrangements-for-events", title: "occEvents", body: "occEventsBody" },
-  { slug: "wedding-flowers-decor", title: "occWeddings", body: "occWeddingsBody" },
-  { slug: "birthday-arrangements", title: "occBirthdays", body: "occBirthdaysBody" },
+  { slug: "weekly-flower-arrangements", title: "occOffice", span: "md:col-span-7" },
+  { slug: "mixed-flowers-arrangements-for-events", title: "occEvents", span: "md:col-span-5" },
+  { slug: "wedding-flowers-decor", title: "occWeddings", span: "md:col-span-5" },
+  { slug: "birthday-arrangements", title: "occBirthdays", span: "md:col-span-7" },
 ] as const;
+
+function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={cn("font-mono-label text-[11px] tracking-[0.18em] text-(--color-primary)", className)}>
+      {children}
+    </span>
+  );
+}
 
 export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
@@ -51,21 +59,26 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
     getTranslations("Home"),
     getTranslations("Pdp"),
     getCategories(),
-    getActiveProducts({ sort: "newest", limit: 8 }),
-    getActiveProducts({ rentalOnly: true, sort: "price-asc", limit: 4 }),
+    getActiveProducts({ sort: "newest", limit: 4 }),
+    getActiveProducts({ rentalOnly: true, sort: "price-asc", limit: 1 }),
     getStoreSettings(),
   ]);
 
   const categories = rawCategories.map((c) => localizeCategory(c, locale));
-  const trust = t.raw("trust") as string[];
+  const trust = t.raw("trust") as { title: string; body: string }[];
   const steps = t.raw("steps") as { title: string; body: string }[];
-  const whys = t.raw("whys") as { title: string; body: string }[];
+  const rentalPoints = t.raw("rentalPoints") as string[];
   const occasions = OCCASIONS.flatMap((o) => {
     const category = categories.find((c) => c.slug === o.slug);
     return category ? [{ ...o, category }] : [];
   });
   const rentalCategory = categories.find((c) => c.slug === "rental-plants");
   const rentalHref = rentalCategory ? "/shop/rental-plants" : "/shop";
+  const rentalImage =
+    rentalCategory?.image ??
+    rentals[0]?.product_images.find((i) => i.is_primary)?.url ??
+    rentals[0]?.product_images[0]?.url ??
+    null;
 
   const cardLabels = {
     addToCartLabel: pdp("addToCart"),
@@ -78,68 +91,67 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
       <Header />
 
       <main className="flex-1">
-        {/* Hero: two clear paths for two kinds of buyer */}
-        <section className="relative overflow-hidden">
+        {/* HERO: one image, one sentence, one clear action */}
+        <section className="relative isolate flex min-h-[78vh] items-end overflow-hidden md:min-h-[86vh]">
           <Image
             src={settings.hero_image_url ?? DEFAULT_HERO}
             alt=""
             fill
             priority
-            quality={60}
+            quality={65}
             sizes="100vw"
-            className="object-cover"
+            className="-z-10 object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-(--color-ink)/85 via-(--color-ink)/70 to-(--color-ink)/30" />
-          <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 pt-24 pb-28 md:pt-32 md:pb-36">
-            <MonoLabel muted={false} className="text-(--color-mint)">
-              {t("heroEyebrow")}
-            </MonoLabel>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
-              {t("heroTitle")}
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-(--color-ink)/85 via-(--color-ink)/35 to-(--color-ink)/10" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-(--color-ink)/60 via-(--color-ink)/20 to-transparent rtl:bg-gradient-to-l" />
+          <div className="mx-auto w-full max-w-6xl px-6 pb-16 md:pb-24">
+            <Eyebrow className="text-(--color-mint)">{t("heroEyebrow")}</Eyebrow>
+            <h1 className="font-display mt-5 max-w-3xl text-5xl text-white md:text-7xl">
+              {t("heroHeadline")}
             </h1>
-            <p className="max-w-xl text-base text-white/85 md:text-lg">{t("heroSubtitle")}</p>
-            <div className="flex flex-wrap gap-4 pt-2">
+            <p className="mt-6 max-w-xl text-base text-white/85 md:text-lg">{t("heroLead")}</p>
+            <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link href="/shop" className={buttonVariants({ variant: "primary", size: "lg" })}>
                 {t("heroCta")}
               </Link>
               <Link
                 href="/corporate#quote"
-                className={cn(
-                  buttonVariants({ variant: "secondary", size: "lg" }),
-                  "border-white/40 bg-white/10 text-white hover:border-white/60 hover:bg-white/20",
-                )}
+                className="font-mono-label text-xs text-white underline decoration-white/40 underline-offset-8 transition-colors hover:decoration-white"
               >
-                {t("ctaButton")}
+                {t("heroLink")} →
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Trust strip */}
-        <section aria-label="Highlights" className="border-b border-(--color-hairline) bg-(--color-surface)">
-          <ul className="mx-auto grid max-w-6xl gap-x-8 gap-y-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* TRUST: three quiet facts, no icons or boxes */}
+        <section aria-label={t("heroEyebrow")} className="border-b border-(--color-hairline) bg-(--color-surface)">
+          <div className="mx-auto grid max-w-6xl divide-y divide-(--color-hairline) px-6 md:grid-cols-3 md:divide-x md:divide-y-0 rtl:md:divide-x-reverse">
             {trust.map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm">
-                <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--color-primary)" />
-                {item}
-              </li>
+              <div key={item.title} className="py-7 md:px-8 md:first:ps-0 md:last:pe-0">
+                <p className="font-mono-label text-[11px] tracking-[0.14em]">{item.title}</p>
+                <p className="mt-2 text-sm text-(--color-muted)">{item.body}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
-        {/* Shop by occasion */}
+        {/* COLLECTIONS */}
         {occasions.length > 0 && (
-          <section className="mx-auto max-w-6xl px-6 pt-16">
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold md:text-3xl">{t("occasionsTitle")}</h2>
-              <p className="mt-1 text-(--color-muted)">{t("occasionsSubtitle")}</p>
+          <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+            <div className="mb-12 flex flex-col gap-3 md:mb-16">
+              <Eyebrow>{t("collectionsEyebrow")}</Eyebrow>
+              <h2 className="font-display text-4xl md:text-6xl">{t("collectionsTitle")}</h2>
             </div>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {occasions.map(({ slug, title, body, category }) => (
+            <div className="grid gap-4 md:grid-cols-12 md:gap-5">
+              {occasions.map(({ slug, title, span, category }) => (
                 <Link
                   key={slug}
                   href={`/shop/${slug}`}
-                  className="group relative flex aspect-[3/4] items-end overflow-hidden rounded-[2px] bg-(--color-hairline)"
+                  className={cn(
+                    "group relative flex aspect-[4/3] items-end overflow-hidden bg-(--color-hairline) md:aspect-auto md:h-[440px]",
+                    span,
+                  )}
                 >
                   {category.image && (
                     <Image
@@ -147,14 +159,16 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                       alt=""
                       fill
                       quality={75}
-                      sizes="(min-width: 1024px) 25vw, 50vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                      sizes="(min-width: 768px) 58vw, 100vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-(--color-ink)/80 via-(--color-ink)/20 to-transparent" />
-                  <div className="relative flex flex-col gap-1 p-4 text-white">
-                    <span className="text-base font-semibold">{t(title)}</span>
-                    <span className="hidden text-sm text-white/80 sm:block">{t(body)}</span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-(--color-ink)/70 via-transparent to-transparent" />
+                  <div className="relative flex w-full items-end justify-between gap-4 p-6 text-white md:p-8">
+                    <span className="font-display text-3xl md:text-4xl">{t(title)}</span>
+                    <span className="font-mono-label shrink-0 pb-1 text-[11px] opacity-90 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
+                      {t("shopNow")} →
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -162,121 +176,94 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           </section>
         )}
 
-        {/* Rental plants */}
-        <section className="mt-20 bg-(--color-surface) py-16">
-          <div className="mx-auto grid max-w-6xl gap-10 px-6 lg:grid-cols-3">
-            <div className="flex flex-col items-start gap-4">
-              <MonoLabel muted={false} className="text-(--color-primary)">
-                {t("rentalEyebrow")}
-              </MonoLabel>
-              <h2 className="text-2xl font-semibold md:text-3xl">{t("rentalTitle")}</h2>
-              <p className="text-(--color-muted)">{t("rentalBody")}</p>
-              <Link href={rentalHref} className={buttonVariants({ variant: "primary" })}>
-                {t("rentalCta")}
+        {/* NEW ARRIVALS */}
+        <section className="bg-(--color-surface) py-24 md:py-32">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mb-12 flex items-end justify-between gap-6 md:mb-16">
+              <div className="flex flex-col gap-3">
+                <Eyebrow>{t("newArrivalsEyebrow")}</Eyebrow>
+                <h2 className="font-display text-4xl md:text-6xl">{t("newArrivals")}</h2>
+              </div>
+              <Link href="/shop" className="font-mono-label shrink-0 pb-2 text-xs text-(--color-primary) underline-offset-8 hover:underline">
+                {t("viewAll")} →
               </Link>
             </div>
-            {rentals.length > 0 && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:col-span-2">
-                {rentals.slice(0, 2).map((product) => (
-                  <ProductCard key={product.id} product={toProductCard(product, locale)} {...cardLabels} />
+            {products.length === 0 ? (
+              <p className="text-(--color-muted)">{t("emptyProducts")}</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4 md:gap-x-6">
+                {products.map((product, i) => (
+                  <ProductCard
+                    key={product.id}
+                    product={toProductCard(product, locale)}
+                    priority={i === 0}
+                    {...cardLabels}
+                  />
                 ))}
               </div>
             )}
           </div>
         </section>
 
-        {/* How it works */}
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="mb-10 text-2xl font-semibold md:text-3xl">{t("howTitle")}</h2>
-          <ol className="grid gap-8 md:grid-cols-3">
+        {/* RENTAL: one calm split feature */}
+        <section className="grid md:grid-cols-2">
+          <div className="relative min-h-[360px] bg-(--color-hairline) md:min-h-[560px]">
+            {rentalImage && (
+              <Image
+                src={rentalImage}
+                alt=""
+                fill
+                quality={75}
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            )}
+          </div>
+          <div className="flex flex-col items-start justify-center gap-6 bg-(--color-canvas) px-6 py-16 md:px-16 md:py-24">
+            <Eyebrow>{t("rentalEyebrow")}</Eyebrow>
+            <h2 className="font-display text-4xl md:text-5xl">{t("rentalTitle")}</h2>
+            <p className="max-w-md text-(--color-muted)">{t("rentalBody")}</p>
+            <ul className="flex flex-col gap-3">
+              {rentalPoints.map((point) => (
+                <li key={point} className="flex items-center gap-3 text-sm">
+                  <span aria-hidden="true" className="h-px w-6 bg-(--color-primary)" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <Link href={rentalHref} className={buttonVariants({ variant: "primary", size: "lg", className: "mt-2" })}>
+              {t("rentalCta")}
+            </Link>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+          <div className="mb-14 flex flex-col gap-3 md:mb-20">
+            <Eyebrow>{t("howEyebrow")}</Eyebrow>
+            <h2 className="font-display max-w-2xl text-4xl md:text-6xl">{t("howTitle")}</h2>
+          </div>
+          <ol className="grid gap-12 md:grid-cols-3 md:gap-10">
             {steps.map((step, i) => (
-              <li key={step.title} className="flex flex-col gap-2 border-t-2 border-(--color-primary) pt-4">
-                <span className="font-mono-label text-xs text-(--color-primary)">0{i + 1}</span>
+              <li key={step.title} className="flex flex-col gap-3">
+                <span aria-hidden="true" className="font-display text-6xl text-(--color-primary)/30">
+                  0{i + 1}
+                </span>
                 <h3 className="text-lg font-semibold">{step.title}</h3>
-                <p className="text-(--color-muted)">{step.body}</p>
+                <p className="max-w-xs text-(--color-muted)">{step.body}</p>
               </li>
             ))}
           </ol>
         </section>
 
-        {/* New arrivals */}
-        <section className="mx-auto max-w-6xl px-6 pb-20">
-          <div className="mb-8 flex items-baseline justify-between">
-            <h2 className="text-2xl font-semibold md:text-3xl">{t("newArrivals")}</h2>
-            <Link href="/shop" className="font-mono-label text-xs text-(--color-primary)">
-              {t("viewAll")}
+        {/* CLOSING CALL TO ACTION */}
+        <section className="bg-(--color-ink) py-24 text-white md:py-32">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-7 px-6 text-center">
+            <h2 className="font-display text-4xl md:text-6xl">{t("ctaTitle")}</h2>
+            <p className="max-w-lg text-white/70">{t("ctaBody")}</p>
+            <Link href="/corporate#quote" className={buttonVariants({ variant: "primary", size: "lg" })}>
+              {t("ctaButton")}
             </Link>
-          </div>
-          {products.length === 0 ? (
-            <p className="text-(--color-muted)">{t("emptyProducts")}</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
-              {products.map((product, i) => (
-                <ProductCard
-                  key={product.id}
-                  product={toProductCard(product, locale)}
-                  priority={i === 0}
-                  {...cardLabels}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Why us */}
-        <section className="border-y border-(--color-hairline) bg-(--color-surface) py-16">
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="mb-10 text-2xl font-semibold md:text-3xl">{t("whyTitle")}</h2>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              {whys.map((why) => (
-                <div key={why.title} className="flex flex-col gap-2">
-                  <h3 className="font-semibold">{why.title}</h3>
-                  <p className="text-sm text-(--color-muted)">{why.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Browse categories */}
-        {categories.length > 0 && (
-          <section className="mx-auto max-w-6xl px-6 py-16">
-            <h2 className="mb-6 text-2xl font-semibold">{t("categoriesTitle")}</h2>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={`/shop/${category.slug}`}
-                  className="rounded-[2px] border border-(--color-hairline) bg-(--color-surface) px-4 py-2 text-sm hover:border-(--color-primary) hover:text-(--color-primary)"
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Closing call to action */}
-        <section className="bg-(--color-ink) py-16 text-white">
-          <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-xl">
-              <h2 className="text-2xl font-semibold md:text-3xl">{t("ctaTitle")}</h2>
-              <p className="mt-2 text-white/75">{t("ctaBody")}</p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/corporate#quote" className={buttonVariants({ variant: "primary", size: "lg" })}>
-                {t("ctaButton")}
-              </Link>
-              <Link
-                href={rentalHref}
-                className={cn(
-                  buttonVariants({ variant: "secondary", size: "lg" }),
-                  "border-white/40 bg-transparent text-white hover:border-white/60 hover:bg-white/10",
-                )}
-              >
-                {t("ctaSecondary")}
-              </Link>
-            </div>
           </div>
         </section>
       </main>
