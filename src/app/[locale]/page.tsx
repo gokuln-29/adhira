@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
 import { getActiveProducts, getCategories, toProductCard } from "@/lib/data/products";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { cn } from "@/lib/utils";
 
 // Public, session-independent content (via the anon/public Supabase client)
 // — safe to cache and revalidate rather than render dynamically per-request.
@@ -45,28 +46,46 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
       <Header />
 
       <main className="flex-1">
-        <section className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 py-24">
-          <MonoLabel muted={false} className="text-(--color-primary)">
-            {t("heroEyebrow")}
-          </MonoLabel>
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight md:text-6xl">
-            {t("heroTitle")}
-          </h1>
-          <p className="max-w-xl text-(--color-muted)">{t("heroSubtitle")}</p>
-          <div className="flex flex-wrap gap-4 pt-4">
-            <Link href="/shop" className={buttonVariants({ variant: "primary", size: "lg" })}>
-              {t("heroCta")}
-            </Link>
-            <Link href="/corporate" className={buttonVariants({ variant: "secondary", size: "lg" })}>
-              {t("heroCtaSecondary")}
-            </Link>
+        <section className="relative flex flex-col items-start overflow-hidden">
+          <Image
+            src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1920&q=80"
+            alt=""
+            fill
+            priority
+            quality={60}
+            sizes="100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-(--color-ink)/60" />
+          <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 pt-24 pb-32">
+            <MonoLabel muted={false} className="text-(--color-mint)">
+              {t("heroEyebrow")}
+            </MonoLabel>
+            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+              {t("heroTitle")}
+            </h1>
+            <p className="max-w-xl text-white/85">{t("heroSubtitle")}</p>
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Link href="/shop" className={buttonVariants({ variant: "primary", size: "lg" })}>
+                {t("heroCta")}
+              </Link>
+              <Link
+                href="/corporate"
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "lg" }),
+                  "border-white/40 bg-white/10 text-white hover:border-white/60 hover:bg-white/20",
+                )}
+              >
+                {t("heroCtaSecondary")}
+              </Link>
+            </div>
           </div>
         </section>
 
         {categories.length > 0 && (
-          <section className="mx-auto max-w-6xl px-6 pb-20">
+          <section className="mx-auto max-w-6xl px-6 pt-6 pb-20">
             <div className="grid gap-4 md:grid-cols-2">
-              {categories.map((category, i) => (
+              {categories.map((category) => (
                 <Link
                   key={category.slug}
                   href={`/shop/${category.slug}`}
@@ -77,8 +96,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                       src={category.image}
                       alt={category.name}
                       fill
-                      priority={i === 0}
-                      quality={i === 0 ? 60 : 75}
+                      quality={75}
                       sizes="(min-width: 768px) 50vw, 100vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
                     />

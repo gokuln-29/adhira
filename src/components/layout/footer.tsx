@@ -39,7 +39,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 md:grid-cols-4">
         <div className="flex flex-col gap-3 md:col-span-1">
           <span className="font-mono-label text-sm text-(--color-ink)">
-            Flowers &amp; Gifts
+            Flowers N Plants
           </span>
           <p className="max-w-xs text-sm text-(--color-muted)">{t("tagline")}</p>
         </div>
@@ -66,7 +66,7 @@ export function Footer() {
       <div className="border-t border-(--color-hairline) px-6 py-6">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <MonoLabel>
-            {t("trn")} 100000000000003 &middot; &copy; {new Date().getFullYear()} Flowers &amp; Gifts &middot; {t("rights")}
+            {t("trn")} 100000000000003 &middot; &copy; {new Date().getFullYear()} Flowers N Plants &middot; {t("rights")}
           </MonoLabel>
           <div className="flex gap-3">
             {paymentMarks.map((mark) => (

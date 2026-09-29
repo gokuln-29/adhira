@@ -52,6 +52,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
 export async function getActiveProducts(opts?: {
   categorySlug?: string;
   tag?: string;
+  q?: string;
   sort?: ProductSort;
   limit?: number;
 }): Promise<ProductRow[]> {
@@ -67,6 +68,10 @@ export async function getActiveProducts(opts?: {
   }
   if (opts?.tag) {
     query = query.contains("tags", [opts.tag]);
+  }
+  if (opts?.q) {
+    const escaped = opts.q.replace(/[%_]/g, (c) => `\\${c}`);
+    query = query.or(`name.ilike.%${escaped}%,short_description.ilike.%${escaped}%`);
   }
 
   switch (opts?.sort) {

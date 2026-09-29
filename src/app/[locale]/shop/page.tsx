@@ -36,13 +36,14 @@ export default async function ShopPage({
   const params = await searchParams;
   const sortParam = Array.isArray(params.sort) ? params.sort[0] : params.sort;
   const tagParam = Array.isArray(params.tag) ? params.tag[0] : params.tag;
+  const qParam = Array.isArray(params.q) ? params.q[0] : params.q;
   const sort: ProductSort = validSorts.includes(sortParam as ProductSort)
     ? (sortParam as ProductSort)
     : "newest";
 
   const [categories, products, t, b] = await Promise.all([
     getCategories(),
-    getActiveProducts({ sort, tag: tagParam }),
+    getActiveProducts({ sort, tag: tagParam, q: qParam }),
     getTranslations("Plp"),
     getTranslations("Breadcrumbs"),
   ]);
@@ -57,6 +58,7 @@ export default async function ShopPage({
           categories={categories}
           sort={sort}
           tag={tagParam}
+          q={qParam}
           products={products}
           basePath="/shop"
         />

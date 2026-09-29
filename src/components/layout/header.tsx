@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { MonoLabel } from "@/components/ui/mono-label";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { useCart } from "@/lib/cart/cart-context";
 
 const navItems = [
@@ -20,13 +22,37 @@ export function Header() {
   const locale = useLocale();
   const pathname = usePathname();
   const { count } = useCart();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  function toggleSearch() {
+    setMobileOpen(false);
+    setSearchOpen((open) => !open);
+  }
+
+  function toggleMobileMenu() {
+    setSearchOpen(false);
+    setMobileOpen((open) => !open);
+  }
 
   return (
     <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-surface)/70 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
-        <Link href="/" className="font-mono-label text-sm text-(--color-ink)">
-          Flowers &amp; Gifts
-        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            aria-label={mobileOpen ? t("closeMenu") : t("menu")}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            onClick={toggleMobileMenu}
+            className="text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none md:hidden"
+          >
+            {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+          </button>
+          <Link href="/" className="font-mono-label text-sm text-(--color-ink)">
+            Flowers N Plants
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label={t("primaryNav")}>
           {navItems.map((item) => (
@@ -43,10 +69,13 @@ export function Header() {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            aria-label={t("search")}
+            aria-label={searchOpen ? t("closeSearch") : t("search")}
+            aria-expanded={searchOpen}
+            aria-controls="header-search"
+            onClick={toggleSearch}
             className="text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none"
           >
-            <SearchIcon />
+            {searchOpen ? <CloseIcon /> : <SearchIcon />}
           </button>
           <Link
             href="/account"
@@ -71,7 +100,7 @@ export function Header() {
               </MonoLabel>
             )}
           </Link>
-          <div className="flex items-center border-(--color-hairline) font-mono-label text-[11px] ltr:border-l ltr:pl-2 rtl:border-r rtl:pr-2">
+          <div className="hidden items-center border-(--color-hairline) font-mono-label text-[11px] ltr:border-l ltr:pl-2 rtl:border-r rtl:pr-2 sm:flex">
             {routing.locales.map((loc) => (
               <Link
                 key={loc}
@@ -91,7 +120,71 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
+
+      {mobileOpen && (
+        <nav
+          id="mobile-nav"
+          aria-label={t("primaryNav")}
+          className="flex flex-col border-t border-(--color-hairline) px-6 py-4 md:hidden"
+        >
+          {navItems.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              onClick={() => setMobileOpen(false)}
+              className="border-b border-(--color-hairline) py-3 font-mono-label text-xs text-(--color-ink) last:border-0"
+            >
+              {t(item.key)}
+            </Link>
+          ))}
+          <div className="flex items-center gap-4 pt-4 font-mono-label text-[11px]">
+            {routing.locales.map((loc) => (
+              <Link
+                key={loc}
+                href={pathname}
+                locale={loc}
+                aria-current={loc === locale ? "true" : undefined}
+                className={
+                  loc === locale
+                    ? "text-(--color-primary)"
+                    : "text-(--color-muted) hover:text-(--color-ink)"
+                }
+              >
+                {loc === "en" ? "EN" : "AR"}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
     </header>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 5h13M2.5 9h13M2.5 13h13"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M4 4l10 10M14 4L4 14"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

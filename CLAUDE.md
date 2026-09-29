@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Flowers & Gifts — Corporate E-commerce (UAE)
+# Flowers N Plants — Corporate E-commerce (UAE)
 
 B2B florist/plant storefront + admin panel for offices in Dubai, Abu Dhabi and Sharjah. Storefront content (products, prices, images, details) is fully admin-managed — no hardcoded product content.
 

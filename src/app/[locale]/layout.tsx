@@ -29,11 +29,11 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Flowers & Gifts | Corporate Florist & Plant Fit-Outs UAE",
-    template: "%s | Flowers & Gifts",
+    default: "Flowers N Plants | Corporate, Events & Celebrations — UAE",
+    template: "%s | Flowers N Plants",
   },
   description:
-    "Recurring flower arrangements, indoor plant setups and corporate gifting for offices across Dubai, Abu Dhabi and Sharjah.",
+    "Fresh flower arrangements, corporate gifting, event florals and plant setups for offices, weddings, birthdays and celebrations across Dubai, Abu Dhabi and Sharjah.",
   openGraph: {
     siteName: SITE_NAME,
     type: "website",

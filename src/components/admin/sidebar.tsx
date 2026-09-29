@@ -41,7 +41,7 @@ export function AdminSidebar() {
   return (
     <aside className="w-56 shrink-0 border-e border-(--color-hairline) px-4 py-6">
       <Link href="/admin" className="block px-2 font-mono-label text-sm">
-        Flowers &amp; Gifts
+        Flowers N Plants
       </Link>
 
       <nav className="mt-8 flex flex-col gap-6">

@@ -9,12 +9,19 @@
     "search": "Search",
     "account": "Account",
     "cart": "Cart",
-    "primaryNav": "Primary"
+    "primaryNav": "Primary",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "searchPlaceholder": "Search products...",
+    "closeSearch": "Close search",
+    "searching": "Searching...",
+    "noResults": "No products match your search.",
+    "viewAllResults": "View all results for \"{query}\""
   },
   "Home": {
-    "heroEyebrow": "Corporate Flowers & Plants — UAE",
-    "heroTitle": "Fresh arrangements and plant fit-outs for offices across the UAE",
-    "heroSubtitle": "Recurring flower service, indoor plant setups and corporate gifting for Dubai, Abu Dhabi and Sharjah.",
+    "heroEyebrow": "Flowers N Plants for Every Occasion — UAE",
+    "heroTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",
+    "heroSubtitle": "Corporate arrangements, event florals, birthday and wedding gifting, and recurring plant care — delivered across Dubai, Abu Dhabi and Sharjah.",
     "heroCta": "Shop the collection",
     "heroCtaSecondary": "Talk to corporate sales",
     "shopCollection": "Shop the collection",
@@ -60,7 +67,9 @@
     "sortPriceDesc": "Price: High to Low",
     "sortNameAsc": "Name A-Z",
     "emptyTitle": "No products found",
-    "emptyBody": "Try a different category, or contact us for a custom arrangement."
+    "emptyBody": "Try a different category, or contact us for a custom arrangement.",
+    "searchResultsFor": "Search results for \"{query}\"",
+    "clearSearch": "Clear"
   },
   "Pdp": {
     "addToCart": "Add to cart",
@@ -156,23 +165,57 @@
     "subtitle": "From a single reception arrangement to a full-floor plant fit-out — our team designs, installs and maintains it on a recurring schedule.",
     "whatWeSetUpTitle": "What we set up",
     "whatWeSetUp": [
-      { "title": "Reception & Lobby", "body": "Statement arrangements and floor plants sized for first impressions." },
-      { "title": "Meeting Rooms", "body": "Low-profile centerpieces that don't block sightlines across the table." },
-      { "title": "Desks & Breakout Areas", "body": "Low-light, low-maintenance plants suited to open-plan floors." }
+      {
+        "title": "Reception & Lobby",
+        "body": "Statement arrangements and floor plants sized for first impressions."
+      },
+      {
+        "title": "Meeting Rooms",
+        "body": "Low-profile centerpieces that don't block sightlines across the table."
+      },
+      {
+        "title": "Desks & Breakout Areas",
+        "body": "Low-light, low-maintenance plants suited to open-plan floors."
+      }
     ],
     "packagesTitle": "Packages",
     "packages": [
-      { "name": "Essential", "detail": "1 reception arrangement, refreshed weekly" },
-      { "name": "Office", "detail": "Reception + 3 meeting rooms, refreshed weekly" },
-      { "name": "Full Fit-Out", "detail": "Reception, meeting rooms, desks and breakout areas" }
+      {
+        "name": "Essential",
+        "detail": "1 reception arrangement, refreshed weekly"
+      },
+      {
+        "name": "Office",
+        "detail": "Reception + 3 meeting rooms, refreshed weekly"
+      },
+      {
+        "name": "Full Fit-Out",
+        "detail": "Reception, meeting rooms, desks and breakout areas"
+      }
     ],
     "packagesNote": "Pricing depends on space size and refresh frequency — request a quote below.",
     "howItWorksTitle": "How it works",
     "steps": [
-      { "step": "01", "title": "Site visit", "body": "We walk your space and recommend placements." },
-      { "step": "02", "title": "Proposal", "body": "A fixed quote with package options and cadence." },
-      { "step": "03", "title": "Setup", "body": "Our team installs on your agreed date." },
-      { "step": "04", "title": "Recurring care", "body": "Scheduled refreshes and plant health checks." }
+      {
+        "step": "01",
+        "title": "Site visit",
+        "body": "We walk your space and recommend placements."
+      },
+      {
+        "step": "02",
+        "title": "Proposal",
+        "body": "A fixed quote with package options and cadence."
+      },
+      {
+        "step": "03",
+        "title": "Setup",
+        "body": "Our team installs on your agreed date."
+      },
+      {
+        "step": "04",
+        "title": "Recurring care",
+        "body": "Scheduled refreshes and plant health checks."
+      }
     ],
     "recurringTitle": "Recurring service",
     "recurringBody": "Weekly or bi-weekly visits keep arrangements fresh and plants healthy — no ad-hoc reordering, one predictable invoice per month.",
@@ -187,16 +230,37 @@
     "title": "Flowers, plants and gifting for businesses across the UAE",
     "subtitle": "Bulk orders, recurring arrangements and corporate gifting programs — billed to your company with a single monthly invoice.",
     "valueProps": [
-      { "title": "Single monthly invoice", "body": "One consolidated invoice with your TRN, no per-order paperwork." },
-      { "title": "Dedicated account manager", "body": "One point of contact for every order, change and renewal." },
-      { "title": "UAE-wide delivery", "body": "Dubai, Abu Dhabi, Sharjah and beyond, on a schedule you set." }
+      {
+        "title": "Single monthly invoice",
+        "body": "One consolidated invoice with your TRN, no per-order paperwork."
+      },
+      {
+        "title": "Dedicated account manager",
+        "body": "One point of contact for every order, change and renewal."
+      },
+      {
+        "title": "UAE-wide delivery",
+        "body": "Dubai, Abu Dhabi, Sharjah and beyond, on a schedule you set."
+      }
     ],
     "faqTitle": "Frequently asked questions",
     "faqs": [
-      { "q": "Do you issue VAT invoices with our TRN?", "a": "Yes — every corporate order is invoiced with your company's TRN and a full VAT breakdown." },
-      { "q": "Can we set up a recurring order?", "a": "Yes — weekly, bi-weekly or monthly, with one consolidated invoice per billing cycle." },
-      { "q": "What's the minimum order for bulk pricing?", "a": "Bulk pricing typically starts at 10+ arrangements or a recurring multi-location contract — request a quote for exact tiers." },
-      { "q": "Do you deliver outside Dubai?", "a": "Yes — we deliver across Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Fujairah and Umm Al Quwain." }
+      {
+        "q": "Do you issue VAT invoices with our TRN?",
+        "a": "Yes — every corporate order is invoiced with your company's TRN and a full VAT breakdown."
+      },
+      {
+        "q": "Can we set up a recurring order?",
+        "a": "Yes — weekly, bi-weekly or monthly, with one consolidated invoice per billing cycle."
+      },
+      {
+        "q": "What's the minimum order for bulk pricing?",
+        "a": "Bulk pricing typically starts at 10+ arrangements or a recurring multi-location contract — request a quote for exact tiers."
+      },
+      {
+        "q": "Do you deliver outside Dubai?",
+        "a": "Yes — we deliver across Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Fujairah and Umm Al Quwain."
+      }
     ],
     "quoteTitle": "Request a bulk quote",
     "formTitle": "Tell us about your requirement",

@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-(--color-canvas) px-6">
       <div className="w-full max-w-sm">
-        <span className="font-mono-label text-sm">Flowers &amp; Gifts</span>
+        <span className="font-mono-label text-sm">Flowers N Plants</span>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Admin sign in</h1>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">

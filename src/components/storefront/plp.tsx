@@ -12,6 +12,7 @@ export function Plp({
   activeCategorySlug,
   sort,
   tag,
+  q,
   products,
   basePath,
 }: {
@@ -20,6 +21,7 @@ export function Plp({
   activeCategorySlug?: string;
   sort: ProductSort;
   tag?: string;
+  q?: string;
   products: ProductRow[];
   basePath: string;
 }) {
@@ -37,6 +39,7 @@ export function Plp({
     const search = new URLSearchParams();
     if (sort !== "newest") search.set("sort", sort);
     if (tag) search.set("tag", tag);
+    if (q) search.set("q", q);
     Object.entries(params).forEach(([key, value]) => {
       if (value) search.set(key, value);
       else search.delete(key);
@@ -48,6 +51,20 @@ export function Plp({
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
+
+      {q && (
+        <div className="mt-3 flex items-center gap-3">
+          <p className="text-sm text-(--color-muted)">
+            {t("searchResultsFor", { query: q })}
+          </p>
+          <Link
+            href={withQuery({ q: undefined })}
+            className="font-mono-label text-[11px] text-(--color-primary)"
+          >
+            {t("clearSearch")}
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8 flex flex-wrap items-center gap-2">
         <Link
