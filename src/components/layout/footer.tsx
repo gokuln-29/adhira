@@ -1,11 +1,13 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { MonoLabel } from "@/components/ui/mono-label";
+import { getStoreSettings } from "@/lib/data/settings";
 
-const paymentMarks = ["Visa", "Mastercard", "Apple Pay", "Tabby", "Tamara"];
+// Only payment methods that actually work at checkout today.
+const paymentMarks = ["Cash on delivery", "Visa", "Mastercard"];
 
-export function Footer() {
-  const t = useTranslations("Footer");
+export async function Footer() {
+  const [t, settings] = await Promise.all([getTranslations("Footer"), getStoreSettings()]);
 
   const columns = [
     {
@@ -42,6 +44,24 @@ export function Footer() {
             Flowers N Plants
           </span>
           <p className="max-w-xs text-sm text-(--color-muted)">{t("tagline")}</p>
+          {(settings.contact_phone || settings.contact_email) && (
+            <ul className="flex flex-col gap-1 text-sm">
+              {settings.contact_phone && (
+                <li>
+                  <a href={`tel:${settings.contact_phone.replace(/[^+\d]/g, "")}`} className="hover:text-(--color-primary)">
+                    {settings.contact_phone}
+                  </a>
+                </li>
+              )}
+              {settings.contact_email && (
+                <li>
+                  <a href={`mailto:${settings.contact_email}`} className="hover:text-(--color-primary)">
+                    {settings.contact_email}
+                  </a>
+                </li>
+              )}
+            </ul>
+          )}
         </div>
 
         {columns.map((column) => (
@@ -66,7 +86,7 @@ export function Footer() {
       <div className="border-t border-(--color-hairline) px-6 py-6">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <MonoLabel>
-            {t("trn")} 100000000000003 &middot; &copy; {new Date().getFullYear()} Flowers N Plants &middot; {t("rights")}
+            {settings.trn && <>{t("trn")} {settings.trn} &middot; </>}&copy; {new Date().getFullYear()} Flowers N Plants &middot; {t("rights")}
           </MonoLabel>
           <div className="flex gap-3">
             {paymentMarks.map((mark) => (

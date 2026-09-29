@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { MonoLabel } from "@/components/ui/mono-label";
@@ -10,6 +10,9 @@ import { useCart } from "@/lib/cart/cart-context";
 import { formatAED } from "@/lib/pricing";
 import { createOrder, type Emirate, type PaymentMethod } from "@/lib/actions/orders";
 import { EMIRATES } from "@/lib/constants/emirates";
+
+const SAVED_KEY = "fg_checkout_v1";
+const SAVED_FIELDS = ["name", "email", "phone", "emirate", "line1", "line2", "area", "landmark", "company", "trn"] as const;
 
 export function CheckoutView() {
   const t = useTranslations("Checkout");
@@ -27,11 +30,34 @@ export function CheckoutView() {
   const paymentMethods: { value: PaymentMethod; label: string; available: boolean }[] = [
     { value: "cod", label: t("codLabel"), available: true },
     { value: "card", label: t("cardLabel"), available: true },
-    { value: "tabby", label: t("tabbyLabel"), available: false },
-    { value: "tamara", label: t("tamaraLabel"), available: false },
   ];
 
-  const [isBusiness, setIsBusiness] = useState(false);
+  // Returning customers shouldn't retype everything: details from their last
+  // order are kept in this browser only (never sent anywhere until checkout).
+  const [init, setInit] = useState<{ saved: Record<string, string>; ready: boolean; minDate?: string }>({
+    saved: {},
+    ready: false,
+  });
+  useEffect(() => {
+    let saved: Record<string, string> = {};
+    try {
+      const raw = window.localStorage.getItem(SAVED_KEY);
+      if (raw) saved = JSON.parse(raw) as Record<string, string>;
+    } catch {
+      // storage unavailable: just start with an empty form
+    }
+    // Read in the browser only, so server and first client render match.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInit({
+      saved,
+      ready: true,
+      minDate: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" }),
+    });
+  }, []);
+  const { saved, ready, minDate } = init;
+
+  const [businessChoice, setBusinessChoice] = useState<boolean | null>(null);
+  const isBusiness = businessChoice ?? !!saved.company;
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +114,14 @@ export function CheckoutView() {
       return;
     }
 
+    try {
+      const toSave: Record<string, string> = {};
+      for (const field of SAVED_FIELDS) toSave[field] = String(formData.get(field) || "");
+      window.localStorage.setItem(SAVED_KEY, JSON.stringify(toSave));
+    } catch {
+      // ignore storage errors
+    }
+
     if (result.redirectUrl) {
       // Full navigation to Stripe's hosted page — the cart is cleared on
       // the confirmation page, not here, so a cancelled payment leaves it
@@ -109,6 +143,8 @@ export function CheckoutView() {
 
   return (
     <form
+      // Remount once saved details are loaded so the fields pick up their defaults.
+      key={ready ? "ready" : "loading"}
       onSubmit={handleSubmit}
       className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-3"
     >
@@ -120,37 +156,45 @@ export function CheckoutView() {
             {t("contact")}
           </MonoLabel>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="name" label={t("fullName")} required autoComplete="name" />
+            <Input name="name" label={t("fullName")} required autoComplete="name" defaultValue={saved.name} />
             <Input
               name="email"
               type="email"
+              defaultValue={saved.email}
               label={t("email")}
               required
               autoComplete="email"
             />
           </div>
-          <Input name="phone" type="tel" label={t("phone")} required autoComplete="tel" />
+          <Input name="phone" type="tel" label={t("phone")} required autoComplete="tel" defaultValue={saved.phone} />
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
           <MonoLabel as="legend" muted={false}>
             {t("deliveryAddress")}
           </MonoLabel>
-          <Select name="emirate" label={t("emirate")} required defaultValue="Dubai">
+          <Select name="emirate" label={t("emirate")} required defaultValue={saved.emirate || "Dubai"}>
             {EMIRATES.map((e) => (
               <option key={e} value={e}>
                 {tEmirates(e)}
               </option>
             ))}
           </Select>
-          <Input name="line1" label={t("addressLine1")} required />
+          <Input name="line1" label={t("addressLine1")} required autoComplete="address-line1" defaultValue={saved.line1} />
+          <details className="group" open={!!(saved.line2 || saved.area || saved.landmark)}>
+            <summary className="cursor-pointer font-mono-label text-[11px] text-(--color-primary)">
+              {t("moreAddress")}
+            </summary>
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input name="line2" label={t("addressLine2")} defaultValue={saved.line2} />
+                <Input name="area" label={t("area")} defaultValue={saved.area} />
+              </div>
+              <Input name="landmark" label={t("landmark")} defaultValue={saved.landmark} />
+            </div>
+          </details>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="line2" label={t("addressLine2")} />
-            <Input name="area" label={t("area")} />
-          </div>
-          <Input name="landmark" label={t("landmark")} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="deliveryDate" type="date" label={t("deliveryDate")} />
+            <Input name="deliveryDate" type="date" min={minDate} label={t("deliveryDate")} hint={t("deliveryDateHint")} />
             <Select name="deliverySlot" label={t("deliverySlot")}>
               {slots.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -159,7 +203,14 @@ export function CheckoutView() {
               ))}
             </Select>
           </div>
-          <Textarea name="giftMessage" label={t("giftMessage")} rows={3} />
+          <details>
+            <summary className="cursor-pointer font-mono-label text-[11px] text-(--color-primary)">
+              {t("addGiftMessage")}
+            </summary>
+            <div className="mt-4">
+              <Textarea name="giftMessage" label={t("giftMessage")} rows={3} />
+            </div>
+          </details>
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
@@ -167,14 +218,14 @@ export function CheckoutView() {
             <input
               type="checkbox"
               checked={isBusiness}
-              onChange={(e) => setIsBusiness(e.target.checked)}
+              onChange={(e) => setBusinessChoice(e.target.checked)}
             />
             {t("businessOrder")}
           </label>
           {isBusiness && (
             <div className="grid gap-4 sm:grid-cols-3">
-              <Input name="company" label={t("companyName")} />
-              <Input name="trn" label={t("trn")} />
+              <Input name="company" label={t("companyName")} defaultValue={saved.company} />
+              <Input name="trn" label={t("trn")} defaultValue={saved.trn} />
               <Input name="poNumber" label={t("poNumber")} />
             </div>
           )}
@@ -218,7 +269,7 @@ export function CheckoutView() {
         </Button>
       </div>
 
-      <div className="h-fit border border-(--color-hairline) p-6">
+      <div className="h-fit border border-(--color-hairline) p-6 lg:sticky lg:top-24">
         <MonoLabel as="p" muted={false} className="mb-4">
           {t("orderSummary")}
         </MonoLabel>

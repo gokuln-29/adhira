@@ -8,6 +8,7 @@ import { CartProvider } from "@/lib/cart/cart-context";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { organizationJsonLd, localBusinessJsonLd } from "@/lib/seo/organization";
 import { JsonLd } from "@/components/seo/json-ld";
+import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -76,6 +77,7 @@ export default async function LocaleLayout({
         <JsonLd data={localBusinessJsonLd()} />
         <NextIntlClientProvider messages={messages}>
           <CartProvider>{children}</CartProvider>
+          <WhatsAppButton />
         </NextIntlClientProvider>
       </body>
     </html>

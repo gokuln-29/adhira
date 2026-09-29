@@ -118,6 +118,7 @@ export type Database = {
           position: number
           slug: string
           updated_at: string
+          name_ar: string | null
         }
         Insert: {
           created_at?: string
@@ -127,6 +128,7 @@ export type Database = {
           position?: number
           slug: string
           updated_at?: string
+          name_ar?: string | null
         }
         Update: {
           created_at?: string
@@ -136,6 +138,7 @@ export type Database = {
           position?: number
           slug?: string
           updated_at?: string
+          name_ar?: string | null
         }
         Relationships: []
       }
@@ -525,6 +528,8 @@ export type Database = {
           rental_monthly_price: number | null
           rental_min_months: number
           rental_deposit: number
+          name_ar: string | null
+          short_description_ar: string | null
         }
         Insert: {
           base_price: number
@@ -552,6 +557,8 @@ export type Database = {
           rental_monthly_price?: number | null
           rental_min_months?: number
           rental_deposit?: number
+          name_ar?: string | null
+          short_description_ar?: string | null
         }
         Update: {
           base_price?: number
@@ -579,6 +586,8 @@ export type Database = {
           rental_monthly_price?: number | null
           rental_min_months?: number
           rental_deposit?: number
+          name_ar?: string | null
+          short_description_ar?: string | null
         }
         Relationships: [
           {
@@ -605,6 +614,36 @@ export type Database = {
           hits?: number
           key?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      store_settings: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          hero_image_url: string | null
+          id: boolean
+          trn: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          hero_image_url?: string | null
+          id?: boolean
+          trn?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          hero_image_url?: string | null
+          id?: boolean
+          trn?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
       }

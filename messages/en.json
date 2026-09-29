@@ -221,7 +221,10 @@
     "deposit": "Refundable deposit",
     "depositNote": "Deposits are refunded when the glass vessel or rental plant is returned in good condition.",
     "rentalMonths": "Rental: {months, plural, one {# month} other {# months}}",
-    "withVessel": "With glass vessel"
+    "withVessel": "With glass vessel",
+    "moreAddress": "Apartment, area or landmark (optional)",
+    "deliveryDateHint": "Leave empty for the earliest delivery",
+    "addGiftMessage": "Add a gift message (optional)"
   },
   "OrderConfirmation": {
     "eyebrow": "Order confirmed",
@@ -397,5 +400,9 @@
     "email": "Email",
     "sendLink": "Send sign-in link",
     "sending": "Sending..."
+  },
+  "Whatsapp": {
+    "label": "Chat on WhatsApp",
+    "message": "Hello Flowers N Plants, I have a question about an order."
   }
 }

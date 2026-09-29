@@ -7,6 +7,7 @@ import { MonoLabel } from "@/components/ui/mono-label";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
+import { getStoreSettings } from "@/lib/data/settings";
 import { getActiveProducts, getCategories, toProductCard } from "@/lib/data/products";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,8 @@ export async function generateMetadata({
   };
 }
 
+const DEFAULT_HERO = "https://images.unsplash.com/photo-1487070183336-b863922373d4?w=1920&q=80";
+
 // Occasion cards reuse the admin-managed category photos, matched by slug.
 // A card is skipped if the matching category doesn't exist (yet).
 const OCCASIONS = [
@@ -43,12 +46,13 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, pdp, categories, products, rentals] = await Promise.all([
+  const [t, pdp, categories, products, rentals, settings] = await Promise.all([
     getTranslations("Home"),
     getTranslations("Pdp"),
     getCategories(),
     getActiveProducts({ sort: "newest", limit: 8 }),
     getActiveProducts({ rentalOnly: true, sort: "price-asc", limit: 4 }),
+    getStoreSettings(),
   ]);
 
   const trust = t.raw("trust") as string[];
@@ -75,7 +79,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         {/* Hero: two clear paths for two kinds of buyer */}
         <section className="relative overflow-hidden">
           <Image
-            src="https://images.unsplash.com/photo-1487070183336-b863922373d4?w=1920&q=80"
+            src={settings.hero_image_url ?? DEFAULT_HERO}
             alt=""
             fill
             priority

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { StaffPanel } from "@/components/admin/settings/staff-panel";
+import { StoreSettingsForm } from "@/components/admin/settings/store-settings-form";
 import { getAllStaff } from "@/lib/data/admin/staff";
+import { createClient } from "@/lib/supabase/server";
+import type { StoreSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -16,11 +19,33 @@ const keyChecks = [
 ] as const;
 
 export default async function AdminSettingsPage() {
-  const staff = await getAllStaff();
+  const supabase = await createClient();
+  const [staff, { data: settings }] = await Promise.all([
+    getAllStaff(),
+    supabase
+      .from("store_settings")
+      .select("whatsapp_number, contact_phone, contact_email, trn, hero_image_url")
+      .maybeSingle(),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold">Settings</h1>
+
+      <section className="flex flex-col gap-4">
+        <MonoLabel muted={false}>Store details</MonoLabel>
+        <StoreSettingsForm
+          settings={
+            (settings as StoreSettings | null) ?? {
+              whatsapp_number: null,
+              contact_phone: null,
+              contact_email: null,
+              trn: null,
+              hero_image_url: null,
+            }
+          }
+        />
+      </section>
 
       <section className="flex flex-col gap-4">
         <MonoLabel muted={false}>Staff &amp; Roles</MonoLabel>
