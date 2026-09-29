@@ -285,6 +285,10 @@ export type Database = {
           product_id: string | null
           qty: number
           unit_price: number
+          vessel: boolean
+          vessel_fee: number
+          deposit: number
+          rental_months: number | null
         }
         Insert: {
           id?: string
@@ -294,6 +298,10 @@ export type Database = {
           product_id?: string | null
           qty: number
           unit_price: number
+          vessel?: boolean
+          vessel_fee?: number
+          deposit?: number
+          rental_months?: number | null
         }
         Update: {
           id?: string
@@ -303,6 +311,10 @@ export type Database = {
           product_id?: string | null
           qty?: number
           unit_price?: number
+          vessel?: boolean
+          vessel_fee?: number
+          deposit?: number
+          rental_months?: number | null
         }
         Relationships: [
           {
@@ -342,6 +354,8 @@ export type Database = {
           total: number
           updated_at: string
           vat: number
+          deposit_total: number
+          deposit_status: string
         }
         Insert: {
           address?: Json
@@ -363,6 +377,8 @@ export type Database = {
           total?: number
           updated_at?: string
           vat?: number
+          deposit_total?: number
+          deposit_status?: string
         }
         Update: {
           address?: Json
@@ -384,6 +400,8 @@ export type Database = {
           total?: number
           updated_at?: string
           vat?: number
+          deposit_total?: number
+          deposit_status?: string
         }
         Relationships: [
           {
@@ -498,6 +516,15 @@ export type Database = {
           tags: string[]
           updated_at: string
           vat_rate: number
+          min_order_qty: number
+          min_order_value: number
+          allows_vessel: boolean
+          vessel_price: number
+          vessel_deposit: number
+          is_rental: boolean
+          rental_monthly_price: number | null
+          rental_min_months: number
+          rental_deposit: number
         }
         Insert: {
           base_price: number
@@ -516,6 +543,15 @@ export type Database = {
           tags?: string[]
           updated_at?: string
           vat_rate?: number
+          min_order_qty?: number
+          min_order_value?: number
+          allows_vessel?: boolean
+          vessel_price?: number
+          vessel_deposit?: number
+          is_rental?: boolean
+          rental_monthly_price?: number | null
+          rental_min_months?: number
+          rental_deposit?: number
         }
         Update: {
           base_price?: number
@@ -534,6 +570,15 @@ export type Database = {
           tags?: string[]
           updated_at?: string
           vat_rate?: number
+          min_order_qty?: number
+          min_order_value?: number
+          allows_vessel?: boolean
+          vessel_price?: number
+          vessel_deposit?: number
+          is_rental?: boolean
+          rental_monthly_price?: number | null
+          rental_min_months?: number
+          rental_deposit?: number
         }
         Relationships: [
           {

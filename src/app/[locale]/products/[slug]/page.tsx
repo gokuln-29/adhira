@@ -58,6 +58,7 @@ export default async function ProductPage({
   if (!product) notFound();
 
   const price = getEffectivePrice(product);
+  const isRental = product.is_rental && (product.rental_monthly_price ?? 0) > 0;
   const images = product.product_images
     .slice()
     .sort((a, b) => a.position - b.position)
@@ -117,14 +118,15 @@ export default async function ProductPage({
 
             <div className="flex items-baseline gap-3">
               <MonoLabel as="span" muted={false} className="text-lg">
-                {formatAED(price.finalPrice)}
+                {isRental ? formatAED(product.rental_monthly_price ?? 0) : formatAED(price.finalPrice)}
+                {isRental && <span className="text-(--color-muted)"> {pdp("perMonth")}</span>}
               </MonoLabel>
-              {price.isOnSale && price.originalPrice && (
+              {!isRental && price.isOnSale && price.originalPrice && (
                 <MonoLabel className="line-through">
                   {formatAED(price.originalPrice)}
                 </MonoLabel>
               )}
-              {price.discountLabel && (
+              {!isRental && price.discountLabel && (
                 <span className="rounded-[2px] bg-(--color-primary) px-2 py-1 font-mono-label text-[10px] text-white">
                   {price.discountLabel}
                 </span>
@@ -157,6 +159,15 @@ export default async function ProductPage({
                 sale_start: product.sale_start,
                 sale_end: product.sale_end,
                 vat_rate: product.vat_rate,
+                min_order_qty: product.min_order_qty,
+                min_order_value: product.min_order_value,
+                allows_vessel: product.allows_vessel,
+                vessel_price: product.vessel_price,
+                vessel_deposit: product.vessel_deposit,
+                is_rental: product.is_rental,
+                rental_monthly_price: product.rental_monthly_price,
+                rental_min_months: product.rental_min_months,
+                rental_deposit: product.rental_deposit,
               }}
             />
 
@@ -169,7 +180,9 @@ export default async function ProductPage({
             <h2 className="mb-8 text-2xl font-semibold">{pdp("relatedTitle")}</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
               {related.map((p) => (
-                <ProductCard key={p.id} product={toProductCard(p)} addToCartLabel={pdp("addToCart")} />
+                <ProductCard key={p.id} product={toProductCard(p)} addToCartLabel={pdp("addToCart")}
+                perMonthLabel={pdp("perMonth")}
+                minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })} />
               ))}
             </div>
           </section>

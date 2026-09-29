@@ -1,4 +1,4 @@
-import type { PricedProduct } from "@/lib/pricing";
+import type { PricedProduct, ProductRules } from "@/lib/pricing";
 import type { ProductCardDetail } from "@/components/product/product-card";
 
 export interface CategoryRow {
@@ -17,7 +17,7 @@ export interface ProductImageRow {
   is_primary: boolean;
 }
 
-export interface ProductRow extends PricedProduct {
+export interface ProductRow extends PricedProduct, ProductRules {
   id: string;
   category_id: string | null;
   name: string;

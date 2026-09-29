@@ -21,3 +21,26 @@ export async function updateOrderStatus(
   revalidatePath(`/admin/orders/${number}`);
   return { ok: true };
 }
+
+// Marks the refundable deposit (glass vessels / rental plants) as refunded once
+// the items are back and the money has been returned to the customer. Only
+// owners and managers: it records a payout.
+export async function updateDepositStatus(
+  number: string,
+  status: "held" | "refunded",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
+  if (status !== "held" && status !== "refunded") return { ok: false, error: "Unknown status." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ deposit_status: status })
+    .eq("number", number)
+    .gt("deposit_total", 0)
+    .select("number");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "This order has no deposit." };
+  revalidatePath(`/admin/orders/${number}`);
+  return { ok: true };
+}

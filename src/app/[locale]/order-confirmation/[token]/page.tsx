@@ -66,6 +66,12 @@ export default async function OrderConfirmationPage({
                 <span className="text-(--color-muted)">{t("vat")}</span>
                 <span>{formatAED(order.vat)}</span>
               </div>
+              {order.deposit_total > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-(--color-muted)">{t("deposit")}</span>
+                  <span>{formatAED(order.deposit_total)}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 text-sm">
                 <span>{t("total")}</span>
                 <span>{formatAED(order.total)}</span>

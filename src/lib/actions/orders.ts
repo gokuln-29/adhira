@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEffectivePrice } from "@/lib/pricing";
+import { priceLine, type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { withinRateLimit } from "@/lib/security/rate-limit";
 import { orderInputSchema, MAX_LINE_QTY } from "@/lib/validators/order";
@@ -67,56 +67,88 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
   }
 
   // Merge duplicate lines so one product can't slip past the quantity cap.
-  const qtyById = new Map<string, number>();
+  const pickById = new Map<string, LineSelection>();
   for (const line of input.items) {
-    qtyById.set(line.productId, Math.min((qtyById.get(line.productId) ?? 0) + line.qty, MAX_LINE_QTY));
+    const prev = pickById.get(line.productId);
+    pickById.set(line.productId, {
+      qty: Math.min((prev?.qty ?? 0) + line.qty, MAX_LINE_QTY),
+      vessel: line.vessel,
+      months: line.months,
+    });
   }
 
   const supabase = createAdminClient();
 
   const { data: products, error: productsError } = await supabase
     .from("products")
-    .select("id, name, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate")
-    .in("id", [...qtyById.keys()])
+    .select(
+      "id, name, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate, min_order_qty, min_order_value, allows_vessel, vessel_price, vessel_deposit, is_rental, rental_monthly_price, rental_min_months, rental_deposit",
+    )
+    .in("id", [...pickById.keys()])
     .eq("status", "active");
   if (productsError) {
     console.error("[createOrder] product lookup failed", productsError);
     return { ok: false, error: GENERIC_ERROR };
   }
-  if (!products || products.length !== qtyById.size) {
+  if (!products || products.length !== pickById.size) {
     return {
       ok: false,
       error: "Some items in your cart are no longer available. Please review your cart.",
     };
   }
 
-  // Money in whole fils (integers) so totals never drift by floating-point.
-  const lines = products.map((p) => {
-    const qty = qtyById.get(p.id)!;
-    const price = getEffectivePrice({
-      base_price: Number(p.base_price),
-      discount_type: p.discount_type as "percent" | "flat" | null,
-      discount_value: p.discount_value == null ? null : Number(p.discount_value),
-      sale_start: p.sale_start,
-      sale_end: p.sale_end,
-      vat_rate: Number(p.vat_rate),
-    });
-    const unitFils = Math.round(price.finalPrice * 100);
-    const lineFils = unitFils * qty;
-    return {
+  // Every rule, price and deposit comes from the database row, never the
+  // browser. Money is in whole fils (integers) so totals never drift.
+  const lines = [];
+  for (const p of products) {
+    const selection = pickById.get(p.id)!;
+    const priced = priceLine(
+      {
+        base_price: Number(p.base_price),
+        discount_type: p.discount_type as "percent" | "flat" | null,
+        discount_value: p.discount_value == null ? null : Number(p.discount_value),
+        sale_start: p.sale_start,
+        sale_end: p.sale_end,
+        vat_rate: Number(p.vat_rate),
+        min_order_qty: p.min_order_qty,
+        min_order_value: Number(p.min_order_value),
+        allows_vessel: p.allows_vessel,
+        vessel_price: Number(p.vessel_price),
+        vessel_deposit: Number(p.vessel_deposit),
+        is_rental: p.is_rental,
+        rental_monthly_price: p.rental_monthly_price == null ? null : Number(p.rental_monthly_price),
+        rental_min_months: p.rental_min_months,
+        rental_deposit: Number(p.rental_deposit),
+      },
+      selection,
+    );
+
+    const problem = priced.problems[0];
+    if (problem) {
+      const msg =
+        problem.code === "min_qty"
+          ? `minimum quantity is ${problem.min}.`
+          : problem.code === "min_months"
+            ? `minimum rental is ${problem.min} months.`
+            : `minimum order value is AED ${problem.min.toFixed(2)}.`;
+      return { ok: false, error: `${p.name}: ${msg}` };
+    }
+
+    lines.push({
       productId: p.id,
       name: p.name,
-      qty,
-      unitFils,
-      lineFils,
-      vatFils: Math.round((lineFils * price.vatRate) / 100),
-    };
-  });
+      qty: Math.max(1, selection.qty),
+      vesselUnitFils: priced.vessel ? Math.round(Number(p.vessel_price) * 100) : 0,
+      ...priced,
+    });
+  }
 
   const subtotalFils = lines.reduce((sum, l) => sum + l.lineFils, 0);
   const vatFils = lines.reduce((sum, l) => sum + l.vatFils, 0);
+  const depositFils = lines.reduce((sum, l) => sum + l.depositFils, 0);
   const deliveryFils = 0;
-  const totalFils = subtotalFils + vatFils + deliveryFils;
+  // Deposits are refundable and outside the VAT base, but part of what is charged.
+  const totalFils = subtotalFils + vatFils + depositFils + deliveryFils;
 
   const notes =
     [
@@ -138,6 +170,7 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
       subtotal: subtotalFils / 100,
       vat: vatFils / 100,
       delivery_fee: deliveryFils / 100,
+      deposit_total: depositFils / 100,
       total: totalFils / 100,
       items: lines.map((l) => ({
         product_id: l.productId,
@@ -145,6 +178,10 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
         qty: l.qty,
         unit_price: l.unitFils / 100,
         line_total: l.lineFils / 100,
+        vessel: l.vessel,
+        vessel_fee: l.vesselFils / 100,
+        deposit: l.depositFils / 100,
+        rental_months: l.isRental ? l.months : null,
       })),
     },
   });
@@ -171,11 +208,23 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
           ...lines.map((l) => ({
             price_data: {
               currency: "aed",
-              product_data: { name: l.name },
+              product_data: {
+                name: l.isRental ? `${l.name} (rental, ${l.months} months)` : l.name,
+              },
               unit_amount: l.unitFils,
             },
             quantity: l.qty,
           })),
+          ...lines
+            .filter((l) => l.vessel)
+            .map((l) => ({
+              price_data: {
+                currency: "aed",
+                product_data: { name: `Glass vessel: ${l.name}` },
+                unit_amount: l.vesselUnitFils,
+              },
+              quantity: l.qty,
+            })),
           // Prices are stored VAT-exclusive with VAT broken out separately,
           // so it needs its own line for the charge to match `orders.total`.
           {
@@ -183,6 +232,14 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
               currency: "aed",
               product_data: { name: "VAT" },
               unit_amount: vatFils,
+            },
+            quantity: 1,
+          },
+          {
+            price_data: {
+              currency: "aed",
+              product_data: { name: "Refundable deposit" },
+              unit_amount: depositFils,
             },
             quantity: 1,
           },

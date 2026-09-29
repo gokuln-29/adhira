@@ -134,6 +134,8 @@ export function Plp({
                 key={product.id}
                 product={toProductCard(product)}
                 addToCartLabel={pdp("addToCart")}
+                perMonthLabel={pdp("perMonth")}
+                minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })}
                 priority={i === 0}
               />
             ))}

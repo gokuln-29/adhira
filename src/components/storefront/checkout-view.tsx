@@ -7,14 +7,14 @@ import { MonoLabel } from "@/components/ui/mono-label";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
-import { formatAED, getEffectivePrice } from "@/lib/pricing";
+import { formatAED } from "@/lib/pricing";
 import { createOrder, type Emirate, type PaymentMethod } from "@/lib/actions/orders";
 import { EMIRATES } from "@/lib/constants/emirates";
 
 export function CheckoutView() {
   const t = useTranslations("Checkout");
   const tEmirates = useTranslations("Emirates");
-  const { items, subtotal, vat, total } = useCart();
+  const { items, subtotal, vat, deposit, total, lines, valid } = useCart();
   const router = useRouter();
   const locale = useLocale();
 
@@ -45,6 +45,10 @@ export function CheckoutView() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
+    if (!valid) {
+      setError(t("fixMinimums"));
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
@@ -69,7 +73,12 @@ export function CheckoutView() {
       poNumber: isBusiness ? String(formData.get("poNumber") || "") || undefined : undefined,
       paymentMethod: payment,
       // Only WHICH products and HOW MANY: the server prices the order itself.
-      items: items.map((item) => ({ productId: item.productId, qty: item.qty })),
+      items: items.map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+        vessel: item.vessel,
+        months: item.months,
+      })),
       locale: locale as "en" | "ar",
     });
 
@@ -215,14 +224,23 @@ export function CheckoutView() {
         </MonoLabel>
         <div className="flex flex-col gap-3 border-b border-(--color-hairline) pb-4">
           {items.map((item) => {
-            const price = getEffectivePrice(item);
+            const line = lines[item.productId];
+            const isRental = item.is_rental && (item.rental_monthly_price ?? 0) > 0;
             return (
-              <div key={item.productId} className="flex justify-between text-sm">
+              <div key={item.productId} className="flex justify-between gap-3 text-sm">
                 <span>
                   {item.name} <span className="text-(--color-muted)">×{item.qty}</span>
+                  {isRental && (
+                    <span className="block text-xs text-(--color-muted)">
+                      {t("rentalMonths", { months: item.months })}
+                    </span>
+                  )}
+                  {item.vessel && (
+                    <span className="block text-xs text-(--color-muted)">{t("withVessel")}</span>
+                  )}
                 </span>
                 <MonoLabel muted={false}>
-                  {formatAED(price.finalPrice * item.qty)}
+                  {formatAED((line?.goods ?? 0) + (line?.vessel ?? 0))}
                 </MonoLabel>
               </div>
             );
@@ -237,7 +255,14 @@ export function CheckoutView() {
             <span className="text-(--color-muted)">{t("vat")}</span>
             <span>{formatAED(vat)}</span>
           </div>
+          {deposit > 0 && (
+            <div className="flex justify-between">
+              <span className="text-(--color-muted)">{t("deposit")}</span>
+              <span>{formatAED(deposit)}</span>
+            </div>
+          )}
         </div>
+        {deposit > 0 && <p className="pt-3 text-xs text-(--color-muted)">{t("depositNote")}</p>}
         <div className="flex justify-between pt-4 font-mono-label text-sm">
           <span>{t("total")}</span>
           <span>{formatAED(total)}</span>

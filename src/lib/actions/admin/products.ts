@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import type { ProductCardDetail } from "@/components/product/product-card";
+import { productInputSchema, type ProductInput } from "@/lib/validators/product";
 
 export interface ProductImageInput {
   url: string;
@@ -26,6 +27,15 @@ export interface ProductFormInput {
   tags: string[];
   status: "draft" | "active";
   images: ProductImageInput[];
+  min_order_qty: number;
+  min_order_value: number;
+  allows_vessel: boolean;
+  vessel_price: number;
+  vessel_deposit: number;
+  is_rental: boolean;
+  rental_monthly_price: number | null;
+  rental_min_months: number;
+  rental_deposit: number;
 }
 
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -55,29 +65,53 @@ async function replaceImages(
   if (insertError) throw insertError;
 }
 
+function toColumns(input: ProductInput) {
+  return {
+    name: input.name,
+    slug: input.slug,
+    short_description: input.short_description || null,
+    details: input.details as unknown as never,
+    base_price: input.base_price,
+    discount_type: input.discount_type,
+    discount_value: input.discount_value,
+    sale_start: input.sale_start,
+    sale_end: input.sale_end,
+    category_id: input.category_id,
+    tags: input.tags,
+    status: input.status,
+    min_order_qty: input.min_order_qty,
+    min_order_value: input.min_order_value,
+    allows_vessel: input.allows_vessel,
+    vessel_price: input.vessel_price,
+    vessel_deposit: input.vessel_deposit,
+    is_rental: input.is_rental,
+    rental_monthly_price: input.rental_monthly_price,
+    rental_min_months: input.rental_min_months,
+    rental_deposit: input.rental_deposit,
+  };
+}
+
+function validate(raw: ProductFormInput): { ok: true; input: ProductInput } | { ok: false; error: string } {
+  const parsed = productInputSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the product details." };
+  }
+  return { ok: true, input: parsed.data };
+}
+
 export async function createProduct(
-  input: ProductFormInput,
+  raw: ProductFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
+  const checked = validate(raw);
+  if (!checked.ok) return checked;
+  const input = checked.input;
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("products")
-    .insert({
-      name: input.name.trim(),
-      slug: input.slug.trim(),
-      short_description: input.short_description.trim() || null,
-      details: input.details as unknown as never,
-      base_price: input.base_price,
-      discount_type: input.discount_type,
-      discount_value: input.discount_value,
-      sale_start: input.sale_start,
-      sale_end: input.sale_end,
-      category_id: input.category_id,
-      tags: input.tags,
-      status: input.status,
-    })
+    .insert(toColumns(input))
     .select("id")
     .single();
 
@@ -96,28 +130,18 @@ export async function createProduct(
 
 export async function updateProduct(
   id: string,
-  input: ProductFormInput,
+  raw: ProductFormInput,
 ): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
+  const checked = validate(raw);
+  if (!checked.ok) return checked;
+  const input = checked.input;
   const supabase = await createClient();
 
   const { error } = await supabase
     .from("products")
-    .update({
-      name: input.name.trim(),
-      slug: input.slug.trim(),
-      short_description: input.short_description.trim() || null,
-      details: input.details as unknown as never,
-      base_price: input.base_price,
-      discount_type: input.discount_type,
-      discount_value: input.discount_value,
-      sale_start: input.sale_start,
-      sale_end: input.sale_end,
-      category_id: input.category_id,
-      tags: input.tags,
-      status: input.status,
-    })
+    .update(toColumns(input))
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };

@@ -6,6 +6,7 @@ export interface OrderConfirmation {
   subtotal: number;
   vat: number;
   delivery_fee: number;
+  deposit_total: number;
   total: number;
   currency: string;
   emirate: string | null;
@@ -28,7 +29,7 @@ export async function getOrderByToken(
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "number, status, subtotal, vat, delivery_fee, total, currency, emirate, delivery_date, created_at, order_items(name, qty, unit_price, line_total)",
+      "number, status, subtotal, vat, delivery_fee, deposit_total, total, currency, emirate, delivery_date, created_at, order_items(name, qty, unit_price, line_total)",
     )
     .eq("public_token", token)
     .maybeSingle();

@@ -3,8 +3,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import type { ProductRow, CategoryRow } from "@/lib/data/types";
 import type { ProductCardData } from "@/components/product/product-card";
 
-const PRODUCT_SELECT =
-  "id, category_id, name, slug, short_description, details, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate, status, tags, product_images(id, url, alt, position, is_primary), categories(name, slug)";
+import { PRODUCT_SELECT } from "@/lib/data/product-select";
 
 // Storefront reads are cached and tagged "catalog"; admin mutations call
 // `refreshStorefront()` (updateTag) so edits show up immediately instead of
@@ -33,6 +32,11 @@ export function toProductCard(row: ProductRow): ProductCardData {
     sale_start: row.sale_start,
     sale_end: row.sale_end,
     vat_rate: row.vat_rate,
+    is_rental: row.is_rental,
+    rental_monthly_price: row.rental_monthly_price,
+    rental_min_months: row.rental_min_months,
+    min_order_qty: row.min_order_qty,
+    allows_vessel: row.allows_vessel,
   };
 }
 
@@ -73,6 +77,7 @@ export interface ProductQuery {
   categorySlug?: string;
   tag?: string;
   q?: string;
+  rentalOnly?: boolean;
   sort?: ProductSort;
   limit?: number;
   offset?: number;
@@ -99,6 +104,9 @@ async function fetchActiveProducts(opts?: ProductQuery): Promise<ProductRow[]> {
 
   if (opts?.categorySlug) {
     query = query.eq("categories.slug", opts.categorySlug);
+  }
+  if (opts?.rentalOnly) {
+    query = query.eq("is_rental", true);
   }
   if (opts?.tag) {
     query = query.contains("tags", [opts.tag]);

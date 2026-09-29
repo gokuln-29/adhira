@@ -41,6 +41,8 @@ export const orderInputSchema = z.object({
       z.object({
         productId: z.uuid(),
         qty: z.number().int().min(1).max(MAX_LINE_QTY),
+        vessel: z.boolean().default(false),
+        months: z.number().int().min(1).max(60).default(1),
       }),
     )
     .min(1, "Your cart is empty.")

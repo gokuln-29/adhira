@@ -139,4 +139,5 @@ See `.env.example`: Supabase (URL, anon key, service role key), site URL, Stripe
 - **Order confirmation is looked up by `orders.public_token` (random UUID)**, never by the guessable order number.
 - Public tables have no anon write policies (`leads` inserts go through the `createLead` action). Return generic errors to visitors and `console.error` the detail.
 - Security headers/CSP live in `next.config.ts`; the proxy only refreshes the Supabase session for `/admin` and `/account`.
+- **Product rules** (min qty, min order value, glass vessel + refundable deposit, monthly rental + deposit) live on `products`; all pricing goes through `priceLine()` in `src/lib/pricing.ts`, used by both the cart (display) and `createOrder` (authority). Deposits are outside the VAT base and tracked in `orders.deposit_total` / `deposit_status`.
 

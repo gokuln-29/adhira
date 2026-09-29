@@ -7,6 +7,7 @@ import {
   getEffectivePrice,
   vatNote,
   type PricedProduct,
+  type ProductRules,
 } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ export interface ProductCardDetail {
   value: string;
 }
 
-export interface ProductCardData extends PricedProduct {
+export interface ProductCardData extends PricedProduct, Partial<ProductRules> {
   name: string;
   slug: string;
   short_description: string | null;
@@ -29,6 +30,8 @@ export function ProductCard({
   navigable = true,
   addToCartLabel = "Add to cart",
   priority = false,
+  perMonthLabel = "/ month",
+  minOrderLabel = "Min. {qty}",
 }: {
   product: ProductCardData;
   className?: string;
@@ -42,8 +45,12 @@ export function ProductCard({
   /** Set true for the first card in an above-the-fold grid (PLP, home) so
    * it's not lazy-loaded — it's typically the LCP element there. */
   priority?: boolean;
+  /** Translated by the caller for the same no-intl-context reason as above. */
+  perMonthLabel?: string;
+  minOrderLabel?: string;
 }) {
   const price = getEffectivePrice(product);
+  const isRental = !!product.is_rental && (product.rental_monthly_price ?? 0) > 0;
   const detailsLine = product.details
     .map((d) => `${d.label}: ${d.value}`)
     .join(" · ");
@@ -63,7 +70,7 @@ export function ProductCard({
           />
         ) : null}
 
-        {price.isOnSale && price.discountLabel && (
+        {!isRental && price.isOnSale && price.discountLabel && (
           <span className="absolute start-3 top-3 rounded-[2px] bg-(--color-primary) px-2 py-1 font-mono-label text-[10px] text-white">
             {price.discountLabel}
           </span>
@@ -89,14 +96,21 @@ export function ProductCard({
           </MonoLabel>
         )}
         <div className="flex items-baseline gap-2 pt-1">
-          <MonoLabel muted={false}>{formatAED(price.finalPrice)}</MonoLabel>
-          {price.isOnSale && price.originalPrice && (
+          <MonoLabel muted={false}>
+            {isRental
+              ? `${formatAED(product.rental_monthly_price ?? 0)} ${perMonthLabel}`
+              : formatAED(price.finalPrice)}
+          </MonoLabel>
+          {!isRental && price.isOnSale && price.originalPrice && (
             <MonoLabel className="line-through">
               {formatAED(price.originalPrice)}
             </MonoLabel>
           )}
         </div>
-        <MonoLabel className="text-[10px]">{vatNote(price.vatRate)}</MonoLabel>
+        <MonoLabel className="text-[10px]">
+          {vatNote(price.vatRate)}
+          {(product.min_order_qty ?? 1) > 1 && ` · ${minOrderLabel.replace("{qty}", String(product.min_order_qty))}`}
+        </MonoLabel>
       </div>
     </>
   );

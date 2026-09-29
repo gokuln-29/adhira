@@ -26,7 +26,68 @@
     "heroCtaSecondary": "Talk to corporate sales",
     "shopCollection": "Shop the collection",
     "viewAll": "View all",
-    "emptyProducts": "No products published yet — add one from the admin panel."
+    "emptyProducts": "No products published yet — add one from the admin panel.",
+    "trust": [
+      "Same-day delivery in Dubai for orders before 2 PM",
+      "VAT invoices and purchase orders accepted",
+      "Weekly and monthly flower and plant plans",
+      "Glass vessel and plant rental with refundable deposit"
+    ],
+    "occasionsTitle": "Shop by occasion",
+    "occasionsSubtitle": "Start with what you're planning.",
+    "occOffice": "Offices & reception",
+    "occOfficeBody": "Weekly arrangements that keep every desk and lobby fresh.",
+    "occEvents": "Events & conferences",
+    "occEventsBody": "Stage, table and entrance florals for corporate events.",
+    "occWeddings": "Weddings",
+    "occWeddingsBody": "Bridal bouquets, stage decor and centrepieces.",
+    "occBirthdays": "Birthdays & gifts",
+    "occBirthdaysBody": "Bouquets, flower boxes and balloon bundles.",
+    "rentalEyebrow": "Plant rental",
+    "rentalTitle": "Rent plants for your office",
+    "rentalBody": "Choose a monthly plan and we deliver, care for and replace your plants. A refundable deposit is returned when the plants come back in good condition.",
+    "rentalCta": "See rental plants",
+    "rentalFrom": "From {price} per month",
+    "categoriesTitle": "Browse all categories",
+    "howTitle": "How it works",
+    "steps": [
+      {
+        "title": "Choose",
+        "body": "Pick arrangements or plants. Minimum order quantities are shown on every product."
+      },
+      {
+        "title": "Set your date",
+        "body": "Tell us where and when. Same-day delivery in Dubai for orders placed before 2 PM."
+      },
+      {
+        "title": "We deliver and care",
+        "body": "Weekly refreshes, plant care, and easy return of glass vessels and rental plants."
+      }
+    ],
+    "whyTitle": "Built for business buyers",
+    "whys": [
+      {
+        "title": "VAT invoices and POs",
+        "body": "Add your TRN and PO number at checkout."
+      },
+      {
+        "title": "Refundable deposits",
+        "body": "Return glass vessels and rental plants and get your deposit back."
+      },
+      {
+        "title": "Clear minimums",
+        "body": "Minimum quantity and order value are shown before you add to cart."
+      },
+      {
+        "title": "Recurring plans",
+        "body": "Ask for weekly or monthly deliveries for offices and reception areas."
+      }
+    ],
+    "ctaTitle": "Planning an event or a recurring office plan?",
+    "ctaBody": "Tell us what you need and our team will send you a quote.",
+    "ctaButton": "Request a quote",
+    "ctaSecondary": "Browse rental plants",
+    "newArrivals": "New arrivals"
   },
   "Footer": {
     "trn": "TRN",
@@ -85,7 +146,22 @@
     "estimateDelivery": "Estimate delivery",
     "showImage": "Show image {n}",
     "sameDayDelivery": "Same-day delivery for orders placed before 2:00 PM",
-    "nextDayDelivery": "Next-day delivery"
+    "nextDayDelivery": "Next-day delivery",
+    "minQty": "Minimum order: {qty} units",
+    "minValue": "Minimum order value: {value}",
+    "minMonths": "Minimum rental: {months, plural, one {# month} other {# months}}",
+    "rentalLength": "Rental length",
+    "monthsOption": "{months, plural, one {# month} other {# months}}",
+    "vesselOption": "Include glass vessel",
+    "vesselPrice": "+{price} per vessel",
+    "vesselFree": "Vessel included in price",
+    "vesselDeposit": "refundable deposit {deposit}, returned when you return the vessel",
+    "lineTotal": "Total (excl. VAT)",
+    "refundableDeposit": "Refundable deposit",
+    "belowMinValue": "This is below the minimum order value. Minimum quantity is {qty}.",
+    "setToMinimum": "Set to {qty}",
+    "perMonth": "/ month",
+    "minOrderShort": "Min. {qty}"
   },
   "Cart": {
     "title": "Cart",
@@ -97,7 +173,14 @@
     "subtotal": "Subtotal",
     "vat": "VAT",
     "total": "Total",
-    "checkout": "Checkout"
+    "checkout": "Checkout",
+    "problemMinQty": "Minimum quantity is {qty}.",
+    "problemMinMonths": "Minimum rental is {months, plural, one {# month} other {# months}}.",
+    "problemMinValue": "Minimum order value for this item is {value}.",
+    "fixQty": "Set to minimum",
+    "deposit": "Refundable deposit",
+    "depositNote": "Deposits are refunded when the glass vessel or rental plant is returned in good condition.",
+    "fixMinimums": "Please fix the items marked above before checking out."
   },
   "Checkout": {
     "title": "Checkout",
@@ -133,7 +216,12 @@
     "subtotal": "Subtotal",
     "vat": "VAT",
     "total": "Total",
-    "emptyCart": "Your cart is empty"
+    "emptyCart": "Your cart is empty",
+    "fixMinimums": "Please fix the items in your cart that are below their minimum order.",
+    "deposit": "Refundable deposit",
+    "depositNote": "Deposits are refunded when the glass vessel or rental plant is returned in good condition.",
+    "rentalMonths": "Rental: {months, plural, one {# month} other {# months}}",
+    "withVessel": "With glass vessel"
   },
   "OrderConfirmation": {
     "eyebrow": "Order confirmed",
@@ -143,7 +231,8 @@
     "subtotal": "Subtotal",
     "vat": "VAT",
     "total": "Total",
-    "continueShopping": "Continue shopping"
+    "continueShopping": "Continue shopping",
+    "deposit": "Refundable deposit"
   },
   "LeadForm": {
     "yourName": "Your name",

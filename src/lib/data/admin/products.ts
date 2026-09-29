@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ProductRow } from "@/lib/data/types";
 
-const PRODUCT_SELECT =
-  "id, category_id, name, slug, short_description, details, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate, status, tags, product_images(id, url, alt, position, is_primary), categories(name, slug)";
+import { PRODUCT_SELECT } from "@/lib/data/product-select";
 
 export async function getAllProductsAdmin(): Promise<ProductRow[]> {
   const supabase = await createClient();
