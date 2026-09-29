@@ -4,6 +4,7 @@ import type { ProductCardDetail } from "@/components/product/product-card";
 export interface CategoryRow {
   id: string;
   name: string;
+  name_ar: string | null;
   slug: string;
   image: string | null;
   position: number;
@@ -21,13 +22,15 @@ export interface ProductRow extends PricedProduct, ProductRules {
   id: string;
   category_id: string | null;
   name: string;
+  name_ar: string | null;
   slug: string;
   short_description: string | null;
+  short_description_ar: string | null;
   details: ProductCardDetail[];
   status: "draft" | "active";
   tags: string[];
   product_images: ProductImageRow[];
-  categories: { name: string; slug: string } | null;
+  categories: { name: string; name_ar: string | null; slug: string } | null;
 }
 
 export interface OfferRow {

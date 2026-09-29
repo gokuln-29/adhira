@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { localizeProduct } from "@/lib/data/localize";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
@@ -28,8 +29,9 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/products/[slug]">): Promise<Metadata> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const product = await getProductBySlug(slug);
-  if (!product) return {};
+  const rawProduct = await getProductBySlug(slug);
+  if (!rawProduct) return {};
+  const product = localizeProduct(rawProduct, locale);
 
   const description =
     product.short_description ??
@@ -54,8 +56,9 @@ export default async function ProductPage({
 }: PageProps<"/[locale]/products/[slug]">) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  const raw = await getProductBySlug(slug);
+  if (!raw) notFound();
+  const product = localizeProduct(raw, locale);
 
   const price = getEffectivePrice(product);
   const isRental = product.is_rental && (product.rental_monthly_price ?? 0) > 0;
@@ -180,7 +183,7 @@ export default async function ProductPage({
             <h2 className="mb-8 text-2xl font-semibold">{pdp("relatedTitle")}</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
               {related.map((p) => (
-                <ProductCard key={p.id} product={toProductCard(p)} addToCartLabel={pdp("addToCart")}
+                <ProductCard key={p.id} product={toProductCard(p, locale)} addToCartLabel={pdp("addToCart")}
                 perMonthLabel={pdp("perMonth")}
                 minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })} />
               ))}

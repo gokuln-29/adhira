@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { localizeCategory } from "@/lib/data/localize";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
@@ -43,7 +44,7 @@ export default async function ShopPage({
     ? (sortParam as ProductSort)
     : "newest";
 
-  const [categories, products, t, b] = await Promise.all([
+  const [rawCategories, products, t, b] = await Promise.all([
     getCategories(),
     getActiveProducts({
       sort,
@@ -55,6 +56,8 @@ export default async function ShopPage({
     getTranslations("Plp"),
     getTranslations("Breadcrumbs"),
   ]);
+
+  const categories = rawCategories.map((c) => localizeCategory(c, locale));
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -15,6 +15,8 @@ export interface ProductImageInput {
 
 export interface ProductFormInput {
   name: string;
+  name_ar: string;
+  short_description_ar: string;
   slug: string;
   short_description: string;
   details: ProductCardDetail[];
@@ -68,6 +70,8 @@ async function replaceImages(
 function toColumns(input: ProductInput) {
   return {
     name: input.name,
+    name_ar: input.name_ar || null,
+    short_description_ar: input.short_description_ar || null,
     slug: input.slug,
     short_description: input.short_description || null,
     details: input.details as unknown as never,

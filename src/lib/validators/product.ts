@@ -16,6 +16,8 @@ export const productInputSchema = z
       .max(200)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug can only use lowercase letters, numbers and dashes."),
     short_description: z.string().trim().max(500),
+    name_ar: z.string().trim().max(200),
+    short_description_ar: z.string().trim().max(500),
     details: z
       .array(z.object({ label: z.string().trim().min(1).max(100), value: z.string().trim().min(1).max(200) }))
       .max(30),

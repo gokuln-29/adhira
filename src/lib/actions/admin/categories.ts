@@ -7,6 +7,7 @@ import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
 export interface CategoryFormInput {
   name: string;
+  name_ar: string;
   slug: string;
   image: string | null;
   position: number;
@@ -23,7 +24,8 @@ export async function createCategory(
   const { data, error } = await supabase
     .from("categories")
     .insert({
-      name: input.name.trim(),
+      name: input.name.trim().slice(0, 200),
+      name_ar: input.name_ar.trim().slice(0, 200) || null,
       slug: input.slug.trim(),
       image: input.image?.trim() || null,
       position: input.position,
@@ -47,7 +49,8 @@ export async function updateCategory(
   const { error } = await supabase
     .from("categories")
     .update({
-      name: input.name.trim(),
+      name: input.name.trim().slice(0, 200),
+      name_ar: input.name_ar.trim().slice(0, 200) || null,
       slug: input.slug.trim(),
       image: input.image?.trim() || null,
       position: input.position,

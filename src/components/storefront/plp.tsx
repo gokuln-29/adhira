@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { ProductCard } from "@/components/product/product-card";
@@ -30,6 +30,7 @@ export function Plp({
   hasMore?: boolean;
 }) {
   const t = useTranslations("Plp");
+  const locale = useLocale();
   const pdp = useTranslations("Pdp");
 
   const sortOptions: { value: ProductSort; label: string }[] = [
@@ -132,7 +133,7 @@ export function Plp({
             {products.map((product, i) => (
               <ProductCard
                 key={product.id}
-                product={toProductCard(product)}
+                product={toProductCard(product, locale)}
                 addToCartLabel={pdp("addToCart")}
                 perMonthLabel={pdp("perMonth")}
                 minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })}

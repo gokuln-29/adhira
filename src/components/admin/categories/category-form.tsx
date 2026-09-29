@@ -26,6 +26,7 @@ export function CategoryForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState(category?.name ?? "");
+  const [nameAr, setNameAr] = useState(category?.name_ar ?? "");
   const [slug, setSlug] = useState(category?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!category);
   const [image, setImage] = useState(category?.image ?? "");
@@ -64,6 +65,7 @@ export function CategoryForm({
 
     const input: CategoryFormInput = {
       name,
+      name_ar: nameAr,
       slug: slug || slugify(name),
       image: image || null,
       position: Number(position) || 0,
@@ -128,6 +130,13 @@ export function CategoryForm({
           if (!slugTouched) setSlug(slugify(e.target.value));
         }}
         required
+      />
+      <Input
+        label="Name (Arabic, optional)"
+        value={nameAr}
+        onChange={(e) => setNameAr(e.target.value)}
+        dir="rtl"
+        hint="Shown on the Arabic site. Empty shows the English name."
       />
       <Input
         label="Slug"

@@ -3,6 +3,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import type { ProductRow, CategoryRow } from "@/lib/data/types";
 import type { ProductCardData } from "@/components/product/product-card";
 
+import { localizeProduct } from "@/lib/data/localize";
 import { PRODUCT_SELECT } from "@/lib/data/product-select";
 
 // Storefront reads are cached and tagged "catalog"; admin mutations call
@@ -12,20 +13,21 @@ const CACHE_SECONDS = 300;
 export const CATALOG_TAG = "catalog";
 export const PAGE_SIZE = 24;
 
-const PRODUCT_SELECT_BY_CATEGORY = PRODUCT_SELECT.replace("categories(name, slug)", "categories!inner(name, slug)");
+const PRODUCT_SELECT_BY_CATEGORY = PRODUCT_SELECT.replace("categories(name, name_ar, slug)", "categories!inner(name, name_ar, slug)");
 
 export type ProductSort = "newest" | "price-asc" | "price-desc" | "name-asc";
 
-export function toProductCard(row: ProductRow): ProductCardData {
+export function toProductCard(row: ProductRow, locale = "en"): ProductCardData {
+  const p = localizeProduct(row, locale);
   const primary =
     row.product_images.find((img) => img.is_primary) ?? row.product_images[0];
 
   return {
-    name: row.name,
+    name: p.name,
     slug: row.slug,
-    short_description: row.short_description,
+    short_description: p.short_description,
     details: row.details,
-    image: primary ? { url: primary.url, alt: primary.alt || row.name } : null,
+    image: primary ? { url: primary.url, alt: primary.alt || p.name } : null,
     base_price: row.base_price,
     discount_type: row.discount_type,
     discount_value: row.discount_value,
@@ -49,7 +51,7 @@ async function fetchCategories(): Promise<CategoryRow[]> {
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, image, position")
+    .select("id, name, name_ar, slug, image, position")
     .order("position", { ascending: true });
 
   if (error) throw error;
@@ -65,7 +67,7 @@ async function fetchCategoryBySlug(slug: string): Promise<CategoryRow | null> {
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, image, position")
+    .select("id, name, name_ar, slug, image, position")
     .eq("slug", slug)
     .maybeSingle();
 

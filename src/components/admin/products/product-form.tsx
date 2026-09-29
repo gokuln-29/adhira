@@ -35,6 +35,8 @@ export function ProductForm({
   const router = useRouter();
 
   const [name, setName] = useState(product?.name ?? "");
+  const [nameAr, setNameAr] = useState(product?.name_ar ?? "");
+  const [shortDescriptionAr, setShortDescriptionAr] = useState(product?.short_description_ar ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!product);
   const [shortDescription, setShortDescription] = useState(product?.short_description ?? "");
@@ -158,6 +160,8 @@ export function ProductForm({
   function buildInput(status: "draft" | "active"): ProductFormInput {
     return {
       name,
+      name_ar: nameAr,
+      short_description_ar: shortDescriptionAr,
       slug: slug || slugify(name),
       short_description: shortDescription,
       details: details.filter((d) => d.label.trim() && d.value.trim()),
@@ -303,6 +307,20 @@ export function ProductForm({
               onChange={(e) => setShortDescription(e.target.value)}
               rows={2}
             />
+            <div className="mt-2 flex flex-col gap-4 border-t border-(--color-hairline) pt-4">
+              <MonoLabel muted={false}>Arabic (optional)</MonoLabel>
+              <p className="text-sm text-(--color-muted)">
+                Shown on the Arabic site. If left empty, the English text is shown instead.
+              </p>
+              <Input label="Name (Arabic)" value={nameAr} onChange={(e) => setNameAr(e.target.value)} dir="rtl" />
+              <Textarea
+                label="Short description (Arabic)"
+                value={shortDescriptionAr}
+                onChange={(e) => setShortDescriptionAr(e.target.value)}
+                rows={2}
+                dir="rtl"
+              />
+            </div>
           </Card>
 
           <Card className="flex flex-col gap-3 p-6">

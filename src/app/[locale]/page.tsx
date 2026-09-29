@@ -7,6 +7,7 @@ import { MonoLabel } from "@/components/ui/mono-label";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
+import { localizeCategory } from "@/lib/data/localize";
 import { getStoreSettings } from "@/lib/data/settings";
 import { getActiveProducts, getCategories, toProductCard } from "@/lib/data/products";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -46,7 +47,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, pdp, categories, products, rentals, settings] = await Promise.all([
+  const [t, pdp, rawCategories, products, rentals, settings] = await Promise.all([
     getTranslations("Home"),
     getTranslations("Pdp"),
     getCategories(),
@@ -55,6 +56,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
     getStoreSettings(),
   ]);
 
+  const categories = rawCategories.map((c) => localizeCategory(c, locale));
   const trust = t.raw("trust") as string[];
   const steps = t.raw("steps") as { title: string; body: string }[];
   const whys = t.raw("whys") as { title: string; body: string }[];
@@ -176,7 +178,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
             {rentals.length > 0 && (
               <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:col-span-2">
                 {rentals.slice(0, 2).map((product) => (
-                  <ProductCard key={product.id} product={toProductCard(product)} {...cardLabels} />
+                  <ProductCard key={product.id} product={toProductCard(product, locale)} {...cardLabels} />
                 ))}
               </div>
             )}
@@ -212,7 +214,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
               {products.map((product, i) => (
                 <ProductCard
                   key={product.id}
-                  product={toProductCard(product)}
+                  product={toProductCard(product, locale)}
                   priority={i === 0}
                   {...cardLabels}
                 />
