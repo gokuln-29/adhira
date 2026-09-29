@@ -10,14 +10,14 @@ const navGroups: {
   items: { label: string; href: string; needs?: Permission }[];
 }[] = [
   {
-    items: [{ label: "Dashboard", href: "/admin" }],
+    items: [{ label: "Today", href: "/admin" }],
   },
   {
     heading: "Sell",
     items: [
-      { label: "Categories", href: "/admin/categories", needs: "editContent" },
-      { label: "Products", href: "/admin/products", needs: "editContent" },
       { label: "Orders", href: "/admin/orders" },
+      { label: "Products", href: "/admin/products", needs: "editContent" },
+      { label: "Categories", href: "/admin/categories", needs: "editContent" },
       { label: "Offers & Coupons", href: "/admin/offers", needs: "editContent" },
       { label: "Payment Links", href: "/admin/payment-links", needs: "ownerOnly" },
     ],
@@ -25,7 +25,7 @@ const navGroups: {
   {
     heading: "Grow",
     items: [
-      { label: "CRM", href: "/admin/crm" },
+      { label: "Leads (CRM)", href: "/admin/crm" },
       { label: "Blog", href: "/admin/blog", needs: "editContent" },
     ],
   },

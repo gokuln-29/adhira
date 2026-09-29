@@ -50,6 +50,9 @@ export function ProductForm({
   const [discountValue, setDiscountValue] = useState(String(product?.discount_value ?? ""));
   const [saleStart, setSaleStart] = useState(product?.sale_start?.slice(0, 10) ?? "");
   const [saleEnd, setSaleEnd] = useState(product?.sale_end?.slice(0, 10) ?? "");
+  const hasRules =
+    !!product &&
+    (product.min_order_qty > 1 || product.min_order_value > 0 || product.allows_vessel || product.is_rental);
   const [minQty, setMinQty] = useState(String(product?.min_order_qty ?? 1));
   const [minValue, setMinValue] = useState(product?.min_order_value ? String(product.min_order_value) : "");
   const [allowsVessel, setAllowsVessel] = useState(product?.allows_vessel ?? false);
@@ -325,7 +328,7 @@ export function ProductForm({
 
           <Card className="flex flex-col gap-3 p-6">
             <div className="flex items-center justify-between">
-              <MonoLabel muted={false}>Spec lines</MonoLabel>
+              <MonoLabel muted={false}>Spec lines (optional)</MonoLabel>
               <button
                 type="button"
                 onClick={addDetailRow}
@@ -414,6 +417,13 @@ export function ProductForm({
             )}
           </Card>
 
+          {/* Most products need none of this: keep it folded unless the product already uses it. */}
+          <details open={hasRules} className="group flex flex-col gap-6">
+            <summary className="cursor-pointer border border-(--color-hairline) bg-(--color-surface) px-6 py-4 font-mono-label text-[11px]">
+              Order rules: minimum order, glass vessel, rental
+              <span className="ms-2 text-(--color-muted)">(optional)</span>
+            </summary>
+            <div className="mt-6 flex flex-col gap-6">
           <Card className="flex flex-col gap-4 p-6">
             <MonoLabel muted={false}>Minimum order</MonoLabel>
             <p className="text-sm text-(--color-muted)">
@@ -529,6 +539,9 @@ export function ProductForm({
               </>
             )}
           </Card>
+
+            </div>
+          </details>
 
           <Card className="flex flex-col gap-4 p-6">
             <MonoLabel muted={false}>Organize</MonoLabel>
