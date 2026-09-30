@@ -33,14 +33,14 @@ export function CartView() {
               const isRental = item.is_rental && (item.rental_monthly_price ?? 0) > 0;
               const line = lines[item.productId];
               return (
-                <div key={item.productId} className="flex gap-4 py-5">
-                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[2px] bg-(--color-hairline)/40">
+                <div key={item.productId} className="flex gap-5 py-7">
+                  <div className="relative h-36 w-28 shrink-0 overflow-hidden bg-(--color-hairline)/50">
                     {item.image && (
                       <Image
                         src={item.image}
                         alt={item.name}
                         fill
-                        sizes="96px"
+                        sizes="112px"
                         className="object-cover"
                       />
                     )}
@@ -50,7 +50,7 @@ export function CartView() {
                     <div className="flex items-start justify-between gap-4">
                       <Link
                         href={`/products/${item.slug}`}
-                        className="text-sm font-semibold hover:text-(--color-primary)"
+                        className="font-display text-2xl leading-tight hover:text-(--color-primary)"
                       >
                         {item.name}
                       </Link>

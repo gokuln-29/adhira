@@ -44,7 +44,7 @@ export function AdminSidebar({ role }: { role: AdminRole }) {
 
   return (
     <aside className="w-56 shrink-0 border-e border-(--color-hairline) px-4 py-6">
-      <Link href="/admin" className="block px-2 font-mono-label text-sm">
+      <Link href="/admin" className="block px-2 font-logo text-sm">
         Flowers N Plants
       </Link>
 

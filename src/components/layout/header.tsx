@@ -44,7 +44,7 @@ export function Header() {
         {t("announcement")}
       </div>
       <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-canvas)/85 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-4 md:py-5">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:gap-4 sm:px-6 py-4 md:py-5">
           <div className="flex items-center">
             <button
               type="button"
@@ -70,7 +70,7 @@ export function Header() {
             </nav>
           </div>
 
-          <Link href="/" className="font-logo text-[1.15rem] text-(--color-ink) md:text-[1.55rem]">
+          <Link href="/" className="font-logo text-[0.95rem] text-(--color-ink) [--logo-tracking:0.13em] sm:text-[1.15rem] sm:[--logo-tracking:0.2em] md:text-[1.55rem] md:[--logo-tracking:0.24em]">
             Flowers N Plants
           </Link>
 

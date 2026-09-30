@@ -117,7 +117,7 @@ export function ProductCard({
           )}
         </div>
         <MonoLabel className="text-[10px] tracking-[0.1em]">
-          {vatNote(price.vatRate)}
+          <bdi>{vatNote(price.vatRate)}</bdi>
           {(product.min_order_qty ?? 1) > 1 && ` · ${minOrderLabel.replace("{qty}", String(product.min_order_qty))}`}
         </MonoLabel>
       </div>

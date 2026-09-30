@@ -146,7 +146,7 @@ export default async function ProductPage({
                   </span>
                 )}
               </div>
-              <MonoLabel className="text-[11px] tracking-[0.12em]">{vatNote(price.vatRate)}</MonoLabel>
+              <MonoLabel className="text-[11px] tracking-[0.12em]"><bdi>{vatNote(price.vatRate)}</bdi></MonoLabel>
             </div>
 
             {product.details.length > 0 && (

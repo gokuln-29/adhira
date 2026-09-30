@@ -152,7 +152,7 @@ html {
   font-family: var(--font-display), Georgia, "Times New Roman", serif;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.24em;
+  letter-spacing: var(--logo-tracking, 0.24em);
   white-space: nowrap;
 }
 

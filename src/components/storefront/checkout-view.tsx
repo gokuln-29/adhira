@@ -150,13 +150,11 @@ export function CheckoutView() {
       onSubmit={handleSubmit}
       className="mx-auto grid max-w-7xl gap-12 px-6 py-14 md:py-20 lg:grid-cols-3 lg:gap-16"
     >
-      <div className="flex flex-col gap-10 lg:col-span-2">
+      <div className="flex flex-col gap-12 lg:col-span-2">
         <h1 className="font-display text-5xl md:text-6xl">{t("title")}</h1>
 
-        <fieldset className="flex flex-col gap-4">
-          <MonoLabel as="legend" muted={false}>
-            {t("contact")}
-          </MonoLabel>
+        <fieldset className="flex flex-col gap-5">
+          <legend className="mb-3 font-display text-3xl">{t("contact")}</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input name="name" label={t("fullName")} required autoComplete="name" defaultValue={saved.name} />
             <Input
@@ -171,10 +169,8 @@ export function CheckoutView() {
           <Input name="phone" type="tel" label={t("phone")} required autoComplete="tel" defaultValue={saved.phone} />
         </fieldset>
 
-        <fieldset className="flex flex-col gap-4">
-          <MonoLabel as="legend" muted={false}>
-            {t("deliveryAddress")}
-          </MonoLabel>
+        <fieldset className="flex flex-col gap-5">
+          <legend className="mb-3 font-display text-3xl">{t("deliveryAddress")}</legend>
           <Select name="emirate" label={t("emirate")} required defaultValue={saved.emirate || "Dubai"}>
             {EMIRATES.map((e) => (
               <option key={e} value={e}>
@@ -215,7 +211,7 @@ export function CheckoutView() {
           </details>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-4">
+        <fieldset className="flex flex-col gap-5">
           <label className="flex items-center gap-2 font-mono-label text-[11px] text-(--color-muted)">
             <input
               type="checkbox"
@@ -234,9 +230,7 @@ export function CheckoutView() {
         </fieldset>
 
         <fieldset className="flex flex-col gap-3">
-          <MonoLabel as="legend" muted={false}>
-            {t("payment")}
-          </MonoLabel>
+          <legend className="mb-3 font-display text-3xl">{t("payment")}</legend>
           {paymentMethods.map((method) => (
             <label
               key={method.value}
@@ -310,7 +304,7 @@ export function CheckoutView() {
                     <span className="block text-xs text-(--color-muted)">{t("withVessel")}</span>
                   )}
                 </span>
-                <MonoLabel muted={false}>
+                <MonoLabel muted={false} className="whitespace-nowrap">
                   {formatAED((line?.goods ?? 0) + (line?.vessel ?? 0))}
                 </MonoLabel>
               </div>
