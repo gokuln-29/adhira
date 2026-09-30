@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { buttonVariants } from "@/components/ui/button";
+import { CollectionTile } from "@/components/storefront/collection-tile";
 import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
 import { localizeCategory } from "@/lib/data/localize";
@@ -33,14 +34,13 @@ export async function generateMetadata({
 
 const DEFAULT_HERO = "https://images.unsplash.com/photo-1487070183336-b863922373d4?w=1920&q=80";
 
-// Occasion tiles reuse the admin-managed category photos, matched by slug. A
-// tile is skipped if its category doesn't exist (yet). Spans make the 2x2 grid
-// deliberately uneven, which reads as editorial rather than a template.
+// Occasion cards reuse the admin-managed category photos, matched by slug. A
+// card is skipped if its category doesn't exist (yet).
 const OCCASIONS = [
-  { slug: "weekly-flower-arrangements", title: "occOffice", span: "md:col-span-7" },
-  { slug: "mixed-flowers-arrangements-for-events", title: "occEvents", span: "md:col-span-5" },
-  { slug: "wedding-flowers-decor", title: "occWeddings", span: "md:col-span-5" },
-  { slug: "birthday-arrangements", title: "occBirthdays", span: "md:col-span-7" },
+  { slug: "weekly-flower-arrangements", title: "occOffice", body: "occOfficeBody" },
+  { slug: "mixed-flowers-arrangements-for-events", title: "occEvents", body: "occEventsBody" },
+  { slug: "wedding-flowers-decor", title: "occWeddings", body: "occWeddingsBody" },
+  { slug: "birthday-arrangements", title: "occBirthdays", body: "occBirthdaysBody" },
 ] as const;
 
 function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -139,38 +139,24 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         {/* COLLECTIONS */}
         {occasions.length > 0 && (
           <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-            <div className="mb-12 flex flex-col gap-3 md:mb-16">
-              <Eyebrow>{t("collectionsEyebrow")}</Eyebrow>
-              <h2 className="font-display text-4xl md:text-6xl">{t("collectionsTitle")}</h2>
+            <div className="mb-12 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
+              <div className="flex flex-col gap-3">
+                <Eyebrow>{t("collectionsEyebrow")}</Eyebrow>
+                <h2 className="font-display text-4xl md:text-6xl">{t("collectionsTitle")}</h2>
+              </div>
+              <p className="max-w-sm text-(--color-muted)">{t("collectionsLead")}</p>
             </div>
-            <div className="grid gap-4 md:grid-cols-12 md:gap-5">
-              {occasions.map(({ slug, title, span, category }) => (
-                <Link
+            <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-4">
+              {occasions.map(({ slug, title, body, category }, i) => (
+                <CollectionTile
                   key={slug}
                   href={`/shop/${slug}`}
-                  className={cn(
-                    "group relative flex aspect-[4/3] items-end overflow-hidden bg-(--color-hairline) md:aspect-auto md:h-[440px]",
-                    span,
-                  )}
-                >
-                  {category.image && (
-                    <Image
-                      src={category.image}
-                      alt=""
-                      fill
-                      quality={75}
-                      sizes="(min-width: 768px) 58vw, 100vw"
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-(--color-ink)/70 via-transparent to-transparent" />
-                  <div className="relative flex w-full items-end justify-between gap-4 p-6 text-white md:p-8">
-                    <span className="font-display text-3xl md:text-4xl">{t(title)}</span>
-                    <span className="font-mono-label shrink-0 pb-1 text-[11px] opacity-90 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-                      {t("shopNow")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
-                    </span>
-                  </div>
-                </Link>
+                  title={t(title)}
+                  body={t(body)}
+                  image={category.image}
+                  index={i}
+                  cta={t("shopNow")}
+                />
               ))}
             </div>
           </section>

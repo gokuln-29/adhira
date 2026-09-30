@@ -78,7 +78,12 @@
     ],
     "ctaTitle": "Planning an event or a recurring office plan?",
     "ctaBody": "Tell us what you need and we'll send you a quote.",
-    "ctaButton": "Request a quote"
+    "ctaButton": "Request a quote",
+    "collectionsLead": "Start with what you're planning. Each collection is ready to order or to quote.",
+    "occOfficeBody": "Fresh arrangements for reception and meeting rooms.",
+    "occEventsBody": "Stage, table and entrance florals.",
+    "occWeddingsBody": "Bouquets, stage decor and centrepieces.",
+    "occBirthdaysBody": "Bouquets, flower boxes and balloons."
   },
   "Footer": {
     "trn": "TRN",
