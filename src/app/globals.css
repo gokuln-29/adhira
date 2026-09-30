@@ -83,3 +83,38 @@ body {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* ---- Motion: slow "Ken Burns" zoom for photo slideshows, and scroll reveal ---- */
+@keyframes kb-in {
+  from { transform: scale(1); }
+  to { transform: scale(1.14); }
+}
+@keyframes kb-out {
+  from { transform: scale(1.14); }
+  to { transform: scale(1); }
+}
+.kb-in { animation: kb-in var(--kb-duration, 8s) ease-out forwards; }
+.kb-out { animation: kb-out var(--kb-duration, 8s) ease-out forwards; }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-in,
+  .kb-out { animation: none; }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

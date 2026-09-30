@@ -4,7 +4,8 @@ import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { buttonVariants } from "@/components/ui/button";
-import { CollectionTile } from "@/components/storefront/collection-tile";
+import { OccasionCard } from "@/components/storefront/occasion-card";
+import { Reveal } from "@/components/storefront/reveal";
 import { ProductCard } from "@/components/product/product-card";
 import { Link } from "@/i18n/navigation";
 import { localizeCategory } from "@/lib/data/localize";
@@ -65,6 +66,20 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   ]);
 
   const categories = rawCategories.map((c) => localizeCategory(c, locale));
+
+  // Each occasion shows several photos: the category photo first, then the
+  // main photos of its newest products (already uploaded, so no extra admin work).
+  const occasionProducts = await Promise.all(
+    OCCASIONS.map((o) => getActiveProducts({ categorySlug: o.slug, sort: "newest", limit: 6 })),
+  );
+  const occasionImages = OCCASIONS.map((o, i) => {
+    const category = categories.find((c) => c.slug === o.slug);
+    const fromProducts = occasionProducts[i].flatMap((p) => {
+      const main = p.product_images.find((img) => img.is_primary) ?? p.product_images[0];
+      return main ? [main.url] : [];
+    });
+    return [...new Set([category?.image, ...fromProducts].filter((u): u is string => !!u))].slice(0, 5);
+  });
   const trust = t.raw("trust") as { title: string; body: string }[];
   const steps = t.raw("steps") as { title: string; body: string }[];
   const rentalPoints = t.raw("rentalPoints") as string[];
@@ -139,25 +154,31 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         {/* COLLECTIONS */}
         {occasions.length > 0 && (
           <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-            <div className="mb-12 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
-              <div className="flex flex-col gap-3">
-                <Eyebrow>{t("collectionsEyebrow")}</Eyebrow>
-                <h2 className="font-display text-4xl md:text-6xl">{t("collectionsTitle")}</h2>
+            <Reveal>
+              <div className="mb-12 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
+                <div className="flex flex-col gap-3">
+                  <Eyebrow>{t("collectionsEyebrow")}</Eyebrow>
+                  <h2 className="font-display text-4xl md:text-6xl">{t("collectionsTitle")}</h2>
+                </div>
+                <p className="max-w-sm text-(--color-muted)">{t("collectionsLead")}</p>
               </div>
-              <p className="max-w-sm text-(--color-muted)">{t("collectionsLead")}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-4">
-              {occasions.map(({ slug, title, body, category }, i) => (
-                <CollectionTile
-                  key={slug}
-                  href={`/shop/${slug}`}
-                  title={t(title)}
-                  body={t(body)}
-                  image={category.image}
-                  index={i}
-                  cta={t("shopNow")}
-                />
-              ))}
+            </Reveal>
+            <div className="grid gap-4 sm:grid-cols-2 md:gap-6">
+              {occasions.map(({ slug, title, body }, i) => {
+                const images = occasionImages[OCCASIONS.findIndex((o) => o.slug === slug)];
+                return (
+                  <Reveal key={slug} delay={(i % 2) * 140}>
+                    <OccasionCard
+                      href={`/shop/${slug}`}
+                      title={t(title)}
+                      body={t(body)}
+                      cta={t("shopNow")}
+                      images={images}
+                      index={i}
+                    />
+                  </Reveal>
+                );
+              })}
             </div>
           </section>
         )}
