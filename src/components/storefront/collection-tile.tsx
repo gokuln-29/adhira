@@ -42,7 +42,7 @@ export function CollectionTile({
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-(--color-ink)/80 via-(--color-ink)/10 to-(--color-ink)/25" />
+      <div className="absolute inset-0 bg-gradient-to-t from-(--color-ink)/90 via-(--color-ink)/30 to-(--color-ink)/30" />
 
       <div className="relative flex items-start justify-between">
         <span className="font-mono-label text-[11px] tracking-[0.18em] text-white/80">
