@@ -15,8 +15,8 @@ export function CartView() {
     useCart();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+    <div className="mx-auto max-w-7xl px-6 py-14 md:py-20">
+      <h1 className="font-display text-5xl md:text-6xl">{t("title")}</h1>
 
       {items.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-4 py-16 text-center">
@@ -152,7 +152,7 @@ export function CartView() {
             })}
           </div>
 
-          <div className="h-fit border border-(--color-hairline) p-6">
+          <div className="h-fit border border-(--color-hairline) bg-(--color-surface) p-8">
             <MonoLabel as="p" muted={false} className="mb-4">
               {t("orderSummary")}
             </MonoLabel>

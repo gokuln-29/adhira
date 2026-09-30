@@ -32,7 +32,7 @@ export default async function AccountPage() {
       <main className="flex-1">
         <div className="mx-auto max-w-4xl px-6 py-10">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+            <h1 className="font-display text-5xl md:text-6xl">{t("title")}</h1>
             <SignOutButton />
           </div>
 

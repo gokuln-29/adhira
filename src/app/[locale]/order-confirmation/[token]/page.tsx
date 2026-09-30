@@ -37,7 +37,7 @@ export default async function OrderConfirmationPage({
           <MonoLabel muted={false} className="text-(--color-primary)">
             {t("eyebrow")}
           </MonoLabel>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          <h1 className=" font-display text-5xl md:text-6xl">
             {t("title", { number: order.number })}
           </h1>
           <p className="mt-2 text-(--color-muted)">

@@ -41,14 +41,14 @@ export default async function SetupsPage({ params }: PageProps<"/[locale]/setups
           <MonoLabel muted={false} className="text-(--color-primary)">
             {t("eyebrow")}
           </MonoLabel>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-3xl font-display text-5xl md:text-6xl">
             {t("title")}
           </h1>
           <p className="mt-4 max-w-xl text-(--color-muted)">{t("subtitle")}</p>
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
-          <h2 className="mb-8 text-2xl font-semibold">{t("whatWeSetUpTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("whatWeSetUpTitle")}</h2>
           <div className="grid gap-6 md:grid-cols-3">
             {whatWeSetUp.map((item) => (
               <Card key={item.title} className="p-6">
@@ -60,7 +60,7 @@ export default async function SetupsPage({ params }: PageProps<"/[locale]/setups
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
-          <h2 className="mb-8 text-2xl font-semibold">{t("packagesTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("packagesTitle")}</h2>
           <div className="grid gap-6 md:grid-cols-3">
             {packages.map((pkg) => (
               <Card key={pkg.name} soft className="p-6">
@@ -73,7 +73,7 @@ export default async function SetupsPage({ params }: PageProps<"/[locale]/setups
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
-          <h2 className="mb-8 text-2xl font-semibold">{t("howItWorksTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("howItWorksTitle")}</h2>
           <div className="grid gap-6 md:grid-cols-4">
             {steps.map((s) => (
               <div key={s.step}>
@@ -89,13 +89,13 @@ export default async function SetupsPage({ params }: PageProps<"/[locale]/setups
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
           <Card soft className="p-8">
-            <h2 className="text-2xl font-semibold">{t("recurringTitle")}</h2>
+            <h2 className="font-display text-3xl md:text-4xl">{t("recurringTitle")}</h2>
             <p className="mt-3 max-w-2xl text-(--color-muted)">{t("recurringBody")}</p>
           </Card>
         </section>
 
         <section id="request-setup" className="mx-auto max-w-3xl px-6 pb-24">
-          <h2 className="mb-8 text-2xl font-semibold">{t("requestTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("requestTitle")}</h2>
           <LeadForm
             title={t("formTitle")}
             requirementLabel={t("requirementLabel")}

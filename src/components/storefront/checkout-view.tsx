@@ -148,10 +148,10 @@ export function CheckoutView() {
       // Remount once saved details are loaded so the fields pick up their defaults.
       key={ready ? "ready" : "loading"}
       onSubmit={handleSubmit}
-      className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-3"
+      className="mx-auto grid max-w-7xl gap-12 px-6 py-14 md:py-20 lg:grid-cols-3 lg:gap-16"
     >
       <div className="flex flex-col gap-10 lg:col-span-2">
-        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+        <h1 className="font-display text-5xl md:text-6xl">{t("title")}</h1>
 
         <fieldset className="flex flex-col gap-4">
           <MonoLabel as="legend" muted={false}>
@@ -289,7 +289,7 @@ export function CheckoutView() {
         </Button>
       </div>
 
-      <div className="h-fit border border-(--color-hairline) p-6 lg:sticky lg:top-24">
+      <div className="h-fit border border-(--color-hairline) bg-(--color-surface) p-8 lg:sticky lg:top-24">
         <MonoLabel as="p" muted={false} className="mb-4">
           {t("orderSummary")}
         </MonoLabel>

@@ -37,7 +37,7 @@ export default async function BlogPage({ params }: PageProps<"/[locale]/blog">) 
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-6 py-10">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("title")}</h1>
+          <h1 className="font-display text-5xl md:text-6xl">{t("title")}</h1>
 
           <div className="mt-10 grid gap-x-6 gap-y-12 md:grid-cols-2">
             {posts.map((post) => (

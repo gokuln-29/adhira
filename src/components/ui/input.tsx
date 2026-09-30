@@ -2,7 +2,7 @@ import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 const fieldStyles =
-  "w-full rounded-[2px] border border-(--color-hairline) bg-(--color-surface) px-3.5 py-2.5 text-sm text-(--color-ink) placeholder:text-(--color-muted) transition-colors focus-visible:border-(--color-primary) motion-reduce:transition-none";
+  "w-full rounded-[2px] border border-(--color-hairline) bg-(--color-surface) px-4 py-3 text-[15px] text-(--color-ink) placeholder:text-(--color-muted)/70 transition-[border-color,box-shadow] duration-200 hover:border-(--color-ink)/30 focus-visible:border-(--color-ink) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-primary)/10 motion-reduce:transition-none";
 
 interface FieldWrapperProps {
   label?: string;

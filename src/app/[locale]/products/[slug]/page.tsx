@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localizeProduct } from "@/lib/data/localize";
+import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
@@ -108,43 +109,52 @@ export default async function ProductPage({
       />
 
       <main className="flex-1">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 md:grid-cols-2">
-          <ProductGallery images={images} />
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 pt-10 pb-24 lg:grid-cols-[1.1fr_1fr] lg:gap-20 lg:pt-14">
+          <div className="lg:sticky lg:top-32 lg:h-fit">
+            <ProductGallery images={images} />
+          </div>
 
-          <div className="flex flex-col gap-6">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">{product.name}</h1>
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4">
+              {product.categories && (
+                <Link
+                  href={`/shop/${product.categories.slug}`}
+                  className="font-mono-label text-[11px] tracking-[0.18em] text-(--color-primary) hover:underline"
+                >
+                  {product.categories.name}
+                </Link>
+              )}
+              <h1 className="font-display text-5xl md:text-6xl">{product.name}</h1>
+              <span className="gold-rule" />
               {product.short_description && (
-                <p className="mt-2 text-(--color-muted)">{product.short_description}</p>
+                <p className="text-lg leading-relaxed text-(--color-muted)">{product.short_description}</p>
               )}
             </div>
 
-            <div className="flex items-baseline gap-3">
-              <MonoLabel as="span" muted={false} className="text-lg">
-                {isRental ? formatAED(product.rental_monthly_price ?? 0) : formatAED(price.finalPrice)}
-                {isRental && <span className="text-(--color-muted)"> {pdp("perMonth")}</span>}
-              </MonoLabel>
-              {!isRental && price.isOnSale && price.originalPrice && (
-                <MonoLabel className="line-through">
-                  {formatAED(price.originalPrice)}
-                </MonoLabel>
-              )}
-              {!isRental && price.discountLabel && (
-                <span className="rounded-[2px] bg-(--color-primary) px-2 py-1 font-mono-label text-[10px] text-white">
-                  {price.discountLabel}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-baseline gap-3">
+                <span className="font-mono-label text-2xl tracking-normal text-(--color-ink)">
+                  {isRental ? formatAED(product.rental_monthly_price ?? 0) : formatAED(price.finalPrice)}
+                  {isRental && <span className="text-base text-(--color-muted)"> {pdp("perMonth")}</span>}
                 </span>
-              )}
+                {!isRental && price.isOnSale && price.originalPrice && (
+                  <MonoLabel className="text-base line-through">{formatAED(price.originalPrice)}</MonoLabel>
+                )}
+                {!isRental && price.discountLabel && (
+                  <span className="bg-(--color-ink) px-2.5 py-1 font-mono-label text-[10px] tracking-[0.12em] text-white">
+                    {price.discountLabel}
+                  </span>
+                )}
+              </div>
+              <MonoLabel className="text-[11px] tracking-[0.12em]">{vatNote(price.vatRate)}</MonoLabel>
             </div>
-            <MonoLabel className="-mt-4 text-[11px]">{vatNote(price.vatRate)}</MonoLabel>
 
             {product.details.length > 0 && (
-              <dl className="grid grid-cols-2 gap-3 border-y border-(--color-hairline) py-4">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-y border-(--color-hairline) py-6">
                 {product.details.map((d) => (
                   <div key={d.label}>
-                    <dt className="font-mono-label text-[10px] text-(--color-muted)">
-                      {d.label}
-                    </dt>
-                    <dd className="text-sm">{d.value}</dd>
+                    <dt className="font-mono-label text-[10px] tracking-[0.16em] text-(--color-muted)">{d.label}</dt>
+                    <dd className="mt-1 text-[15px]">{d.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -175,18 +185,40 @@ export default async function ProductPage({
             />
 
             <DeliveryEstimator />
+
+            <div className="divide-y divide-(--color-hairline) border-y border-(--color-hairline)">
+              {[
+                { title: pdp("infoDelivery"), body: pdp("infoDeliveryBody"), href: "/delivery" as const },
+                { title: pdp("infoReturns"), body: pdp("infoReturnsBody"), href: "/returns" as const },
+              ].map((item) => (
+                <details key={item.href} className="group py-1">
+                  <summary className="flex cursor-pointer list-none items-center justify-between py-4 font-mono-label text-[11px] tracking-[0.16em] [&::-webkit-details-marker]:hidden">
+                    {item.title}
+                    <span aria-hidden="true" className="text-lg transition-transform duration-300 group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="pb-4 text-sm leading-relaxed text-(--color-muted)">
+                    {item.body}{" "}
+                    <Link href={item.href} className="text-(--color-primary) underline underline-offset-4">
+                      {pdp("readMore")}
+                    </Link>
+                  </p>
+                </details>
+              ))}
+            </div>
           </div>
         </div>
 
         {related.length > 0 && (
-          <section className="mx-auto max-w-6xl px-6 pb-24">
-            <h2 className="mb-8 text-2xl font-semibold">{pdp("relatedTitle")}</h2>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
+          <section className="border-t border-(--color-hairline) bg-(--color-surface) py-20 md:py-28">
+            <div className="mx-auto max-w-7xl px-6">
+            <h2 className="mb-12 font-display text-4xl md:text-5xl">{pdp("relatedTitle")}</h2>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4 md:gap-x-7">
               {related.map((p) => (
                 <ProductCard key={p.id} product={toProductCard(p, locale)} addToCartLabel={pdp("addToCart")}
                 perMonthLabel={pdp("perMonth")}
                 minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })} />
               ))}
+            </div>
             </div>
           </section>
         )}

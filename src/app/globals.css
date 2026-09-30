@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --color-canvas: #fafbfa;
+  --color-canvas: #f8f6f1;
   --color-surface: #ffffff;
   --color-ink: #0e1512;
   --color-primary: #0e7c5a;
   --color-primary-hover: #0b6449;
   --color-mint: #6ee7b7;
-  --color-hairline: #e9edea;
+  --color-hairline: #e6e1d7;
+  /* Muted gold: thin rules and small accents only, never body text. */
+  --color-gold: #a8895a;
+  --color-forest: #0c3a2c;
   /* Darkened from the original #7A857E design spec (3.7:1 vs canvas) to
      clear WCAG AA's 4.5:1 for normal text — same hue/feel, just legible. */
-  --color-muted: #6b756f;
+  --color-muted: #6a655c;
 
   --font-grotesk: var(--font-geist-sans), "General Sans", "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono-brand: var(--font-geist-mono), "IBM Plex Mono", ui-monospace, monospace;
@@ -28,6 +31,8 @@
   --color-primary-hover: var(--color-primary-hover);
   --color-mint: var(--color-mint);
   --color-hairline: var(--color-hairline);
+  --color-gold: var(--color-gold);
+  --color-forest: var(--color-forest);
   --color-muted: var(--color-muted);
 
   --font-sans: var(--font-grotesk);
@@ -117,4 +122,41 @@ body {
     transform: none;
     transition: none;
   }
+}
+
+/* ---- Polish ---- */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #cbc4b5 transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes page-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  /* Every page eases in instead of snapping on. */
+  main { animation: page-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+
+/* A thin gold rule used as a quiet divider under section headings. */
+.gold-rule {
+  display: block;
+  height: 1px;
+  width: 3rem;
+  background: var(--color-gold);
+}
+
+/* Brand wordmark: always the serif, even on Arabic pages (it is a Latin name). */
+.font-logo {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  white-space: nowrap;
+}
+
+@keyframes gallery-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

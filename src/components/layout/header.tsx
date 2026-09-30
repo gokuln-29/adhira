@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { MonoLabel } from "@/components/ui/mono-label";
 import { HeaderSearch } from "@/components/layout/header-search";
+import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart/cart-context";
 
 const navItems = [
@@ -35,106 +35,102 @@ export function Header() {
     setMobileOpen((open) => !open);
   }
 
+  const iconBtn =
+    "text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none";
+
   return (
-    <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-surface)/70 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            aria-label={mobileOpen ? t("closeMenu") : t("menu")}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav"
-            onClick={toggleMobileMenu}
-            className="text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none md:hidden"
-          >
-            {mobileOpen ? <CloseIcon /> : <MenuIcon />}
-          </button>
-          <Link href="/" className="font-mono-label text-sm text-(--color-ink)">
+    <>
+      <div className="bg-(--color-ink) px-4 py-2 text-center font-mono-label text-[10px] tracking-[0.16em] text-white/80">
+        {t("announcement")}
+      </div>
+      <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-canvas)/85 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-4 md:py-5">
+          <div className="flex items-center">
+            <button
+              type="button"
+              aria-label={mobileOpen ? t("closeMenu") : t("menu")}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              onClick={toggleMobileMenu}
+              className={cn(iconBtn, "xl:hidden")}
+            >
+              {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+            </button>
+            <nav className="hidden items-center gap-7 xl:flex" aria-label={t("primaryNav")}>
+              {navItems.map((item) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className="group relative font-mono-label text-[11px] tracking-[0.14em] text-(--color-ink)"
+                >
+                  {t(item.key)}
+                  <span className="absolute -bottom-1.5 start-0 h-px w-full origin-left scale-x-0 bg-(--color-gold) transition-transform duration-300 group-hover:scale-x-100 rtl:origin-right" />
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <Link href="/" className="font-logo text-[1.15rem] text-(--color-ink) md:text-[1.55rem]">
             Flowers N Plants
           </Link>
-        </div>
 
-        <nav className="hidden items-center gap-6 md:flex" aria-label={t("primaryNav")}>
-          {navItems.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className="font-mono-label text-[11px] text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none"
+          <div className="flex items-center justify-end gap-4 md:gap-5">
+            <button
+              type="button"
+              aria-label={searchOpen ? t("closeSearch") : t("search")}
+              aria-expanded={searchOpen}
+              aria-controls="header-search"
+              onClick={toggleSearch}
+              className={iconBtn}
             >
-              {t(item.key)}
+              {searchOpen ? <CloseIcon /> : <SearchIcon />}
+            </button>
+            <Link href="/account" aria-label={t("account")} className={cn(iconBtn, "hidden sm:block")}>
+              <AccountIcon />
             </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            aria-label={searchOpen ? t("closeSearch") : t("search")}
-            aria-expanded={searchOpen}
-            aria-controls="header-search"
-            onClick={toggleSearch}
-            className="text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none"
-          >
-            {searchOpen ? <CloseIcon /> : <SearchIcon />}
-          </button>
-          <Link
-            href="/account"
-            aria-label={t("account")}
-            className="text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none"
-          >
-            <AccountIcon />
-          </Link>
-          <Link
-            href="/cart"
-            aria-label={t("cart")}
-            className="relative text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none"
-          >
-            <CartIcon />
-            {count > 0 && (
-              <MonoLabel
-                as="span"
-                muted={false}
-                className="absolute -end-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--color-primary) px-1 text-[9px] text-white"
-              >
-                {count}
-              </MonoLabel>
-            )}
-          </Link>
-          <div className="hidden items-center border-(--color-hairline) font-mono-label text-[11px] ltr:border-l ltr:pl-2 rtl:border-r rtl:pr-2 sm:flex">
-            {routing.locales.map((loc) => (
-              <Link
-                key={loc}
-                href={pathname}
-                locale={loc}
-                aria-current={loc === locale ? "true" : undefined}
-                className={
-                  "flex min-h-6 min-w-6 items-center justify-center px-1 " +
-                  (loc === locale
-                    ? "text-(--color-primary)"
-                    : "text-(--color-muted) hover:text-(--color-ink)")
-                }
-              >
-                {loc === "en" ? "EN" : "AR"}
-              </Link>
-            ))}
+            <Link href="/cart" aria-label={t("cart")} className={cn(iconBtn, "relative")}>
+              <CartIcon />
+              {count > 0 && (
+                <span className="absolute -end-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--color-primary) px-1 font-mono-label text-[9px] text-white">
+                  {count}
+                </span>
+              )}
+            </Link>
+            <div className="hidden items-center border-(--color-hairline) font-mono-label text-[11px] ltr:border-l ltr:pl-3 rtl:border-r rtl:pr-3 sm:flex">
+              {routing.locales.map((loc) => (
+                <Link
+                  key={loc}
+                  href={pathname}
+                  locale={loc}
+                  aria-current={loc === locale ? "true" : undefined}
+                  className={
+                    "flex min-h-6 min-w-6 items-center justify-center px-1 " +
+                    (loc === locale
+                      ? "text-(--color-primary)"
+                      : "text-(--color-muted) hover:text-(--color-ink)")
+                  }
+                >
+                  {loc === "en" ? "EN" : "AR"}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
+        {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
 
       {mobileOpen && (
         <nav
           id="mobile-nav"
           aria-label={t("primaryNav")}
-          className="flex flex-col border-t border-(--color-hairline) px-6 py-4 md:hidden"
+          className="flex flex-col border-t border-(--color-hairline) px-6 py-4 xl:hidden"
         >
           {navItems.map((item) => (
             <Link
               key={item.key}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className="border-b border-(--color-hairline) py-3 font-mono-label text-xs text-(--color-ink) last:border-0"
+              className="border-b border-(--color-hairline) py-4 font-display text-2xl text-(--color-ink) last:border-0"
             >
               {t(item.key)}
             </Link>
@@ -158,7 +154,8 @@ export function Header() {
           </div>
         </nav>
       )}
-    </header>
+      </header>
+    </>
   );
 }
 

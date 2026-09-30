@@ -264,7 +264,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         </section>
 
         {/* CLOSING CALL TO ACTION */}
-        <section className="bg-(--color-ink) py-24 text-white md:py-32">
+        <section className="bg-(--color-forest) py-24 text-white md:py-32">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-7 px-6 text-center">
             <h2 className="font-display text-4xl md:text-6xl">{t("ctaTitle")}</h2>
             <p className="max-w-lg text-white/70">{t("ctaBody")}</p>

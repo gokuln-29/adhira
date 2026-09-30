@@ -68,7 +68,7 @@ export default async function BlogPostPage({
       <main className="flex-1">
         <article className="mx-auto max-w-3xl px-6 py-10">
           {post.category && <MonoLabel muted={false}>{post.category}</MonoLabel>}
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">{post.title}</h1>
+          <h1 className="mt-4 max-w-3xl font-display text-5xl md:text-6xl">{post.title}</h1>
           {post.published_at && (
             <MonoLabel as="p" className="mt-3 text-[11px]">
               {new Date(post.published_at).toLocaleDateString(locale === "ar" ? "ar-AE" : "en-AE", {

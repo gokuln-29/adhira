@@ -21,6 +21,8 @@ export function toProductCard(row: ProductRow, locale = "en"): ProductCardData {
   const p = localizeProduct(row, locale);
   const primary =
     row.product_images.find((img) => img.is_primary) ?? row.product_images[0];
+  // A second photo (if any) fades in when the card is hovered.
+  const second = row.product_images.find((img) => img !== primary);
 
   return {
     name: p.name,
@@ -28,6 +30,7 @@ export function toProductCard(row: ProductRow, locale = "en"): ProductCardData {
     short_description: p.short_description,
     details: row.details,
     image: primary ? { url: primary.url, alt: primary.alt || p.name } : null,
+    image2: second ? { url: second.url, alt: second.alt || p.name } : null,
     base_price: row.base_price,
     discount_type: row.discount_type,
     discount_value: row.discount_value,

@@ -24,7 +24,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
   };
 
   return (
-    <nav aria-label="Breadcrumb" className="mx-auto max-w-6xl px-6 pt-6">
+    <nav aria-label="Breadcrumb" className="mx-auto w-full max-w-7xl px-6 pt-8">
       <JsonLd data={breadcrumbJsonLd} />
       <ol className="flex flex-wrap items-center gap-2">
         {items.map((item, i) => (

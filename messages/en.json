@@ -16,7 +16,8 @@
     "closeSearch": "Close search",
     "searching": "Searching...",
     "noResults": "No products match your search.",
-    "viewAllResults": "View all results for \"{query}\""
+    "viewAllResults": "View all results for \"{query}\"",
+    "announcement": "Same-day delivery in Dubai for orders before 2 PM  ·  VAT invoices for business"
   },
   "Home": {
     "metaTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",
@@ -164,7 +165,12 @@
     "belowMinValue": "This is below the minimum order value. Minimum quantity is {qty}.",
     "setToMinimum": "Set to {qty}",
     "perMonth": "/ month",
-    "minOrderShort": "Min. {qty}"
+    "minOrderShort": "Min. {qty}",
+    "infoDelivery": "Delivery",
+    "infoDeliveryBody": "Choose your date and time slot at checkout. Same-day delivery in Dubai for orders placed before 2 PM, subject to availability.",
+    "infoReturns": "Returns & deposits",
+    "infoReturnsBody": "Fresh flowers can't be returned, but tell us straight away if something isn't right. Glass vessel and rental plant deposits are refunded when items come back in good condition.",
+    "readMore": "Read more"
   },
   "Cart": {
     "title": "Cart",
