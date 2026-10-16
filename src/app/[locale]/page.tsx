@@ -191,7 +191,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 <Eyebrow>{t("newArrivalsEyebrow")}</Eyebrow>
                 <h2 className="font-display text-4xl md:text-6xl">{t("newArrivals")}</h2>
               </div>
-              <Link href="/shop" className="font-mono-label shrink-0 pb-2 text-xs text-(--color-primary) underline-offset-8 hover:underline">
+              <Link href="/shop" className="font-mono-label inline-block shrink-0 py-2 text-xs text-(--color-primary) underline-offset-8 hover:underline">
                 {t("viewAll")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
               </Link>
             </div>

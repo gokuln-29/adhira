@@ -76,4 +76,5 @@ CSS variables + Tailwind v4 `@theme inline`; use arbitrary-value var syntax, e.g
 
 - No product-variant pricing table (PDP "size" rows are display-only); stock is optional per product (`products.stock_qty`, NULL = untracked; set a number to enforce it) and there is no low-stock panel; no bilingual blog/product-body columns beyond `*_ar` fields; Tabby/Tamara are scaffolds (`src/lib/bnpl/README.md`); Recurring/Quotes on the account page are placeholders.
 - Restocking on cancel adds back the order quantity even if stock tracking was switched on after the order was placed.
+- `npm run build` prerenders pages from MySQL, so the build machine needs `DATABASE_URL` reachable (on the VPS that is localhost).
 - `AUTH_SECRET` encrypts TOTP secrets; changing it forces MFA re-enrolment.

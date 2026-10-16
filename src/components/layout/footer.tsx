@@ -85,7 +85,7 @@ export async function Footer() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-white/75 transition-colors hover:text-white motion-reduce:transition-none"
+                        className="inline-block py-1 text-sm text-white/75 transition-colors hover:text-white motion-reduce:transition-none"
                       >
                         {link.label}
                       </Link>
