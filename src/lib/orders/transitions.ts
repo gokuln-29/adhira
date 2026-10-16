@@ -1,0 +1,153 @@
+import "server-only";
+import { eq, sql } from "drizzle-orm";
+import { db, type Tx } from "@/lib/db";
+import { order_items, order_status_events, orders, products } from "@/lib/db/schema";
+import { newId } from "@/lib/db/helpers";
+import { refreshStockPages, syncStockAlerts } from "@/lib/ops/stock";
+import { issueInvoice } from "@/lib/invoices/issue";
+import { canTransition, type OrderStatus } from "@/lib/constants/order";
+
+// The one place order status / payment status / deposit status change. Every
+// change locks the order row, validates against the state machine and appends
+// an immutable row to order_status_events (who, what, when).
+
+export type Actor = `admin:${string}` | "stripe" | "system" | "customer";
+
+export type TransitionResult = { ok: true; changed: boolean } | { ok: false; error: string };
+
+async function log(
+  tx: Tx,
+  orderId: string,
+  kind: "status" | "payment" | "deposit" | "invoice",
+  from: string | null,
+  to: string,
+  actor: Actor,
+  note?: string,
+) {
+  await tx.insert(order_status_events).values({
+    id: newId(),
+    order_id: orderId,
+    kind,
+    from_value: from,
+    to_value: to,
+    actor,
+    note: note?.slice(0, 500) ?? null,
+  });
+}
+
+async function lockOrder(tx: Tx, where: { number: string } | { id: string }) {
+  const rows = await tx
+    .select()
+    .from(orders)
+    .where("number" in where ? eq(orders.number, where.number) : eq(orders.id, where.id))
+    .limit(1)
+    .for("update");
+  return rows[0] ?? null;
+}
+
+async function restock(tx: Tx, orderId: string): Promise<string[]> {
+  const items = await tx
+    .select({ product_id: order_items.product_id, qty: order_items.qty })
+    .from(order_items)
+    .where(eq(order_items.order_id, orderId));
+  const touched: string[] = [];
+  for (const it of items) {
+    if (!it.product_id) continue;
+    touched.push(it.product_id);
+    // NULL stock_qty means "not tracked": NULL + n stays NULL.
+    await tx
+      .update(products)
+      .set({ stock_qty: sql`${products.stock_qty} + ${it.qty}` })
+      .where(eq(products.id, it.product_id));
+  }
+  return touched;
+}
+
+export async function transitionOrder(
+  where: { number: string } | { id: string },
+  to: OrderStatus,
+  actor: Actor,
+  note?: string,
+): Promise<TransitionResult> {
+  let restocked: string[] = [];
+  const result = await db.transaction(async (tx) => {
+    const order = await lockOrder(tx, where);
+    if (!order) return { ok: false, error: "Order not found." } as const;
+    if (order.status === to) return { ok: true, changed: false } as const;
+    if (!canTransition(order.status, to)) {
+      return { ok: false, error: `An order that is ${order.status} can't move to ${to}.` } as const;
+    }
+
+    const patch: Partial<typeof orders.$inferInsert> = { status: to };
+    if (to === "refunded" && order.payment_status === "paid") patch.payment_status = "refunded";
+    await tx.update(orders).set(patch).where(eq(orders.id, order.id));
+    await log(tx, order.id, "status", order.status, to, actor, note);
+    if (patch.payment_status) await log(tx, order.id, "payment", order.payment_status, patch.payment_status, actor, note);
+
+    if (to === "cancelled") restocked = await restock(tx, order.id);
+    return { ok: true, changed: true } as const;
+  });
+  if (restocked.length > 0) {
+    // Units came back: pages should show them again and any open low/out alert may now clear.
+    refreshStockPages();
+    await syncStockAlerts(restocked);
+  }
+  return result;
+}
+
+/**
+ * Records a verified payment. Callers: the Stripe webhook (signature-checked, amount
+ * and currency matched) and the owner-only manual action (reference required, audited).
+ * Idempotent: a repeat call for an already-paid order changes nothing.
+ */
+export async function markOrderPaid(
+  where: { number: string } | { id: string },
+  actor: Actor,
+  details: { paymentIntentId?: string | null; note?: string; manual?: boolean } = {},
+): Promise<TransitionResult> {
+  return db.transaction(async (tx) => {
+    const order = await lockOrder(tx, where);
+    if (!order) return { ok: false, error: "Order not found." } as const;
+    if (order.payment_status === "paid") return { ok: true, changed: false } as const;
+    if (order.status === "cancelled" || order.status === "refunded") {
+      // Money arrived for an order we'd already closed: leave it for a human.
+      return { ok: false, error: `Order is ${order.status}; payment needs manual review.` } as const;
+    }
+
+    await tx
+      .update(orders)
+      .set({
+        payment_status: "paid",
+        paid_at: new Date().toISOString(),
+        // Recorded by an owner (bank transfer, paid outside the site): say so on the order.
+        ...(details.manual ? { payment_method: "manual" as const } : {}),
+        ...(details.paymentIntentId ? { stripe_payment_intent_id: details.paymentIntentId } : {}),
+        // A verified payment confirms a pending order.
+        ...(order.status === "pending" ? { status: "confirmed" as const } : {}),
+      })
+      .where(eq(orders.id, order.id));
+    await log(tx, order.id, "payment", order.payment_status, "paid", actor, details.note);
+    // Same transaction as the payment: the invoice number exists iff the payment does.
+    const invoiceNumber = await issueInvoice(tx, order);
+    await log(tx, order.id, "invoice", null, invoiceNumber, actor, "tax invoice issued");
+    if (order.status === "pending") {
+      await log(tx, order.id, "status", "pending", "confirmed", actor, "payment received");
+    }
+    return { ok: true, changed: true } as const;
+  });
+}
+
+export async function setDepositStatus(
+  number: string,
+  to: "held" | "refunded",
+  actor: Actor,
+): Promise<TransitionResult> {
+  return db.transaction(async (tx) => {
+    const order = await lockOrder(tx, { number });
+    if (!order || order.deposit_total <= 0) return { ok: false, error: "This order has no deposit." } as const;
+    if (order.deposit_status === to) return { ok: true, changed: false } as const;
+    await tx.update(orders).set({ deposit_status: to }).where(eq(orders.id, order.id));
+    await log(tx, order.id, "deposit", order.deposit_status, to, actor);
+    return { ok: true, changed: true } as const;
+  });
+}

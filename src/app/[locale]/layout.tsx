@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Cormorant_Garamond, Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { DeliveryRulesProvider } from "@/lib/delivery/context";
+import { getDeliveryRules } from "@/lib/data/delivery";
+import { getStoreSettings } from "@/lib/data/settings";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { organizationJsonLd, localBusinessJsonLd } from "@/lib/seo/organization";
 import { JsonLd } from "@/components/seo/json-ld";
+import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -20,6 +24,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Elegant serif for large headlines only (home page). Body text stays Geist.
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600"],
+});
+
 const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-ibm-plex-arabic",
   subsets: ["arabic"],
@@ -29,8 +40,8 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Flowers N Plants | Corporate, Events & Celebrations — UAE",
-    template: "%s | Flowers N Plants",
+    default: "Adhira Flowers | Corporate, Events & Celebrations — UAE",
+    template: "%s | Adhira Flowers",
   },
   description:
     "Fresh flower arrangements, corporate gifting, event florals and plant setups for offices, weddings, birthdays and celebrations across Dubai, Abu Dhabi and Sharjah.",
@@ -62,20 +73,23 @@ export default async function LocaleLayout({
   // every one of them to render dynamically regardless of `revalidate`.
   setRequestLocale(locale);
 
-  const messages = await getMessages();
+  const [messages, deliveryRules, storeSettings] = await Promise.all([getMessages(), getDeliveryRules(), getStoreSettings()]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
     <html
       lang={locale}
       dir={dir}
-      className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexArabic.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${ibmPlexArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-(--color-canvas) text-(--color-ink)">
-        <JsonLd data={organizationJsonLd()} />
-        <JsonLd data={localBusinessJsonLd()} />
+        <JsonLd data={organizationJsonLd(storeSettings)} />
+        <JsonLd data={localBusinessJsonLd(storeSettings, deliveryRules.zones.filter((z) => z.enabled).map((z) => z.emirate))} />
         <NextIntlClientProvider messages={messages}>
-          <CartProvider>{children}</CartProvider>
+          <DeliveryRulesProvider rules={deliveryRules}>
+            <CartProvider>{children}</CartProvider>
+          </DeliveryRulesProvider>
+          <WhatsAppButton />
         </NextIntlClientProvider>
       </body>
     </html>

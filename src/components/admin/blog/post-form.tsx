@@ -87,6 +87,7 @@ export function PostForm({ post }: { post?: BlogPostRow }) {
           setSlugTouched(true);
         }}
         required
+        hint="This is the web address. If you change it, the old link keeps working (it redirects to the new one)."
       />
       <Input label="Cover image URL" value={cover} onChange={(e) => setCover(e.target.value)} />
       <Textarea label="Excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} />

@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { blog_posts } from "@/lib/db/schema";
+import { dbErrorMessage, newId } from "@/lib/db/helpers";
+import { clearRedirectsFor, recordSlugChange } from "@/lib/redirects";
+import { authorize } from "@/lib/admin/auth";
+import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
 export interface PostFormInput {
   title: string;
@@ -36,40 +42,56 @@ function buildRow(input: PostFormInput, existingPublishedAt?: string | null) {
 }
 
 export async function createPost(input: PostFormInput): Promise<ActionResult<{ id: string }>> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .insert(buildRow(input))
-    .select("id")
-    .single();
-  if (error) return { ok: false, error: error.message };
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
+  const id = newId();
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(blog_posts).values({ id, ...buildRow(input) });
+      await recordSlugChange(tx, "post", id, null, input.slug.trim());
+    });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "post") };
+  }
   revalidatePath("/admin/blog");
-  return { ok: true, id: data.id };
+  refreshStorefront();
+  return { ok: true, id };
 }
 
 export async function updatePost(id: string, input: PostFormInput): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("blog_posts")
-    .select("published_at")
-    .eq("id", id)
-    .maybeSingle();
-
-  const { error } = await supabase
-    .from("blog_posts")
-    .update(buildRow(input, existing?.published_at))
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
+  try {
+    await db.transaction(async (tx) => {
+      const existing = await tx
+        .select({ published_at: blog_posts.published_at, slug: blog_posts.slug })
+        .from(blog_posts)
+        .where(eq(blog_posts.id, id))
+        .limit(1);
+      await tx.update(blog_posts).set(buildRow(input, existing[0]?.published_at)).where(eq(blog_posts.id, id));
+      await recordSlugChange(tx, "post", id, existing[0]?.slug, input.slug.trim());
+    });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "post") };
+  }
   revalidatePath("/admin/blog");
+  refreshStorefront();
   revalidatePath(`/admin/blog/${id}`);
   return { ok: true };
 }
 
 export async function deletePost(id: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
+  try {
+    await db.transaction(async (tx) => {
+      await tx.delete(blog_posts).where(eq(blog_posts.id, id));
+      await clearRedirectsFor(tx, "post", [id]);
+    });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "post") };
+  }
   revalidatePath("/admin/blog");
+  refreshStorefront();
   return { ok: true };
 }

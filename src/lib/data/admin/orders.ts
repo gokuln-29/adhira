@@ -1,8 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers, invoices, order_items, order_status_events, orders } from "@/lib/db/schema";
 
 export interface AdminOrderListRow {
   number: string;
+  delivery_date: string | null;
+  deposit_status: string;
   status: string;
+  payment_status: string;
   total: number;
   channel: string;
   emirate: string | null;
@@ -15,34 +20,151 @@ export interface AdminOrderDetail extends AdminOrderListRow {
   vat: number;
   delivery_fee: number;
   currency: string;
+  payment_method: string;
   address: Record<string, unknown>;
   delivery_date: string | null;
   notes: string | null;
-  order_items: { name: string; qty: number; unit_price: number; line_total: number }[];
+  deposit_total: number;
+  deposit_status: "none" | "held" | "refunded";
+  order_items: {
+    name: string;
+    qty: number;
+    unit_price: number;
+    line_total: number;
+    discount: number;
+    vessel: boolean;
+    vessel_fee: number;
+    deposit: number;
+    rental_months: number | null;
+  }[];
+  discount_total: number;
+  coupon_code: string | null;
+  public_token: string;
+  invoice_number: string | null;
+  history: {
+    kind: string;
+    from_value: string | null;
+    to_value: string;
+    actor: string;
+    note: string | null;
+    created_at: string;
+  }[];
 }
 
-const LIST_SELECT =
-  "number, status, total, channel, emirate, created_at, customers(name, email)";
-const DETAIL_SELECT =
-  "number, status, total, subtotal, vat, delivery_fee, currency, channel, emirate, address, delivery_date, notes, created_at, customers(name, email), order_items(name, qty, unit_price, line_total)";
+const listColumns = {
+  number: orders.number,
+  status: orders.status,
+  payment_status: orders.payment_status,
+  total: orders.total,
+  channel: orders.channel,
+  emirate: orders.emirate,
+  delivery_date: orders.delivery_date,
+  deposit_status: orders.deposit_status,
+  created_at: orders.created_at,
+  customer_name: customers.name,
+  customer_email: customers.email,
+};
+
+function shapeList<T extends { customer_name: string | null; customer_email: string | null }>(
+  r: T,
+): Omit<T, "customer_name" | "customer_email"> & { customers: { name: string; email: string } | null } {
+  const { customer_name, customer_email, ...rest } = r;
+  return { ...rest, customers: customer_name == null ? null : { name: customer_name, email: customer_email ?? "" } };
+}
 
 export async function getAllOrdersAdmin(): Promise<AdminOrderListRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select(LIST_SELECT)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as AdminOrderListRow[];
+  const rows = await db
+    .select(listColumns)
+    .from(orders)
+    .leftJoin(customers, eq(orders.customer_id, customers.id))
+    .orderBy(desc(orders.created_at));
+  return rows.map(shapeList);
 }
 
 export async function getOrderByNumberAdmin(number: string): Promise<AdminOrderDetail | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select(DETAIL_SELECT)
-    .eq("number", number)
-    .maybeSingle();
-  if (error) throw error;
-  return data as unknown as AdminOrderDetail | null;
+  const rows = await db
+    .select({
+      ...listColumns,
+      id: orders.id,
+      subtotal: orders.subtotal,
+      vat: orders.vat,
+      delivery_fee: orders.delivery_fee,
+      currency: orders.currency,
+      payment_method: orders.payment_method,
+      public_token: orders.public_token,
+      discount_total: orders.discount_total,
+      coupon_code: orders.coupon_code,
+      address: orders.address,
+      notes: orders.notes,
+      deposit_total: orders.deposit_total,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customer_id, customers.id))
+    .where(eq(orders.number, number))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const { id, ...rest } = row;
+
+  const [items, history] = await Promise.all([
+    db
+      .select({
+        name: order_items.name,
+        qty: order_items.qty,
+        unit_price: order_items.unit_price,
+        line_total: order_items.line_total,
+        discount: order_items.discount,
+        vessel: order_items.vessel,
+        vessel_fee: order_items.vessel_fee,
+        deposit: order_items.deposit,
+        rental_months: order_items.rental_months,
+      })
+      .from(order_items)
+      .where(eq(order_items.order_id, id)),
+    db
+      .select({
+        kind: order_status_events.kind,
+        from_value: order_status_events.from_value,
+        to_value: order_status_events.to_value,
+        actor: order_status_events.actor,
+        note: order_status_events.note,
+        created_at: order_status_events.created_at,
+      })
+      .from(order_status_events)
+      .where(eq(order_status_events.order_id, id))
+      .orderBy(desc(order_status_events.created_at)),
+  ]);
+
+  const inv = await db.select({ number: invoices.number }).from(invoices).where(eq(invoices.order_id, id)).limit(1);
+  return { ...shapeList(rest), invoice_number: inv[0]?.number ?? null, order_items: items, history } as AdminOrderDetail;
+}
+
+export const ORDER_VIEWS = {
+  all: null,
+  action: ["pending", "confirmed"],
+  progress: ["preparing", "dispatched"],
+  delivered: ["delivered"],
+  closed: ["cancelled", "refunded"],
+} as const;
+export type OrderView = keyof typeof ORDER_VIEWS;
+export const ORDERS_PAGE_SIZE = 25;
+
+export async function getOrdersPageAdmin(opts: {
+  view: OrderView;
+  page: number;
+}): Promise<{ rows: AdminOrderListRow[]; total: number }> {
+  const statuses = ORDER_VIEWS[opts.view];
+  const where = statuses ? and(inArray(orders.status, [...statuses])) : undefined;
+  const [rows, totals] = await Promise.all([
+    db
+      .select(listColumns)
+      .from(orders)
+      .leftJoin(customers, eq(orders.customer_id, customers.id))
+      .where(where)
+      .orderBy(desc(orders.created_at))
+      .limit(ORDERS_PAGE_SIZE)
+      .offset((opts.page - 1) * ORDERS_PAGE_SIZE),
+    db.select({ n: count() }).from(orders).where(where),
+  ]);
+  return { rows: rows.map(shapeList), total: totals[0]?.n ?? 0 };
 }

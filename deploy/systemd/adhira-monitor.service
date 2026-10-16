@@ -1,0 +1,6 @@
+[Unit]
+Description=Adhira health, disk, backup-age and TLS checks
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/adhira-monitor

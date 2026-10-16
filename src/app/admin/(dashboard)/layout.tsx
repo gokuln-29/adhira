@@ -13,10 +13,10 @@ export default async function AdminDashboardLayout({
 
   return (
     <div className="flex min-h-screen">
-      <AdminSidebar />
-      <div className="flex flex-1 flex-col">
+      <AdminSidebar role={admin.role} />
+      <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar admin={admin} />
-        <main className="flex-1 overflow-x-auto p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

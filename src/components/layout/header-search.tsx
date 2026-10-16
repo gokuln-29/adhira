@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { getEffectivePrice, formatAED } from "@/lib/pricing";
 
 interface RawProduct {
@@ -45,18 +44,15 @@ export function HeaderSearch({ onClose }: { onClose: () => void }) {
 
     const loadingHandle = setTimeout(() => setLoading(true), 0);
     const handle = setTimeout(async () => {
-      const supabase = createClient();
-      const escaped = query.replace(/[%_]/g, (c) => `\\${c}`);
-      const { data } = await supabase
-        .from("products")
-        .select(
-          "slug, name, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate, product_images(url, is_primary)",
-        )
-        .eq("status", "active")
-        .or(`name.ilike.%${escaped}%,short_description.ilike.%${escaped}%`)
-        .limit(5);
+      let data: { products: RawProduct[] } = { products: [] };
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        if (res.ok) data = await res.json();
+      } catch {
+        // offline / aborted: show "no results" rather than crash
+      }
 
-      const rows = (data ?? []) as unknown as RawProduct[];
+      const rows = data.products;
       setSuggestions(
         rows.map((p) => {
           const primary = p.product_images.find((img) => img.is_primary) ?? p.product_images[0];

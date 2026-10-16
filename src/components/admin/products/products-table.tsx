@@ -8,14 +8,17 @@ import { Button } from "@/components/ui/button";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { formatAED } from "@/lib/pricing";
 import { bulkDeleteProducts, bulkUpdateProductStatus } from "@/lib/actions/admin/products";
+import { stockStatus } from "@/lib/stock";
 import type { CategoryRow, ProductRow } from "@/lib/data/types";
 
 export function ProductsTable({
   products,
   categories,
+  lowStockThreshold,
 }: {
   products: ProductRow[];
   categories: CategoryRow[];
+  lowStockThreshold: number;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -137,6 +140,7 @@ export function ProductsTable({
               <th className="px-4 py-3 text-start">Product</th>
               <th className="px-4 py-3 text-start">Category</th>
               <th className="px-4 py-3 text-start">Price</th>
+              <th className="px-4 py-3 text-start">Stock</th>
               <th className="px-4 py-3 text-start">Status</th>
             </tr>
           </thead>
@@ -161,6 +165,18 @@ export function ProductsTable({
                 <td className="px-4 py-3 font-mono-label text-xs">
                   {formatAED(p.base_price)}
                 </td>
+                <td className="px-4 py-3 font-mono-label text-xs">
+                  {(() => {
+                    const st = stockStatus(p.stock_qty, lowStockThreshold);
+                    if (st === "untracked") return <span className="text-(--color-muted)">—</span>;
+                    return (
+                      <span className={st === "out" ? "text-red-700" : st === "low" ? "text-amber-700" : ""}>
+                        {p.stock_qty}
+                        {st === "out" ? " · OUT" : st === "low" ? " · LOW" : ""}
+                      </span>
+                    );
+                  })()}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`font-mono-label text-[10px] ${p.status === "active" ? "text-(--color-primary)" : "text-(--color-muted)"}`}
@@ -172,7 +188,7 @@ export function ProductsTable({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-(--color-muted)">
+                <td colSpan={6} className="px-4 py-10 text-center text-(--color-muted)">
                   No products match.
                 </td>
               </tr>

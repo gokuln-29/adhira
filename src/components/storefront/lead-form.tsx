@@ -13,11 +13,14 @@ const frequencies = ["One-time", "Weekly", "Bi-weekly", "Monthly"] as const;
 
 export function LeadForm({
   title,
+  headingAs: Heading = "h3",
   requirementLabel,
   requirementPlaceholder,
   submitLabel,
 }: {
   title: string;
+  /** h3 under a section heading, h2 when the form follows the page h1 directly. */
+  headingAs?: "h2" | "h3";
   requirementLabel?: string;
   requirementPlaceholder?: string;
   submitLabel?: string;
@@ -51,11 +54,12 @@ export function LeadForm({
       company: String(formData.get("company") || "") || undefined,
       email: String(formData.get("email") || "") || undefined,
       phone: String(formData.get("phone") || "") || undefined,
-      emirate: String(formData.get("emirate") || "") || undefined,
+      emirate: (String(formData.get("emirate") || "") || undefined) as LeadInput["emirate"],
       frequency: String(formData.get("frequency") || "") || undefined,
       budget: String(formData.get("budget") || "") || undefined,
       requirement: String(formData.get("requirement") || "") || undefined,
       message: String(formData.get("message") || "") || undefined,
+      website: String(formData.get("website") || ""),
     };
 
     const res = await createLead(input);
@@ -80,7 +84,7 @@ export function LeadForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 border border-(--color-hairline) p-6">
-      <h3 className="text-xl font-semibold">{title}</h3>
+      <Heading className="text-xl font-semibold">{title}</Heading>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input name="contact" label={t("yourName")} required />
@@ -116,6 +120,14 @@ export function LeadForm({
         rows={3}
       />
       <Textarea name="message" label={t("anythingElse")} rows={2} />
+
+      {/* Honeypot: hidden from people and screen readers, bots fill it in. */}
+      <div aria-hidden="true" className="absolute -start-[9999px] h-0 w-0 overflow-hidden">
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
 

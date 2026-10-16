@@ -1,22 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { blog_posts } from "@/lib/db/schema";
+import { blogColumns } from "@/lib/data/blog";
 import type { BlogPostRow } from "@/lib/data/types";
 
-const SELECT =
-  "id, title, slug, cover, excerpt, body, category, tags, status, published_at, seo_title, seo_description";
-
 export async function getAllPostsAdmin(): Promise<BlogPostRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select(SELECT)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as BlogPostRow[];
+  return db.select(blogColumns).from(blog_posts).orderBy(desc(blog_posts.created_at));
 }
 
 export async function getPostByIdAdmin(id: string): Promise<BlogPostRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("blog_posts").select(SELECT).eq("id", id).maybeSingle();
-  if (error) throw error;
-  return data as unknown as BlogPostRow | null;
+  const rows = await db.select(blogColumns).from(blog_posts).where(eq(blog_posts.id, id)).limit(1);
+  return rows[0] ?? null;
 }

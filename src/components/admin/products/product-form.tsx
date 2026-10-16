@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { Card } from "@/components/ui/card";
 import { ProductCard, type ProductCardData } from "@/components/product/product-card";
-import { createClient } from "@/lib/supabase/client";
+import { uploadImage } from "@/lib/media/upload-client";
 import {
   createProduct,
   updateProduct,
@@ -35,6 +35,8 @@ export function ProductForm({
   const router = useRouter();
 
   const [name, setName] = useState(product?.name ?? "");
+  const [nameAr, setNameAr] = useState(product?.name_ar ?? "");
+  const [shortDescriptionAr, setShortDescriptionAr] = useState(product?.short_description_ar ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!product);
   const [shortDescription, setShortDescription] = useState(product?.short_description ?? "");
@@ -48,6 +50,19 @@ export function ProductForm({
   const [discountValue, setDiscountValue] = useState(String(product?.discount_value ?? ""));
   const [saleStart, setSaleStart] = useState(product?.sale_start?.slice(0, 10) ?? "");
   const [saleEnd, setSaleEnd] = useState(product?.sale_end?.slice(0, 10) ?? "");
+  const hasRules =
+    !!product &&
+    (product.min_order_qty > 1 || product.min_order_value > 0 || product.allows_vessel || product.is_rental);
+  const [minQty, setMinQty] = useState(String(product?.min_order_qty ?? 1));
+  const [stockQty, setStockQty] = useState(product?.stock_qty == null ? "" : String(product.stock_qty));
+  const [minValue, setMinValue] = useState(product?.min_order_value ? String(product.min_order_value) : "");
+  const [allowsVessel, setAllowsVessel] = useState(product?.allows_vessel ?? false);
+  const [vesselPrice, setVesselPrice] = useState(product?.vessel_price ? String(product.vessel_price) : "");
+  const [vesselDeposit, setVesselDeposit] = useState(product?.vessel_deposit ? String(product.vessel_deposit) : "");
+  const [isRental, setIsRental] = useState(product?.is_rental ?? false);
+  const [rentalPrice, setRentalPrice] = useState(product?.rental_monthly_price ? String(product.rental_monthly_price) : "");
+  const [rentalMinMonths, setRentalMinMonths] = useState(String(product?.rental_min_months ?? 1));
+  const [rentalDeposit, setRentalDeposit] = useState(product?.rental_deposit ? String(product.rental_deposit) : "");
   const [categoryId, setCategoryId] = useState(product?.category_id ?? "");
   const [tagsInput, setTagsInput] = useState(product?.tags?.join(", ") ?? "");
   const [images, setImages] = useState<ProductImageInput[]>(
@@ -76,23 +91,15 @@ export function ProductForm({
     setUploading(true);
     setError(null);
 
-    const supabase = createClient();
     const uploaded: ProductImageInput[] = [];
 
     for (const file of Array.from(files)) {
-      const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(path, file);
-
-      if (uploadError) {
-        setError(uploadError.message);
-        continue;
+      try {
+        const img = await uploadImage(file, "product");
+        uploaded.push({ url: img.url, alt: "", is_primary: false });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Upload failed.");
       }
-
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      uploaded.push({ url: data.publicUrl, alt: "", is_primary: false });
     }
 
     setImages((prev) => {
@@ -139,12 +146,18 @@ export function ProductForm({
       sale_start: saleStart ? new Date(saleStart).toISOString() : null,
       sale_end: saleEnd ? new Date(saleEnd).toISOString() : null,
       vat_rate: 5,
+      is_rental: isRental,
+      rental_monthly_price: isRental ? Number(rentalPrice) || 0 : null,
+      min_order_qty: Number(minQty) || 1,
+      allows_vessel: allowsVessel,
     };
-  }, [name, slug, shortDescription, details, images, basePrice, discountType, discountValue, saleStart, saleEnd]);
+  }, [name, slug, shortDescription, details, images, basePrice, discountType, discountValue, saleStart, saleEnd, isRental, rentalPrice, minQty, allowsVessel]);
 
   function buildInput(status: "draft" | "active"): ProductFormInput {
     return {
       name,
+      name_ar: nameAr,
+      short_description_ar: shortDescriptionAr,
       slug: slug || slugify(name),
       short_description: shortDescription,
       details: details.filter((d) => d.label.trim() && d.value.trim()),
@@ -160,6 +173,16 @@ export function ProductForm({
         .filter(Boolean),
       status,
       images,
+      min_order_qty: Number(minQty) || 1,
+      stock_qty: stockQty.trim() === "" ? null : Math.max(0, Math.floor(Number(stockQty) || 0)),
+      min_order_value: Number(minValue) || 0,
+      allows_vessel: allowsVessel,
+      vessel_price: Number(vesselPrice) || 0,
+      vessel_deposit: Number(vesselDeposit) || 0,
+      is_rental: isRental,
+      rental_monthly_price: isRental ? Number(rentalPrice) || 0 : null,
+      rental_min_months: Number(rentalMinMonths) || 1,
+      rental_deposit: Number(rentalDeposit) || 0,
     };
   }
 
@@ -274,6 +297,7 @@ export function ProductForm({
                 setSlugTouched(true);
               }}
               required
+        hint="This is the web address. If you change it, the old link keeps working (it redirects to the new one)."
             />
             <Textarea
               label="Short description"
@@ -281,11 +305,25 @@ export function ProductForm({
               onChange={(e) => setShortDescription(e.target.value)}
               rows={2}
             />
+            <div className="mt-2 flex flex-col gap-4 border-t border-(--color-hairline) pt-4">
+              <MonoLabel muted={false}>Arabic (optional)</MonoLabel>
+              <p className="text-sm text-(--color-muted)">
+                Shown on the Arabic site. If left empty, the English text is shown instead.
+              </p>
+              <Input label="Name (Arabic)" value={nameAr} onChange={(e) => setNameAr(e.target.value)} dir="rtl" />
+              <Textarea
+                label="Short description (Arabic)"
+                value={shortDescriptionAr}
+                onChange={(e) => setShortDescriptionAr(e.target.value)}
+                rows={2}
+                dir="rtl"
+              />
+            </div>
           </Card>
 
           <Card className="flex flex-col gap-3 p-6">
             <div className="flex items-center justify-between">
-              <MonoLabel muted={false}>Spec lines</MonoLabel>
+              <MonoLabel muted={false}>Spec lines (optional)</MonoLabel>
               <button
                 type="button"
                 onClick={addDetailRow}
@@ -328,10 +366,10 @@ export function ProductForm({
                 step="0.01"
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
-                required
+                required={!isRental}
               />
               <MonoLabel as="p" className="self-end pb-2.5 text-[11px]">
-                incl. 5% VAT at checkout
+                Price excludes VAT. 5% VAT is added at checkout.
               </MonoLabel>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -373,6 +411,142 @@ export function ProductForm({
               </div>
             )}
           </Card>
+
+          {/* Most products need none of this: keep it folded unless the product already uses it. */}
+          <details open={hasRules} className="group flex flex-col gap-6">
+            <summary className="cursor-pointer border border-(--color-hairline) bg-(--color-surface) px-6 py-4 font-mono-label text-[11px]">
+              Order rules: minimum order, glass vessel, rental
+              <span className="ms-2 text-(--color-muted)">(optional)</span>
+            </summary>
+            <div className="mt-6 flex flex-col gap-6">
+          <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Stock</MonoLabel>
+            <Input
+              label="Units in stock (optional)"
+              type="number"
+              min="0"
+              step="1"
+              value={stockQty}
+              onChange={(e) => setStockQty(e.target.value)}
+              hint="Leave empty if you don't track stock. When set, checkout sells at most this many and stops at 0; cancelling an order puts units back."
+            />
+            <MonoLabel muted={false}>Minimum order</MonoLabel>
+            <p className="text-sm text-(--color-muted)">
+              Customers can&apos;t check out with less than this. Leave at 1 and 0 for no minimum.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Minimum quantity"
+                type="number"
+                min="1"
+                step="1"
+                value={minQty}
+                onChange={(e) => setMinQty(e.target.value)}
+                hint="e.g. 10 for bulk office orders"
+              />
+              <Input
+                label="Minimum order value (AED)"
+                type="number"
+                min="0"
+                step="0.01"
+                value={minValue}
+                onChange={(e) => setMinValue(e.target.value)}
+                hint="Excludes VAT and deposits"
+              />
+            </div>
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+              <MonoLabel muted={false}>Glass vessel</MonoLabel>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={allowsVessel}
+                  onChange={(e) => setAllowsVessel(e.target.checked)}
+                  className="h-4 w-4 accent-(--color-primary)"
+                />
+                Offer a glass vessel
+              </label>
+            </div>
+            {allowsVessel && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Vessel price (AED, per unit)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={vesselPrice}
+                  onChange={(e) => setVesselPrice(e.target.value)}
+                  hint="Charged with VAT. 0 if included in the price"
+                />
+                <Input
+                  label="Refundable deposit (AED, per unit)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={vesselDeposit}
+                  onChange={(e) => setVesselDeposit(e.target.value)}
+                  hint="Refunded when the vessel is returned. No VAT"
+                />
+              </div>
+            )}
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+              <MonoLabel muted={false}>Rental plant</MonoLabel>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isRental}
+                  onChange={(e) => setIsRental(e.target.checked)}
+                  className="h-4 w-4 accent-(--color-primary)"
+                />
+                This product is rented monthly
+              </label>
+            </div>
+            {isRental && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Input
+                    label="Monthly price (AED)"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={rentalPrice}
+                    onChange={(e) => setRentalPrice(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Minimum months"
+                    type="number"
+                    min="1"
+                    max="60"
+                    step="1"
+                    value={rentalMinMonths}
+                    onChange={(e) => setRentalMinMonths(e.target.value)}
+                  />
+                  <Input
+                    label="Refundable deposit (AED)"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={rentalDeposit}
+                    onChange={(e) => setRentalDeposit(e.target.value)}
+                    hint="Per unit, refunded on return"
+                  />
+                </div>
+                <p className="text-sm text-(--color-muted)">
+                  Rental products are charged monthly price × months. The Base price above is
+                  ignored for rentals.
+                </p>
+              </>
+            )}
+          </Card>
+
+            </div>
+          </details>
 
           <Card className="flex flex-col gap-4 p-6">
             <MonoLabel muted={false}>Organize</MonoLabel>

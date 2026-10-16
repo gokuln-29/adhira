@@ -6,7 +6,8 @@ import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MonoLabel } from "@/components/ui/mono-label";
-import { addStaffMember, removeStaffMember } from "@/lib/actions/admin/staff";
+import { addStaffMember, removeStaffMember, resetStaffMfa } from "@/lib/actions/admin/staff";
+import { sendStaffPasswordReset } from "@/lib/actions/admin/password-reset";
 import type { StaffRow } from "@/lib/data/admin/staff";
 
 export function StaffPanel({ staff }: { staff: StaffRow[] }) {
@@ -14,7 +15,7 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"owner" | "admin" | "staff">("staff");
+  const [role, setRole] = useState<"owner" | "manager" | "staff">("staff");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,15 +44,16 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Temporary password"
-            type="text"
+            label="Temporary password (12+ chars, upper, lower, number)"
+            type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-            <option value="owner">Owner</option>
+            <option value="staff">Staff: orders, leads, customers</option>
+            <option value="manager">Manager: staff + products, offers, blog</option>
+            <option value="owner">Owner: everything, incl. staff &amp; payment links</option>
           </Select>
         </div>
         {error && <p className="text-sm text-red-700">{error}</p>}
@@ -65,8 +67,34 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
           <div key={s.id} className="flex items-center justify-between px-4 py-3">
             <div>
               <p className="text-sm">{s.name}</p>
-              <MonoLabel className="text-[10px]">{s.role}</MonoLabel>
+              <MonoLabel className="text-[10px]">
+                {s.role} · {s.email} · 2FA {s.totp_enabled ? "on" : "off"}
+              </MonoLabel>
             </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm(`Email ${s.name} a password-reset link?`)) return;
+                const res = await sendStaffPasswordReset(s.id);
+                alert(res.ok ? "Reset link sent." : res.error);
+              }}
+              className="font-mono-label ms-auto me-4 text-[10px] text-(--color-muted)"
+            >
+              Send reset link
+            </button>
+            {s.totp_enabled && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm(`Reset ${s.name}'s two-factor authentication and sign them out everywhere?`)) return;
+                  await resetStaffMfa(s.id);
+                  router.refresh();
+                }}
+                className="font-mono-label me-4 text-[10px] text-(--color-muted)"
+              >
+                Reset 2FA
+              </button>
+            )}
             <button
               type="button"
               onClick={async () => {

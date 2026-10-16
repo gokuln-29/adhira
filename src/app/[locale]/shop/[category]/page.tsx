@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { localizeCategory } from "@/lib/data/localize";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
@@ -9,6 +10,7 @@ import {
   getActiveProducts,
   getCategories,
   getCategoryBySlug,
+  PAGE_SIZE,
   type ProductSort,
 } from "@/lib/data/products";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -22,8 +24,9 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/shop/[category]">): Promise<Metadata> {
   const { locale, category: categorySlug } = await params;
   setRequestLocale(locale);
-  const category = await getCategoryBySlug(categorySlug);
-  if (!category) return {};
+  const rawCategory = await getCategoryBySlug(categorySlug);
+  if (!rawCategory) return {};
+  const category = localizeCategory(rawCategory, locale);
 
   const description = `${category.name} for offices across Dubai, Abu Dhabi and Sharjah.`;
 
@@ -48,18 +51,28 @@ export default async function CategoryPage({
   const search = await searchParams;
 
   const category = await getCategoryBySlug(categorySlug);
-  if (!category) notFound();
+  if (!category) {
+    // Keep ?sort= / ?page= / ?tag= when the category was renamed.
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(search)) for (const x of Array.isArray(v) ? v : v === undefined ? [] : [v]) qs.append(k, x);
+    return notFoundOrRedirect("category", categorySlug, (s) => `/${locale}/shop/${s}${qs.size ? `?${qs}` : ""}`);
+  }
 
   const sortParam = Array.isArray(search.sort) ? search.sort[0] : search.sort;
+  const pageParam = Number(Array.isArray(search.page) ? search.page[0] : search.page);
+  const page = Number.isInteger(pageParam) && pageParam > 0 && pageParam <= 500 ? pageParam : 1;
   const sort: ProductSort = validSorts.includes(sortParam as ProductSort)
     ? (sortParam as ProductSort)
     : "newest";
 
-  const [categories, products, b] = await Promise.all([
+  const [rawCategories, products, b] = await Promise.all([
     getCategories(),
-    getActiveProducts({ categorySlug, sort }),
+    getActiveProducts({ categorySlug, sort, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE }),
     getTranslations("Breadcrumbs"),
   ]);
+
+  const categories = rawCategories.map((c) => localizeCategory(c, locale));
+  const categoryName = localizeCategory(category, locale).name;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -68,16 +81,18 @@ export default async function CategoryPage({
         items={[
           { label: b("home"), href: "/" },
           { label: b("shop"), href: "/shop" },
-          { label: category.name },
+          { label: categoryName },
         ]}
       />
       <main className="flex-1">
         <Plp
-          title={category.name}
+          title={categoryName}
           categories={categories}
           activeCategorySlug={category.slug}
           sort={sort}
-          products={products}
+          products={products.slice(0, PAGE_SIZE)}
+          page={page}
+          hasMore={products.length > PAGE_SIZE}
           basePath={`/shop/${category.slug}`}
         />
       </main>

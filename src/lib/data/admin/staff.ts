@@ -1,18 +1,26 @@
-import { createClient } from "@/lib/supabase/server";
+import { asc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { admin_users } from "@/lib/db/schema";
 
 export interface StaffRow {
   id: string;
   name: string;
-  role: "owner" | "admin" | "staff";
+  email: string;
+  role: "owner" | "manager" | "staff";
+  totp_enabled: boolean;
   created_at: string;
 }
 
 export async function getAllStaff(): Promise<StaffRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("admin_users")
-    .select("id, name, role, created_at")
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as unknown as StaffRow[];
+  return db
+    .select({
+      id: admin_users.id,
+      name: admin_users.name,
+      email: admin_users.email,
+      role: admin_users.role,
+      totp_enabled: admin_users.totp_enabled,
+      created_at: admin_users.created_at,
+    })
+    .from(admin_users)
+    .orderBy(asc(admin_users.created_at));
 }

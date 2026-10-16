@@ -26,6 +26,8 @@ export default async function AdminOffersPage() {
               <th className="px-6 py-3 text-start">Title</th>
               <th className="px-6 py-3 text-start">Code</th>
               <th className="px-6 py-3 text-start">Value</th>
+              <th className="px-6 py-3 text-start">Applies to</th>
+              <th className="px-6 py-3 text-start">Used</th>
               <th className="px-6 py-3 text-start">Window</th>
               <th className="px-6 py-3 text-start">Status</th>
             </tr>
@@ -42,6 +44,10 @@ export default async function AdminOffersPage() {
                 <td className="px-6 py-3 font-mono-label text-xs">
                   {o.type === "percent" ? `${o.value}%` : `AED ${o.value}`}
                 </td>
+                <td className="px-6 py-3 text-xs">{o.scope === "all" ? "Everything" : o.scope === "category" ? "Categories" : "Products"}</td>
+                <td className="px-6 py-3 font-mono-label text-xs">
+                  {o.code ? `${o.uses}${o.max_uses ? ` / ${o.max_uses}` : ""}` : "—"}
+                </td>
                 <td className="px-6 py-3 text-(--color-muted)">
                   {o.ends ? new Date(o.ends).toLocaleDateString("en-AE") : "No end date"}
                 </td>
@@ -54,7 +60,7 @@ export default async function AdminOffersPage() {
             ))}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-(--color-muted)">
+                <td colSpan={7} className="px-6 py-10 text-center text-(--color-muted)">
                   No offers yet.
                 </td>
               </tr>

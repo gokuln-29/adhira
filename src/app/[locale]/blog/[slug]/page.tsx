@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/seo/json-ld";
+import { blogPostingJsonLd } from "@/lib/seo/blog";
+import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
 import { MonoLabel } from "@/components/ui/mono-label";
-import { getPostBySlug } from "@/lib/data/blog";
+import { getPostBySlug, getPublishedPostSlugs } from "@/lib/data/blog";
+import { routing } from "@/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const slugs = await getPublishedPostSlugs();
+  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug: slug })));
+}
 
 export async function generateMetadata({
   params,
@@ -41,7 +49,7 @@ export default async function BlogPostPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const post = await getPostBySlug(slug);
-  if (!post) notFound();
+  if (!post) return notFoundOrRedirect("post", slug, (s) => `/${locale}/blog/${s}`);
 
   const [b, blog] = await Promise.all([
     getTranslations("Breadcrumbs"),
@@ -50,6 +58,16 @@ export default async function BlogPostPage({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <JsonLd
+        data={blogPostingJsonLd({
+          locale,
+          slug: post.slug,
+          title: post.title,
+          description: post.excerpt,
+          image: post.cover,
+          publishedAt: post.published_at,
+        })}
+      />
       <Header />
       <Breadcrumbs
         items={[
@@ -62,7 +80,7 @@ export default async function BlogPostPage({
       <main className="flex-1">
         <article className="mx-auto max-w-3xl px-6 py-10">
           {post.category && <MonoLabel muted={false}>{post.category}</MonoLabel>}
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">{post.title}</h1>
+          <h1 className="mt-4 max-w-3xl font-display text-5xl md:text-6xl">{post.title}</h1>
           {post.published_at && (
             <MonoLabel as="p" className="mt-3 text-[11px]">
               {new Date(post.published_at).toLocaleDateString(locale === "ar" ? "ar-AE" : "en-AE", {

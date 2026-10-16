@@ -7,6 +7,7 @@ import {
   getEffectivePrice,
   vatNote,
   type PricedProduct,
+  type ProductRules,
 } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +16,15 @@ export interface ProductCardDetail {
   value: string;
 }
 
-export interface ProductCardData extends PricedProduct {
+export interface ProductCardData extends PricedProduct, Partial<ProductRules> {
   name: string;
   slug: string;
   short_description: string | null;
   details: ProductCardDetail[];
   image: { url: string; alt: string } | null;
+  image2?: { url: string; alt: string } | null;
+  /** Tracked stock is 0. */
+  soldOut?: boolean;
 }
 
 export function ProductCard({
@@ -29,6 +33,9 @@ export function ProductCard({
   navigable = true,
   addToCartLabel = "Add to cart",
   priority = false,
+  perMonthLabel = "/ month",
+  minOrderLabel = "Min. {qty}",
+  soldOutLabel = "Sold out",
 }: {
   product: ProductCardData;
   className?: string;
@@ -42,61 +49,87 @@ export function ProductCard({
   /** Set true for the first card in an above-the-fold grid (PLP, home) so
    * it's not lazy-loaded — it's typically the LCP element there. */
   priority?: boolean;
+  /** Translated by the caller for the same no-intl-context reason as above. */
+  perMonthLabel?: string;
+  minOrderLabel?: string;
+  soldOutLabel?: string;
 }) {
   const price = getEffectivePrice(product);
+  const isRental = !!product.is_rental && (product.rental_monthly_price ?? 0) > 0;
   const detailsLine = product.details
     .map((d) => `${d.label}: ${d.value}`)
     .join(" · ");
 
   const content = (
     <>
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-(--color-hairline)/40">
+      <div className={cn("relative aspect-[4/5] overflow-hidden bg-(--color-hairline)/50", product.soldOut && "opacity-70")}>
         {product.image ? (
           <Image
             src={product.image.url}
             alt={product.image.alt}
             fill
             priority={priority}
-            quality={priority ? 60 : 75}
+            quality={priority ? 65 : 75}
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="object-cover transition-[transform,opacity] duration-[900ms] ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : null}
+        {product.image2 && (
+          <Image
+            src={product.image2.url}
+            alt=""
+            fill
+            quality={70}
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            className="object-cover opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100 motion-reduce:transition-none"
+          />
+        )}
 
-        {price.isOnSale && price.discountLabel && (
-          <span className="absolute start-3 top-3 rounded-[2px] bg-(--color-primary) px-2 py-1 font-mono-label text-[10px] text-white">
+        {!isRental && price.isOnSale && price.discountLabel && (
+          <span className="absolute start-3 top-3 bg-(--color-surface) px-2.5 py-1 font-mono-label text-[10px] tracking-[0.12em] text-(--color-ink)">
             {price.discountLabel}
           </span>
         )}
 
-        <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0">
-          <span className={buttonVariants({ variant: "primary", size: "sm", className: "w-full" })}>
-            {addToCartLabel}
+        {product.soldOut ? (
+          <span className="absolute end-3 top-3 bg-(--color-ink) px-2.5 py-1 font-mono-label text-[10px] tracking-[0.12em] text-white">
+            {soldOutLabel}
           </span>
-        </div>
+        ) : (
+          <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100">
+            <span className={buttonVariants({ variant: "primary", size: "sm", className: "w-full backdrop-blur" })}>
+              {addToCartLabel}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col gap-1.5 pt-3">
-        <h3 className="text-sm font-semibold text-(--color-ink)">{product.name}</h3>
+      <div className="flex flex-col gap-2 pt-4">
+        <h3 className="font-display text-[1.35rem] leading-tight text-(--color-ink) transition-colors group-hover:text-(--color-primary)">
+          {product.name}
+        </h3>
         {product.short_description && (
-          <p className="line-clamp-1 text-sm text-(--color-muted)">
-            {product.short_description}
-          </p>
+          <p className="line-clamp-1 text-sm text-(--color-muted)">{product.short_description}</p>
         )}
         {detailsLine && (
-          <MonoLabel as="p" className="line-clamp-1">
+          <MonoLabel as="p" className="line-clamp-1 text-[10px] tracking-[0.1em]">
             {detailsLine}
           </MonoLabel>
         )}
         <div className="flex items-baseline gap-2 pt-1">
-          <MonoLabel muted={false}>{formatAED(price.finalPrice)}</MonoLabel>
-          {price.isOnSale && price.originalPrice && (
-            <MonoLabel className="line-through">
-              {formatAED(price.originalPrice)}
-            </MonoLabel>
+          <MonoLabel muted={false} className="text-[13px]">
+            {isRental
+              ? `${formatAED(product.rental_monthly_price ?? 0)} ${perMonthLabel}`
+              : formatAED(price.finalPrice)}
+          </MonoLabel>
+          {!isRental && price.isOnSale && price.originalPrice && (
+            <MonoLabel className="text-[12px] line-through">{formatAED(price.originalPrice)}</MonoLabel>
           )}
         </div>
-        <MonoLabel className="text-[10px]">{vatNote(price.vatRate)}</MonoLabel>
+        <MonoLabel className="text-[10px] tracking-[0.1em]">
+          <bdi>{vatNote(price.vatRate)}</bdi>
+          {(product.min_order_qty ?? 1) > 1 && ` · ${minOrderLabel.replace("{qty}", String(product.min_order_qty))}`}
+        </MonoLabel>
       </div>
     </>
   );

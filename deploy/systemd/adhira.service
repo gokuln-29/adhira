@@ -1,0 +1,44 @@
+# /etc/systemd/system/adhira.service
+# systemd is the single process supervisor (no PM2): restart on crash, start on boot,
+# logs in the journal (rotated by journald).
+[Unit]
+Description=Adhira Flowers (Next.js)
+After=network-online.target mysql.service
+Wants=network-online.target
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=adhira
+Group=adhira
+WorkingDirectory=/srv/adhira/current
+# Secrets live here, root:adhira 0640 -- never in the repo or the release dir.
+EnvironmentFile=/etc/adhira/env
+Environment=NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 NEXT_TELEMETRY_DISABLED=1
+# Headless Chrome (invoice PDFs) wants a writable HOME; ProtectHome hides the real one.
+Environment=HOME=/var/cache/adhira
+ExecStart=/usr/bin/node /srv/adhira/current/server.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+SyslogIdentifier=adhira
+
+# Sandbox: it only needs to read its release and talk to localhost + the internet.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Next writes its ISR/image cache here (deploy.sh symlinks .next/cache to it).
+ReadWritePaths=/var/cache/adhira
+MemoryMax=1500M
+
+[Install]
+WantedBy=multi-user.target

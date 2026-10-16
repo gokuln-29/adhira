@@ -52,7 +52,7 @@ export default async function CorporatePage({ params }: PageProps<"/[locale]/cor
           <MonoLabel muted={false} className="text-(--color-primary)">
             {t("eyebrow")}
           </MonoLabel>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-3xl font-display text-5xl md:text-6xl">
             {t("title")}
           </h1>
           <p className="mt-4 max-w-xl text-(--color-muted)">{t("subtitle")}</p>
@@ -73,7 +73,7 @@ export default async function CorporatePage({ params }: PageProps<"/[locale]/cor
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
-          <h2 className="mb-8 text-2xl font-semibold">{t("faqTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("faqTitle")}</h2>
           <div className="flex flex-col divide-y divide-(--color-hairline) border-y border-(--color-hairline)">
             {faqs.map((faq) => (
               <div key={faq.q} className="py-5">
@@ -85,7 +85,7 @@ export default async function CorporatePage({ params }: PageProps<"/[locale]/cor
         </section>
 
         <section id="quote" className="mx-auto max-w-3xl px-6 pb-24">
-          <h2 className="mb-8 text-2xl font-semibold">{t("quoteTitle")}</h2>
+          <h2 className="mb-10 font-display text-3xl md:text-4xl">{t("quoteTitle")}</h2>
           <LeadForm
             title={t("formTitle")}
             requirementLabel={t("requirementLabel")}

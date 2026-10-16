@@ -6,11 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MonoLabel } from "@/components/ui/mono-label";
-import {
-  ensureCustomerProfile,
-  updateCustomerProfile,
-  type CustomerProfileInput,
-} from "@/lib/actions/customers";
+import { updateCustomerProfile, type CustomerProfileInput } from "@/lib/actions/customers";
 import type { CustomerProfile } from "@/lib/data/customers";
 
 export function ProfileForm({ profile }: { profile: CustomerProfile | null }) {
@@ -39,9 +35,7 @@ export function ProfileForm({ profile }: { profile: CustomerProfile | null }) {
       trn: String(formData.get("trn") || "") || undefined,
     };
 
-    const result = profile
-      ? await updateCustomerProfile(input)
-      : await ensureCustomerProfile(input);
+    const result = await updateCustomerProfile(input);
 
     setSaving(false);
 

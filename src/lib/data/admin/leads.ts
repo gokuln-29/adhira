@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
 
 export interface LeadRow {
   id: string;
@@ -16,13 +18,21 @@ export interface LeadRow {
 }
 
 export async function getAllLeadsAdmin(): Promise<LeadRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("leads")
-    .select(
-      "id, company, contact, email, phone, requirement, frequency, emirate, budget, message, stage, created_at",
-    )
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as LeadRow[];
+  return db
+    .select({
+      id: leads.id,
+      company: leads.company,
+      contact: leads.contact,
+      email: leads.email,
+      phone: leads.phone,
+      requirement: leads.requirement,
+      frequency: leads.frequency,
+      emirate: leads.emirate,
+      budget: leads.budget,
+      message: leads.message,
+      stage: leads.stage,
+      created_at: leads.created_at,
+    })
+    .from(leads)
+    .orderBy(desc(leads.created_at));
 }

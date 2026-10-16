@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Adhira backup (02:30 Dubai)
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Dubai
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

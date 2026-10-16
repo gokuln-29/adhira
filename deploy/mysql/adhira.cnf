@@ -1,0 +1,16 @@
+# /etc/mysql/mysql.conf.d/adhira.cnf  (restart MySQL, then verify: ss -ltn | grep 3306)
+[mysqld]
+bind-address            = 127.0.0.1
+mysqlx-bind-address     = 127.0.0.1
+skip-name-resolve
+local_infile            = 0
+symbolic-links          = 0
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_0900_ai_ci
+default-time-zone       = '+00:00'
+sql_mode                = STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY
+max_connections         = 100
+slow_query_log          = 1
+long_query_time         = 1
+# Keep 3 days of binlogs for point-in-time recovery between daily dumps.
+binlog_expire_logs_seconds = 259200

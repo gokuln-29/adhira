@@ -1,34 +1,69 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { invoices, order_items, orders } from "@/lib/db/schema";
 
 export interface OrderConfirmation {
   number: string;
   status: string;
+  payment_method: string;
+  payment_status: string;
   subtotal: number;
   vat: number;
   delivery_fee: number;
+  discount_total: number;
+  coupon_code: string | null;
+  deposit_total: number;
   total: number;
   currency: string;
   emirate: string | null;
   delivery_date: string | null;
   created_at: string;
+  invoice_number: string | null;
   order_items: { name: string; qty: number; unit_price: number; line_total: number }[];
 }
 
-// Reads by order number (an unguessable token), not by user session — this is
-// what backs the guest-checkout confirmation page. Server Component use only;
-// never import into a Client Component.
-export async function getOrderByNumber(
-  number: string,
-): Promise<OrderConfirmation | null> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "number, status, subtotal, vat, delivery_fee, total, currency, emirate, delivery_date, created_at, order_items(name, qty, unit_price, line_total)",
-    )
-    .eq("number", number)
-    .maybeSingle();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  if (error) throw error;
-  return data as unknown as OrderConfirmation | null;
+// Reads by `orders.public_token` (a random UUID that only the buyer's browser
+// and Stripe redirect ever see), not by the human-readable order number —
+// numbers are shareable and must never unlock an order page. Backs the
+// guest-checkout confirmation page. Server Component use only.
+export async function getOrderByToken(token: string): Promise<OrderConfirmation | null> {
+  if (!UUID.test(token)) return null;
+  const rows = await db
+    .select({
+      id: orders.id,
+      number: orders.number,
+      status: orders.status,
+      payment_method: orders.payment_method,
+      payment_status: orders.payment_status,
+      subtotal: orders.subtotal,
+      vat: orders.vat,
+      delivery_fee: orders.delivery_fee,
+      discount_total: orders.discount_total,
+      coupon_code: orders.coupon_code,
+      deposit_total: orders.deposit_total,
+      total: orders.total,
+      currency: orders.currency,
+      emirate: orders.emirate,
+      delivery_date: orders.delivery_date,
+      created_at: orders.created_at,
+    })
+    .from(orders)
+    .where(eq(orders.public_token, token))
+    .limit(1);
+  const order = rows[0];
+  if (!order) return null;
+  const { id, ...rest } = order;
+  const items = await db
+    .select({
+      name: order_items.name,
+      qty: order_items.qty,
+      unit_price: order_items.unit_price,
+      line_total: order_items.line_total,
+    })
+    .from(order_items)
+    .where(eq(order_items.order_id, id));
+  const inv = await db.select({ number: invoices.number }).from(invoices).where(eq(invoices.order_id, id)).limit(1);
+  return { ...rest, invoice_number: inv[0]?.number ?? null, order_items: items };
 }
