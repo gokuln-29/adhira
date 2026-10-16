@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { JsonLd } from "@/components/seo/json-ld";
+import { blogPostingJsonLd } from "@/lib/seo/blog";
 import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Header } from "@/components/layout/header";
@@ -56,6 +58,16 @@ export default async function BlogPostPage({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <JsonLd
+        data={blogPostingJsonLd({
+          locale,
+          slug: post.slug,
+          title: post.title,
+          description: post.excerpt,
+          image: post.cover,
+          publishedAt: post.published_at,
+        })}
+      />
       <Header />
       <Breadcrumbs
         items={[

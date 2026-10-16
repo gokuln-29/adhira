@@ -1,39 +1,39 @@
 import { SITE_NAME, SITE_URL } from "./site";
+import type { StoreSettings } from "@/lib/data/settings";
 
-// TRN mirrors the placeholder in Footer.tsx — replace both together once a
-// real company TRN is set.
-const TRN = "100000000000003";
+// Built from the store settings (Admin > Settings) so nothing here is a placeholder:
+// the tax number, phone, email and address appear only once the owner has entered them.
+// The 180 px apple-icon is the logo (Google wants a logo of at least 112 x 112 px).
+const LOGO = `${SITE_URL}/apple-icon`;
 
-export function organizationJsonLd() {
+export function organizationJsonLd(settings: StoreSettings) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: SITE_NAME,
+    ...(settings.legal_name ? { legalName: settings.legal_name } : {}),
     url: SITE_URL,
-    logo: `${SITE_URL}/favicon.ico`,
-    taxID: TRN,
+    logo: LOGO,
+    ...(settings.trn ? { taxID: settings.trn, vatID: settings.trn } : {}),
+    ...(settings.contact_email ? { email: settings.contact_email } : {}),
+    ...(settings.contact_phone ? { telephone: settings.contact_phone } : {}),
   };
 }
 
-export function localBusinessJsonLd() {
+export function localBusinessJsonLd(settings: StoreSettings, servedEmirates: string[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FloristShop",
     name: SITE_NAME,
     url: SITE_URL,
-    areaServed: [
-      "Dubai",
-      "Abu Dhabi",
-      "Sharjah",
-      "Ajman",
-      "Ras Al Khaimah",
-      "Fujairah",
-      "Umm Al Quwain",
-    ].map((name) => ({ "@type": "AdministrativeArea", name })),
+    image: LOGO,
+    ...(settings.contact_phone ? { telephone: settings.contact_phone } : {}),
+    ...(settings.contact_email ? { email: settings.contact_email } : {}),
+    areaServed: servedEmirates.map((name) => ({ "@type": "AdministrativeArea", name })),
     address: {
       "@type": "PostalAddress",
       addressCountry: "AE",
+      ...(settings.address ? { streetAddress: settings.address } : {}),
     },
-    priceRange: "AED",
   };
 }

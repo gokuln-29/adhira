@@ -58,6 +58,12 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Security headers/CSP are in `next.config.ts` (img-src/connect-src include the media + R2 origins from env) and repeated in Nginx.
 - Store-wide values (WhatsApp, contacts, TRN, hero image) live in `store_settings` (single row, id 1), edited in Admin > Settings. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
 
+## Structured data (JSON-LD)
+
+- Product pages publish `Product` + `Offer` (`lib/seo/product.ts`), blog posts `BlogPosting` (`lib/seo/blog.ts`), the site `Organization` + `FloristShop` (`lib/seo/organization.ts`), plus `BreadcrumbList` and the Corporate `FAQPage`. **Markup must match the page**: the price is what the page sells it for (rentals publish the *monthly* price with `unitCode: MON`, sale prices the discounted price, `valueAddedTaxIncluded: false` because prices exclude VAT) and `availability` follows tracked stock (page cache can lag it by up to 5 minutes).
+- **Never hardcode business identifiers in markup.** `taxID`/`vatID`, phone, email and street address come from Settings and are omitted until entered (a placeholder TRN used to be published site-wide; `verify:structured-data` fails if it ever reappears). The logo is the real 180 px `/apple-icon`.
+- `npm run verify:structured-data` (needs the dev server) validates every product page in both locales plus Organization, FAQ and blog markup. Google's Rich Results Test on the live URLs remains the authoritative check.
+
 ## Mobile and accessibility
 
 - Audited with axe-core (WCAG 2.0/2.1/2.2 A + AA + best practices) plus overflow and target-size checks on 14 storefront pages × 320 / 390 / 1280 px × en / ar: **0 violations, 0 horizontal overflow**. Rules to keep: every tappable control is >= 24 px (icons get a 44 px hit area via `size-11` with negative margins; inline links inside a sentence are exempt); an element with `aria-label` must contain its visible text (prefer visually-hidden text in the content over `aria-label`); decorative large text still needs 3:1 contrast; scroll-reveal content is measured after the animation, so don't judge contrast mid-fade; content must sit inside a landmark (the announcement bar is a labelled `<section>`); don't skip heading levels (`LeadForm` takes `headingAs`).

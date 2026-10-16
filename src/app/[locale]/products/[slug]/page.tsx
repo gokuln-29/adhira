@@ -97,6 +97,7 @@ export default async function ProductPage({
           saleEnd: product.sale_end,
           categoryName: product.categories?.name,
           soldOut: product.stock_qty != null && product.stock_qty <= 0,
+          rentalMonthlyPrice: isRental ? product.rental_monthly_price : null,
         })}
       />
       <Header />

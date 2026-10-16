@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { DeliveryRulesProvider } from "@/lib/delivery/context";
 import { getDeliveryRules } from "@/lib/data/delivery";
+import { getStoreSettings } from "@/lib/data/settings";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { organizationJsonLd, localBusinessJsonLd } from "@/lib/seo/organization";
@@ -72,7 +73,7 @@ export default async function LocaleLayout({
   // every one of them to render dynamically regardless of `revalidate`.
   setRequestLocale(locale);
 
-  const [messages, deliveryRules] = await Promise.all([getMessages(), getDeliveryRules()]);
+  const [messages, deliveryRules, storeSettings] = await Promise.all([getMessages(), getDeliveryRules(), getStoreSettings()]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -82,8 +83,8 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${ibmPlexArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-(--color-canvas) text-(--color-ink)">
-        <JsonLd data={organizationJsonLd()} />
-        <JsonLd data={localBusinessJsonLd()} />
+        <JsonLd data={organizationJsonLd(storeSettings)} />
+        <JsonLd data={localBusinessJsonLd(storeSettings, deliveryRules.zones.filter((z) => z.enabled).map((z) => z.emirate))} />
         <NextIntlClientProvider messages={messages}>
           <DeliveryRulesProvider rules={deliveryRules}>
             <CartProvider>{children}</CartProvider>
