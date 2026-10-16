@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { adminLogin, adminVerifyMfa } from "@/lib/actions/admin/auth";
@@ -85,6 +86,11 @@ export default function AdminLoginPage() {
           <Button type="submit" disabled={submitting}>
             {submitting ? "Checking..." : step === "mfa" ? "Verify" : "Sign in"}
           </Button>
+          {step === "password" && (
+            <Link className="text-sm text-(--color-muted) underline underline-offset-4" href="/admin/forgot-password">
+              Forgot password?
+            </Link>
+          )}
         </form>
       </div>
     </div>

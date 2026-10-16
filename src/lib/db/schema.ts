@@ -35,7 +35,16 @@ export const ts = customType<{ data: string; driverData: string }>({
   fromDriver: (v) => fromMysqlDatetime(v as unknown as string | Date),
 });
 
+const MYSQL_DATETIME = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?$/;
+
+/**
+ * Formats an instant as a UTC DATETIME string. Idempotent: a string that is already
+ * in MySQL format (always UTC here) passes through untouched. Without that, a value
+ * converted by hand and then converted again by the column type was re-parsed as
+ * *local* time, shifting every expiry check by the server's UTC offset.
+ */
 export function toMysqlDatetime(v: string | Date): string {
+  if (typeof v === "string" && MYSQL_DATETIME.test(v)) return v;
   const d = v instanceof Date ? v : new Date(v);
   return d.toISOString().replace("T", " ").replace("Z", "");
 }
@@ -93,6 +102,20 @@ export const admin_sessions = mysqlTable(
     created_at: createdAt(),
   },
   (t) => [uniqueIndex("admin_sessions_token_uq").on(t.token_hash), index("admin_sessions_admin_idx").on(t.admin_id)],
+);
+
+// Password-reset links. One row per request; only the SHA-256 of the emailed token is stored.
+export const admin_password_resets = mysqlTable(
+  "admin_password_resets",
+  {
+    id: uuid("id").primaryKey(),
+    admin_id: uuid("admin_id").notNull().references(() => admin_users.id, { onDelete: "cascade" }),
+    token_hash: char("token_hash", { length: 64 }).notNull(),
+    expires_at: ts("expires_at").notNull(),
+    used_at: ts("used_at"),
+    created_at: createdAt(),
+  },
+  (t) => [uniqueIndex("admin_pw_reset_token_uq").on(t.token_hash), index("admin_pw_reset_admin_idx").on(t.admin_id)],
 );
 
 export const customer_sessions = mysqlTable(

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { addStaffMember, removeStaffMember, resetStaffMfa } from "@/lib/actions/admin/staff";
+import { sendStaffPasswordReset } from "@/lib/actions/admin/password-reset";
 import type { StaffRow } from "@/lib/data/admin/staff";
 
 export function StaffPanel({ staff }: { staff: StaffRow[] }) {
@@ -70,6 +71,17 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
                 {s.role} · {s.email} · 2FA {s.totp_enabled ? "on" : "off"}
               </MonoLabel>
             </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm(`Email ${s.name} a password-reset link?`)) return;
+                const res = await sendStaffPasswordReset(s.id);
+                alert(res.ok ? "Reset link sent." : res.error);
+              }}
+              className="font-mono-label ms-auto me-4 text-[10px] text-(--color-muted)"
+            >
+              Send reset link
+            </button>
             {s.totp_enabled && (
               <button
                 type="button"
@@ -78,7 +90,7 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
                   await resetStaffMfa(s.id);
                   router.refresh();
                 }}
-                className="font-mono-label ms-auto me-4 text-[10px] text-(--color-muted)"
+                className="font-mono-label me-4 text-[10px] text-(--color-muted)"
               >
                 Reset 2FA
               </button>

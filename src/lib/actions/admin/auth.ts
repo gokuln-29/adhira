@@ -11,7 +11,8 @@ import {
   revokeAdminSessions,
   rotateAdminSession,
 } from "@/lib/auth/admin-session";
-import { decryptAtRest, encryptAtRest, hmac, randomToken, safeEqual } from "@/lib/auth/crypto";
+import { decryptAtRest, encryptAtRest, hmac, randomToken } from "@/lib/auth/crypto";
+import { consumeMfaCode } from "@/lib/auth/mfa";
 import { assertSameOrigin } from "@/lib/auth/origin";
 import { burnPasswordCheck, hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "@/lib/auth/totp";
@@ -84,20 +85,7 @@ export async function adminVerifyMfa(rawCode: string): Promise<Result> {
   const admin = rows[0];
   if (!admin?.totp_secret) return { ok: false, error: "Please sign in again." };
 
-  const step = verifyTotp(decryptAtRest(admin.totp_secret), code.data, admin.totp_last_step);
-  if (step != null) {
-    await db.update(admin_users).set({ totp_last_step: step }).where(eq(admin_users.id, admin.id));
-  } else {
-    // Recovery code: single use.
-    const hashed = hmac(`recovery:${code.data.toLowerCase().replace(/\s|-/g, "")}`);
-    const codes = admin.recovery_codes ?? [];
-    const idx = codes.findIndex((c) => safeEqual(c, hashed));
-    if (idx < 0) return { ok: false, error: "Invalid code." };
-    await db
-      .update(admin_users)
-      .set({ recovery_codes: codes.filter((_, i) => i !== idx) })
-      .where(eq(admin_users.id, admin.id));
-  }
+  if (!(await consumeMfaCode(admin, code.data))) return { ok: false, error: "Invalid code." };
 
   await rotateAdminSession(session.sessionId, true);
   return { ok: true };
