@@ -1,201 +1,187 @@
-# Deploying Adhira flowers to a Hostinger VPS
+# Deploying Adhira flowers (adhiraflowers.ae) to a Hostinger Ubuntu VPS
 
-The VPS runs **two containers**: the website (Next.js) and Caddy (automatic HTTPS).
-The **database, login and product images live in Supabase (cloud)**. That means no
-database to run, patch or back up on the VPS.
+Source of truth: `Adhira_Flowers_Architecture_Setup_Plan.pdf`. This document is the
+runnable version of PDF sections 2, 5, 6, 7 and 8. Nothing here is marked "done" until
+you have run it and recorded the evidence in `docs/LAUNCH_CHECKLIST.md`.
 
 ```
-Visitor ──HTTPS──► Caddy ──► Next.js app ──► Supabase (database, auth, storage)
-                                    └────────► Stripe (card payments, optional)
+Browser ─HTTPS─► Nginx :443 (TLS, headers, rate limits, body limits)
+                   └─► 127.0.0.1:3000  Next.js (systemd, user `adhira`, not root)
+                          ├─► MySQL 127.0.0.1:3306 (never public)
+                          ├─► Cloudflare R2   (images; browser PUTs via presigned URLs)
+                          ├─► Stripe          (card payments + signed webhooks, optional)
+                          └─► Brevo           (sign-in codes, order emails)
+adhira-backup.timer ─► mysqldump ─► gzip ─► restic (encrypted) ─► offsite repo (Google Drive via rclone)
+adhira-monitor.timer ─► health / disk / memory / backup age / TLS expiry ─► email alert
 ```
 
-You will need: a VPS (Ubuntu 24.04, 2 vCPU / 2 GB RAM minimum; 4 GB is comfortable, the
-image build uses memory), a domain name, a Supabase account, and (optional) a Stripe account.
+Repo files used here: `deploy/nginx/*`, `deploy/systemd/*`, `deploy/mysql/*`,
+`deploy/scripts/{provision,deploy,rollback}.sh`, `deploy/backup/*`, `deploy/monitoring/*`.
 
-**Order matters. Do the steps in this order.** The database must be ready before the app starts.
+## 0. Decisions to record first (PDF section 1)
 
----
+Write the answers in `docs/LAUNCH_CHECKLIST.md`: legal entity/emirate, VPS plan (≥ 2 vCPU /
+4 GB recommended, the build is memory hungry), Ubuntu release, Hostinger recovery-console access,
+payment methods enabled, **RPO** (recommended 24 h), **RTO** (recommended 8 h), retention
+(14 daily + 8 weekly + 12 monthly), support hours.
 
-## 1. Create the Supabase project
+## 1. DNS
 
-1. supabase.com → **New project**. Pick the region closest to your customers (for the UAE,
-   choose a Middle East or Mumbai/Singapore region if offered). Save the **database password**.
-2. **Project Settings → API**: note the **Project URL**, the **anon key** and the **service_role key**.
-   The service_role key is a secret: it bypasses all security. Never put it in the browser,
-   in Git or in chat.
-3. On your own computer (not the VPS), in the project folder:
+`A` (and `AAAA` only if the VPS really has IPv6) for `adhiraflowers.ae` and `www`. If you use
+Cloudflare's proxy, set SSL mode to **Full (strict)** and keep the media hostname
+(`media.adhiraflowers.ae`) pointed at R2 (step 7), not at the VPS.
 
-   ```bash
-   supabase login
-   supabase link --project-ref YOUR-PROJECT-REF
-   supabase db push
-   ```
+## 2. Provision the server (once)
 
-   `db push` creates every table, security rule, the order function and the `product-images`
-   storage bucket. Do **not** run `supabase/seed.sql` on production: it contains demo products.
-
-4. **Authentication → URL Configuration**
-   - Site URL: `https://YOUR-DOMAIN`
-   - Redirect URLs: add `https://YOUR-DOMAIN/auth/callback`
-5. **Authentication → SMTP Settings**: enable **custom SMTP** (Resend, Brevo, Amazon SES, or
-   your Hostinger mailbox). Supabase's built-in email is limited to a few emails per hour, so
-   customer sign-in links would stop working under real traffic.
-6. **Create the first owner login.** Authentication → Users → **Add user** → email + a strong
-   password (tick *Auto confirm*). Copy the user's UUID, then in **SQL Editor** run:
-
-   ```sql
-   insert into admin_users (auth_user_id, name, role)
-   values ('PASTE-USER-UUID-HERE', 'Your Name', 'owner');
-   ```
-
-7. **Backups**: Database → Backups. Daily backups need the Pro plan. On the free plan, take a
-   manual export before every update (section 8).
-
-## 2. Prepare the VPS
-
-Log in as root once, then:
+Keep your root SSH session open and **test a second login** before closing it.
 
 ```bash
-# Updates + automatic security patches
-apt update && apt upgrade -y
-apt install -y ufw fail2ban unattended-upgrades git curl
-
-# Firewall: only SSH, HTTP, HTTPS
-ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw --force enable
-
-# Docker
-curl -fsSL https://get.docker.com | sh
+# as root on the VPS, from a checkout of this repo
+SSH_ALLOW_FROM=<your.office.ip>  DISABLE_SSH_PASSWORDS=1  sudo -E bash deploy/scripts/provision.sh
 ```
 
-Then create a normal user, add your SSH key to it, and turn off password logins
-(`PasswordAuthentication no` and `PermitRootLogin no` in `/etc/ssh/sshd_config`, then
-`systemctl restart ssh`). **Test a second SSH session before closing the first.**
+It installs Nginx, certbot, MySQL, Node 22, restic, rclone, ufw, fail2ban and
+unattended-upgrades; sets timezone `Asia/Dubai` (the database stores UTC); creates the
+`adhira` service user and `deploy` user; enables the firewall (80/443 + SSH only; **3306 is
+never opened**); installs `deploy/mysql/adhira.cnf` (bind `127.0.0.1`) and aborts if MySQL is
+listening on a public address. Password SSH is only disabled if an `authorized_keys` exists.
 
-## 3. Point the domain at the VPS
+Verify: `sudo ufw status verbose` · `ss -ltn | grep 3306` (only `127.0.0.1`) ·
+`sudo unattended-upgrade --dry-run` · from another machine `nc -zv <vps-ip> 3306` must fail.
 
-At your domain registrar / Hostinger DNS, add:
-
-| Type | Name | Value |
-|------|------|-------|
-| A | `@` | your VPS IP |
-| A | `www` | your VPS IP |
-
-Wait until `ping YOUR-DOMAIN` shows the VPS IP. Caddy cannot get a certificate before this.
-
-## 4. Deploy the app
+## 3. Database
 
 ```bash
-git clone https://github.com/gokuln-29/CORP.git flowers && cd flowers
-cp .env.production.example .env
-nano .env        # fill in every value
-docker compose -f docker-compose.prod.yml up -d --build
+# edit the three CHANGE_ME passwords first (openssl rand -base64 32), then:
+sudo mysql < deploy/mysql/create-users.sql
 ```
 
-The first build takes several minutes. Then check:
+Three accounts, all `@localhost`: `adhira_app` (SELECT/INSERT/UPDATE/DELETE only),
+`adhira_migrate` (schema owner, used by deploys), `adhira_backup` (read-only dump privileges).
+Row-level security no longer exists; access control is `authorize()` in application code plus
+this least-privilege account (so even a compromised app cannot `DROP` a table).
+
+## 4. Environment file
+
+Create `/etc/adhira/env` (`root:adhira`, mode `0640`) from `.env.example`. Required in
+production: `NEXT_PUBLIC_SITE_URL=https://adhiraflowers.ae`, `DATABASE_URL`,
+`DATABASE_MIGRATE_URL`, `AUTH_SECRET` (`openssl rand -hex 32`), `BREVO_API_KEY`, `EMAIL_FROM`,
+`R2_*`, `MEDIA_PUBLIC_URL`. Optional: `STRIPE_*`. Secrets exist only here, never in git, the
+release directory or the browser. `NEXT_PUBLIC_*` values are compiled in at build time, so
+rebuild (deploy again) after changing them. `AUTH_SECRET` must stay stable.
+
+## 5. Systemd and Nginx
 
 ```bash
-docker compose -f docker-compose.prod.yml ps        # app should say "healthy"
-curl https://YOUR-DOMAIN/api/health                  # {"status":"ok"}
+sudo cp deploy/systemd/adhira*.{service,timer} /etc/systemd/system/
+sudo cp deploy/nginx/adhira-proxy.conf /etc/nginx/snippets/
+sudo cp deploy/nginx/adhiraflowers.ae.conf /etc/nginx/sites-available/ && sudo ln -s ../sites-available/adhiraflowers.ae.conf /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+# First get a certificate (HTTP only config first, or use --standalone while nginx is stopped):
+sudo certbot certonly --webroot -w /var/www/certbot -d adhiraflowers.ae -d www.adhiraflowers.ae
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot renew --dry-run          # proves auto-renewal works (not just issuance)
+sudo systemctl daemon-reload
 ```
 
-Open `https://YOUR-DOMAIN/admin/login` and sign in with the owner account from step 1.6.
+If `nginx -t` fails because the certificate does not exist yet, temporarily comment the two
+`443` server blocks, issue the cert, and restore them.
 
-## 5. First-time setup in the admin panel
-
-1. **Settings → Store details**: WhatsApp number, phone, email, **company TRN**, hero image.
-   (The TRN is hidden on the site until you enter it.)
-2. **Categories**, then **Products**. Set minimum order, glass vessel and rental options
-   under "Order rules". Add Arabic names if you want them on the Arabic site.
-3. **Settings → Staff & Roles**: add staff. Owner = everything. Manager = products, offers,
-   blog, reports. Staff = orders, leads, customers only.
-4. Place a **Cash on Delivery test order** from the storefront and move it through
-   Start processing → Out for delivery → Delivered.
-
-## 6. Card payments (Stripe), optional
-
-Leave the Stripe values empty to accept Cash on Delivery only.
-
-1. Stripe → Developers → API keys: copy the **secret key** into `STRIPE_SECRET_KEY`. Start
-   with **test mode** keys.
-2. Developers → Webhooks → **Add endpoint**: `https://YOUR-DOMAIN/api/stripe/webhook`,
-   event **`checkout.session.completed`**. Copy the **signing secret** into `STRIPE_WEBHOOK_SECRET`.
-3. Apply: `docker compose -f docker-compose.prod.yml up -d` (env-only changes don't need `--build`).
-4. Pay a test order with card `4242 4242 4242 4242`. The order should change to **PAID** by itself.
-5. Only then switch to live keys and a live webhook endpoint.
-
-## 6b. Order emails, optional
-
-With email on, customers get an order confirmation and your team gets a "new order" and
-"new enquiry" alert.
-
-1. Create a free account at resend.com and **verify your domain** (add the DNS records it shows).
-2. Create an API key and set `RESEND_API_KEY`, `EMAIL_FROM` (an address on your verified
-   domain) and optionally `ORDER_NOTIFY_EMAIL` in `.env`.
-3. `docker compose -f docker-compose.prod.yml up -d`, then place a test order.
-
-Leave `RESEND_API_KEY` empty to send nothing. Orders still work. A failed email never blocks an order.
-
-## 7. Go-live checklist
-
-- [ ] `https://YOUR-DOMAIN` loads with a valid padlock; `http://` redirects to `https://`
-- [ ] `/api/health` returns `ok`
-- [ ] Owner can sign in to `/admin`; a Staff test account cannot open Products or Settings
-- [ ] A test order works (Cash on Delivery), and the confirmation page opens
-- [ ] A customer sign-in email arrives (`/en/account/sign-in`)
-- [ ] If email is on: the test order sent a confirmation to the customer and an alert to your team
-- [ ] Store details filled in (TRN, WhatsApp) and the WhatsApp button opens the right chat
-- [ ] Test data deleted (test orders, test customers)
-- [ ] Uptime monitor pointed at `/api/health` (UptimeRobot / BetterStack, free plans work)
-- [ ] Anyone who set up the server has changed the default passwords
-
-## 8. Updating the website later
-
-Database changes first, then code:
+## 6. First deploy
 
 ```bash
-# On your computer, if there are new files in supabase/migrations/
-supabase db push
-
-# On the VPS
-cd flowers
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-docker image prune -f
+echo https://github.com/gokuln-29/adhira.git | sudo -u deploy tee /srv/adhira/repo.url   # read-only deploy key recommended
+sudo -u deploy bash deploy/scripts/deploy.sh main
+sudo systemctl enable --now adhira
+curl -s http://127.0.0.1:3000/api/health          # {"status":"ok"}
 ```
 
-**Roll back** a bad release: `git log --oneline`, `git checkout <previous-commit>`, then the
-same `up -d --build`. (Database migrations are not automatically undone: take a database
-export before applying any migration.)
+`deploy.sh` (as the non-root `deploy` user): fetch ref → lockfile install → build into a new
+`releases/<timestamp>` → fresh DB backup → apply migrations → start the new build on a spare
+port and smoke-test `/api/health`, `/en`, `/ar` → flip the `current` symlink → restart →
+re-check health → **auto-rollback** to the previous release if the check fails. Keeps the last 5
+releases. Rollback by hand: `deploy/scripts/rollback.sh [release-id]`.
 
-## 9. Day-to-day
+Create the first owner (password never goes through argv):
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f app     # live logs
-docker compose -f docker-compose.prod.yml restart app     # restart
-docker compose -f docker-compose.prod.yml ps              # status
+cd /srv/adhira/releases/$(cat /srv/adhira/current.id)
+read -rsp 'Admin password (12+ chars): ' ADMIN_PASSWORD; echo
+sudo -u deploy env ADMIN_EMAIL=you@adhiraflowers.ae ADMIN_NAME="Your name" ADMIN_ROLE=owner \
+  ADMIN_PASSWORD="$ADMIN_PASSWORD" DATABASE_MIGRATE_URL="<from /etc/adhira/env>" npm run admin:create
+unset ADMIN_PASSWORD
+```
+Then sign in at `/admin/login` and enable two-factor under **Account**; save the recovery codes.
+
+> **Migrations and rollback.** Apply migrations before the new code serves traffic, and write
+> them backward compatible (add columns/tables first, switch code, remove old columns in a later
+> release). Code rolls back instantly; a database restore discards orders taken since the backup.
+
+## 7. Cloudflare R2 (images)
+
+1. Create bucket `adhira-media`. Attach the custom domain `media.adhiraflowers.ae` (public read).
+   Use **separate** `staging/` keys: only the app writes there, and objects are deleted after processing.
+2. Create an **API token** scoped to *Object Read & Write* on this bucket only → `R2_ACCESS_KEY_ID/SECRET`.
+3. **CORS** on the bucket: allowed origin `https://adhiraflowers.ae` only, methods `PUT`, headers
+   `Content-Type`, `Content-Length`. (CORS is not authorization; the presigned URL is.)
+4. Lifecycle rule: delete `staging/` objects older than 1 day.
+5. Never put personal data in object keys (they are random UUIDs by design).
+
+Existing images from the Supabase build: `npm run media:migrate` (idempotent).
+
+## 8. Stripe (optional) and Brevo
+
+Stripe: webhook endpoint `https://adhiraflowers.ae/api/stripe/webhook`, events
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.expired`; paste the signing secret into `STRIPE_WEBHOOK_SECRET`. Without keys
+the site takes Cash on Delivery only. Brevo: verify the sender/domain (SPF + DKIM) for
+`EMAIL_FROM`; sign-in codes cannot be sent in production without it.
+
+## 9. Backups and restore drills (PDF section 7)
+
+```bash
+sudo install -m 0755 deploy/backup/backup.sh /usr/local/bin/adhira-backup
+sudo install -m 0755 deploy/backup/restore-drill.sh /usr/local/bin/adhira-restore-drill
+sudo install -m 0755 deploy/monitoring/notify.sh /usr/local/bin/adhira-notify
+sudo install -m 0755 deploy/monitoring/check.sh /usr/local/bin/adhira-monitor
+sudo cp deploy/backup/backup.env.example /etc/adhira/backup.env && sudo chmod 600 /etc/adhira/backup.env   # then edit
+sudo rclone config                                  # create the `gdrive` remote (dedicated backup account, MFA on)
+openssl rand -base64 48 | sudo tee /etc/adhira/restic.pass >/dev/null && sudo chmod 600 /etc/adhira/restic.pass
+#   >>> COPY restic.pass AND the rclone crypt password into the password manager NOW. <<<
+sudo restic -r rclone:gdrive:adhira-restic --password-file /etc/adhira/restic.pass init
+printf '[client]\nuser=adhira_backup\npassword=...\n' | sudo tee /etc/adhira/backup.cnf >/dev/null && sudo chmod 600 /etc/adhira/backup.cnf
+sudo systemctl enable --now adhira-backup.timer adhira-monitor.timer
+sudo systemctl start adhira-backup.service && journalctl -u adhira-backup -n 30
 ```
 
-Logs rotate automatically (10 MB x 5 files each).
+What runs daily (02:30 Dubai): `mysqldump --single-transaction --routines --events --triggers` →
+gzip → restic (client-side AES-256) → offsite; a sanity check that the stored dump contains the
+`orders` table; weekly additive `rclone copy` of R2 media to a separate encrypted remote (R2 is not
+an independent backup); `restic forget --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune`;
+`restic check`. Failures email `ALERT_EMAIL` via Brevo; the timer stops → `adhira-monitor` alerts
+when the last good backup is older than 26 h; an optional `HEALTHCHECK_URL` dead-man switch covers
+the whole VPS dying.
 
-## 10. Troubleshooting
+**Restore drill (quarterly, and after backup or schema changes):**
+`sudo adhira-restore-drill` restores the newest snapshot into a throwaway database and checks
+table count, orphan order items, order totals, triggers, admin accounts and sampled image URLs,
+then logs the duration to `/var/log/adhira/restore-drill.log`. It needs a MySQL admin option file
+at `/etc/adhira/drill-admin.cnf` (a user that can create/drop `adhira_drill_*` databases).
+Full disaster procedure: `deploy/backup/RESTORE_RUNBOOK.md`.
 
-| Problem | Likely cause |
-|---------|--------------|
-| Caddy can't get a certificate | DNS not pointing at the VPS yet, or ports 80/443 blocked |
-| App unhealthy right after start | wrong Supabase URL/keys in `.env`; check `logs app` |
-| Build fails fetching data | the VPS can't reach Supabase, or `NEXT_PUBLIC_*` values are wrong |
-| Changed a `NEXT_PUBLIC_*` value but nothing changed | those are built in: re-run with `--build` |
-| Product images don't show | image host isn't `*.supabase.co`; images must be uploaded via the admin |
-| Customer sign-in email never arrives | SMTP not configured in Supabase (step 1.5) |
-| Card order stays "pending" | Stripe webhook URL or signing secret is wrong (check Stripe → Webhooks → recent deliveries) |
-| "Too many orders" shown to a real customer | rate limit: 10 orders / 10 minutes per IP; wait, or many people behind one office IP |
+## 10. Monitoring (PDF section 9)
 
-## Security notes
+`adhira-monitor` (every 5 min) checks app+DB health, disk ≥ 80 %, memory < 10 % free, backup age,
+TLS expiry < 14 days, and that MySQL is not publicly bound; alerts once an hour per problem.
+**Also** add an external monitor (UptimeRobot/BetterStack) on `https://adhiraflowers.ae/en` and the
+TLS certificate: an in-server check cannot see "the VPS is down". Logs: `journalctl -u adhira`,
+`/var/log/nginx/`, MySQL slow log.
 
-- The **service-role key** and Stripe secret keys exist only in the VPS `.env` file
-  (`chmod 600 .env`). They are not in the Docker image or in Git.
-- The app container is not reachable from the internet; only Caddy is.
-- Customer order pages use random tokens, admin pages are `noindex` and never cached, and
-  every admin action checks the user's role on the server.
-- Keep the VPS patched (`unattended-upgrades` is enabled above) and review Supabase → Auth →
-  Users occasionally for accounts you don't recognise.
+## 11. Updating / rotating
+
+- Deploy: `sudo -u deploy bash /srv/adhira/repo/deploy/scripts/deploy.sh <ref>`
+- Rollback: `deploy/scripts/rollback.sh`
+- Rotate a leaked secret: change it in `/etc/adhira/env`, `sudo systemctl restart adhira`; for R2
+  revoke the token in Cloudflare first. Changing `AUTH_SECRET` invalidates MFA enrolments (re-enrol).
+- OS patches: unattended-upgrades handle security updates, with an automatic 04:00 reboot when needed
+  (the app and MySQL start on boot; check `systemctl status adhira` after).

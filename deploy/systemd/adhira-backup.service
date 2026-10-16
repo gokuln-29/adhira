@@ -1,0 +1,9 @@
+[Unit]
+Description=Adhira daily encrypted offsite backup
+After=network-online.target mysql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/adhira-backup
+Nice=10
+IOSchedulingClass=idle
