@@ -1,97 +1,146 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { getStripe } from "@/lib/stripe/client";
-import { after } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { sendOrderNotifications } from "@/lib/notify/order-emails";
+import { NextResponse, after, type NextRequest } from "next/server";
+import { and, eq } from "drizzle-orm";
 import type Stripe from "stripe";
+import { db } from "@/lib/db";
+import { orders, payment_links, stripe_events } from "@/lib/db/schema";
+import { isDuplicateKey } from "@/lib/db/helpers";
+import { getStripe } from "@/lib/stripe/client";
+import { sendOrderNotifications } from "@/lib/notify/order-emails";
+import { markOrderPaid, transitionOrder } from "@/lib/orders/transitions";
 
-// Stripe webhooks need the raw request body for signature verification —
-// don't call request.json() anywhere on this path before constructEvent.
+export const dynamic = "force-dynamic";
+
+// Stripe is the only thing that may mark a card order paid. Steps:
+//  1. verify the signature against the RAW body (never request.json() first)
+//  2. claim the event id so duplicate / replayed deliveries are no-ops
+//  3. match the session to OUR order and check amount + currency
+//  4. apply the change through the order state machine (audit-logged)
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
   if (!signature || !webhookSecret) {
     return NextResponse.json({ error: "Webhook not configured" }, { status: 400 });
   }
 
   const body = await request.text();
-
   let event: Stripe.Event;
   try {
+    // constructEvent also enforces the 5-minute timestamp tolerance (replay window).
     event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("[stripe webhook] signature verification failed", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const supabase = createAdminClient();
+  if (!(await claimEvent(event))) return NextResponse.json({ received: true, duplicate: true });
 
-    // Async methods can complete the session before money has arrived.
-    if (session.payment_status !== "paid") {
-      return NextResponse.json({ received: true });
+  try {
+    const outcome = await handleEvent(event);
+    await db.update(stripe_events).set({ outcome: outcome.slice(0, 200) }).where(eq(stripe_events.id, event.id));
+    return NextResponse.json({ received: true });
+  } catch (err) {
+    console.error("[stripe webhook] handler failed", event.type, err);
+    // Let Stripe retry: mark failed so the next delivery may re-claim it.
+    await db.update(stripe_events).set({ outcome: "failed" }).where(eq(stripe_events.id, event.id)).catch(() => {});
+    return NextResponse.json({ error: "Temporary error" }, { status: 500 });
+  }
+}
+
+async function claimEvent(event: Stripe.Event): Promise<boolean> {
+  try {
+    await db.insert(stripe_events).values({ id: event.id, type: event.type, outcome: "processing" });
+    return true;
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err;
+    // Only a previously *failed* attempt may be retried.
+    const [res] = await db
+      .update(stripe_events)
+      .set({ outcome: "processing" })
+      .where(and(eq(stripe_events.id, event.id), eq(stripe_events.outcome, "failed")));
+    return res.affectedRows === 1;
+  }
+}
+
+async function handleEvent(event: Stripe.Event): Promise<string> {
+  switch (event.type) {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
+      return handlePaid(event.data.object as Stripe.Checkout.Session);
+    case "checkout.session.expired":
+      return handleExpired(event.data.object as Stripe.Checkout.Session);
+    default:
+      return "ignored";
+  }
+}
+
+async function handlePaid(session: Stripe.Checkout.Session): Promise<string> {
+  // Async methods can complete the session before money has arrived.
+  if (session.payment_status !== "paid") return "not paid yet";
+
+  const orderNumber = session.metadata?.order_number;
+  if (orderNumber) {
+    const rows = await db
+      .select({
+        id: orders.id,
+        total: orders.total,
+        currency: orders.currency,
+        sessionId: orders.stripe_checkout_session_id,
+      })
+      .from(orders)
+      .where(eq(orders.number, orderNumber))
+      .limit(1);
+    const order = rows[0];
+    const expected = order ? Math.round(order.total * 100) : null;
+
+    // Trust the event only if it is for the session we created for this order
+    // and the amount/currency actually charged match what we priced.
+    if (
+      !order ||
+      order.sessionId !== session.id ||
+      session.amount_total !== expected ||
+      session.currency?.toLowerCase() !== order.currency.toLowerCase()
+    ) {
+      console.error("[stripe webhook] mismatch or unknown order", {
+        orderNumber,
+        session: session.id,
+        charged: session.amount_total,
+        expected,
+        currency: session.currency,
+      });
+      return "mismatch: needs manual review";
     }
 
-    const orderNumber = session.metadata?.order_number;
-    if (orderNumber) {
-      const { data: order, error: lookupError } = await supabase
-        .from("orders")
-        .select("total")
-        .eq("number", orderNumber)
-        .maybeSingle();
-      if (lookupError) {
-        console.error("[stripe webhook] order lookup failed", lookupError);
-        return NextResponse.json({ error: "Temporary error" }, { status: 500 }); // Stripe retries
-      }
-
-      // Only trust the event if the amount really charged matches the order.
-      if (!order || session.amount_total !== Math.round(Number(order.total) * 100)) {
-        console.error("[stripe webhook] amount mismatch or unknown order", {
-          orderNumber,
-          charged: session.amount_total,
-          expected: order ? Math.round(Number(order.total) * 100) : null,
-        });
-        return NextResponse.json({ received: true });
-      }
-
-      // Only flip `pending` -> `paid`: a duplicate/late delivery must not
-      // regress an order an admin has already moved further along.
-      const { data: updated, error } = await supabase
-        .from("orders")
-        .update({
-          status: "paid",
-          stripe_payment_intent_id:
-            typeof session.payment_intent === "string" ? session.payment_intent : null,
-        })
-        .eq("number", orderNumber)
-        .eq("status", "pending")
-        .select("number");
-      if (error) {
-        console.error("[stripe webhook] order update failed", error);
-        return NextResponse.json({ error: "Temporary error" }, { status: 500 });
-      }
-      // Email only when THIS delivery flipped the order to paid, so Stripe's
-      // retries and duplicate events never send a second confirmation.
-      if (updated && updated.length > 0) {
-        const locale = session.metadata?.locale === "ar" ? "ar" : "en";
-        after(() => sendOrderNotifications(orderNumber, locale));
-      }
-    } else if (session.payment_link) {
-      const paymentLinkId =
-        typeof session.payment_link === "string" ? session.payment_link : session.payment_link.id;
-      const { error } = await supabase
-        .from("payment_links")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("provider_ref", paymentLinkId)
-        .eq("status", "pending");
-      if (error) {
-        console.error("[stripe webhook] payment link update failed", error);
-        return NextResponse.json({ error: "Temporary error" }, { status: 500 });
-      }
+    const res = await markOrderPaid(
+      { id: order.id },
+      "stripe",
+      {
+        paymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
+        note: `stripe session ${session.id}`,
+      },
+    );
+    if (!res.ok) return `skipped: ${res.error}`;
+    // Email only when THIS delivery changed the order, so retries never double-send.
+    if (res.changed) {
+      const locale = session.metadata?.locale === "ar" ? "ar" : "en";
+      after(() => sendOrderNotifications(orderNumber, locale));
     }
+    return res.changed ? "paid" : "already paid";
   }
 
-  return NextResponse.json({ received: true });
+  if (session.payment_link) {
+    const linkId = typeof session.payment_link === "string" ? session.payment_link : session.payment_link.id;
+    await db
+      .update(payment_links)
+      .set({ status: "paid", paid_at: new Date().toISOString() })
+      .where(eq(payment_links.provider_ref, linkId));
+    return "payment link paid";
+  }
+  return "no order reference";
+}
+
+async function handleExpired(session: Stripe.Checkout.Session): Promise<string> {
+  const orderNumber = session.metadata?.order_number;
+  if (!orderNumber) return "no order reference";
+  const res = await transitionOrder({ number: orderNumber }, "cancelled", "stripe", "checkout session expired");
+  return res.ok ? (res.changed ? "cancelled" : "unchanged") : `skipped: ${res.error}`;
 }

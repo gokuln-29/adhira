@@ -1,7 +1,12 @@
 "use server";
 
 import { after } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { placeOrder } from "@/lib/orders/place-order";
+import { transitionOrder } from "@/lib/orders/transitions";
+import { assertSameOrigin } from "@/lib/auth/origin";
 import { priceLine, type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { sendOrderNotifications } from "@/lib/notify/order-emails";
@@ -38,6 +43,7 @@ function addYears(isoDate: string, years: number): string {
 // (price, discount, VAT, totals) is read from the database here, so a
 // tampered localStorage cart can't change what gets charged.
 export async function createOrder(raw: OrderInput): Promise<OrderResult> {
+  if (!(await assertSameOrigin())) return { ok: false, error: GENERIC_ERROR };
   const parsed = orderInputSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check your details." };
@@ -79,79 +85,6 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     });
   }
 
-  const supabase = createAdminClient();
-
-  const { data: products, error: productsError } = await supabase
-    .from("products")
-    .select(
-      "id, name, base_price, discount_type, discount_value, sale_start, sale_end, vat_rate, min_order_qty, min_order_value, allows_vessel, vessel_price, vessel_deposit, is_rental, rental_monthly_price, rental_min_months, rental_deposit",
-    )
-    .in("id", [...pickById.keys()])
-    .eq("status", "active");
-  if (productsError) {
-    console.error("[createOrder] product lookup failed", productsError);
-    return { ok: false, error: GENERIC_ERROR };
-  }
-  if (!products || products.length !== pickById.size) {
-    return {
-      ok: false,
-      error: "Some items in your cart are no longer available. Please review your cart.",
-    };
-  }
-
-  // Every rule, price and deposit comes from the database row, never the
-  // browser. Money is in whole fils (integers) so totals never drift.
-  const lines = [];
-  for (const p of products) {
-    const selection = pickById.get(p.id)!;
-    const priced = priceLine(
-      {
-        base_price: Number(p.base_price),
-        discount_type: p.discount_type as "percent" | "flat" | null,
-        discount_value: p.discount_value == null ? null : Number(p.discount_value),
-        sale_start: p.sale_start,
-        sale_end: p.sale_end,
-        vat_rate: Number(p.vat_rate),
-        min_order_qty: p.min_order_qty,
-        min_order_value: Number(p.min_order_value),
-        allows_vessel: p.allows_vessel,
-        vessel_price: Number(p.vessel_price),
-        vessel_deposit: Number(p.vessel_deposit),
-        is_rental: p.is_rental,
-        rental_monthly_price: p.rental_monthly_price == null ? null : Number(p.rental_monthly_price),
-        rental_min_months: p.rental_min_months,
-        rental_deposit: Number(p.rental_deposit),
-      },
-      selection,
-    );
-
-    const problem = priced.problems[0];
-    if (problem) {
-      const msg =
-        problem.code === "min_qty"
-          ? `minimum quantity is ${problem.min}.`
-          : problem.code === "min_months"
-            ? `minimum rental is ${problem.min} months.`
-            : `minimum order value is AED ${problem.min.toFixed(2)}.`;
-      return { ok: false, error: `${p.name}: ${msg}` };
-    }
-
-    lines.push({
-      productId: p.id,
-      name: p.name,
-      qty: Math.max(1, selection.qty),
-      vesselUnitFils: priced.vessel ? Math.round(Number(p.vessel_price) * 100) : 0,
-      ...priced,
-    });
-  }
-
-  const subtotalFils = lines.reduce((sum, l) => sum + l.lineFils, 0);
-  const vatFils = lines.reduce((sum, l) => sum + l.vatFils, 0);
-  const depositFils = lines.reduce((sum, l) => sum + l.depositFils, 0);
-  const deliveryFils = 0;
-  // Deposits are refundable and outside the VAT base, but part of what is charged.
-  const totalFils = subtotalFils + vatFils + depositFils + deliveryFils;
-
   const notes =
     [
       input.giftMessage && `Gift message: ${input.giftMessage}`,
@@ -161,37 +94,25 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
       .filter(Boolean)
       .join(" · ") || null;
 
-  const { data: created, error: createError } = await supabase.rpc("create_order_tx", {
-    p: {
-      customer: input.customer,
-      channel: input.customer.company ? "corporate" : "retail",
-      emirate: input.emirate,
-      address: input.address,
-      delivery_date: input.deliveryDate ?? null,
-      notes,
-      subtotal: subtotalFils / 100,
-      vat: vatFils / 100,
-      delivery_fee: deliveryFils / 100,
-      deposit_total: depositFils / 100,
-      total: totalFils / 100,
-      items: lines.map((l) => ({
-        product_id: l.productId,
-        name: l.name,
-        qty: l.qty,
-        unit_price: l.unitFils / 100,
-        line_total: l.lineFils / 100,
-        vessel: l.vessel,
-        vessel_fee: l.vesselFils / 100,
-        deposit: l.depositFils / 100,
-        rental_months: l.isRental ? l.months : null,
-      })),
-    },
-  });
-
-  const order = created as { id: string; number: string; public_token: string } | null;
-  if (createError || !order) {
-    console.error("[createOrder] create_order_tx failed", createError);
+  let placed;
+  try {
+    placed = await placeOrder(input, pickById, input.idempotencyKey ?? null, notes);
+  } catch (err) {
+    console.error("[createOrder] placeOrder failed", err);
     return { ok: false, error: GENERIC_ERROR };
+  }
+  if (!placed.ok) return { ok: false, error: placed.message };
+  const { order, lines, vatFils, depositFils } = placed;
+
+  if (placed.replay) {
+    // Same checkout submitted twice: hand back the original order, never a second one.
+    if (order.status === "cancelled") return { ok: false, error: GENERIC_ERROR };
+    let redirectUrl: string | undefined;
+    if (order.payment_method === "card" && order.stripe_checkout_session_id && isStripeConfigured()) {
+      const existing = await getStripe().checkout.sessions.retrieve(order.stripe_checkout_session_id);
+      if (existing.status === "open" && existing.url) redirectUrl = existing.url;
+    }
+    return { ok: true, token: order.public_token, orderNumber: order.number, redirectUrl };
   }
 
   if (input.paymentMethod !== "card") {
@@ -258,16 +179,13 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     );
     if (!session.url) throw new Error("Stripe returned no checkout URL");
 
-    await supabase
-      .from("orders")
-      .update({ stripe_checkout_session_id: session.id })
-      .eq("id", order.id);
+    await db.update(orders).set({ stripe_checkout_session_id: session.id }).where(eq(orders.id, order.id));
 
     return { ok: true, token: order.public_token, orderNumber: order.number, redirectUrl: session.url };
   } catch (err) {
     console.error("[createOrder] stripe session failed", err);
     // Don't leave a phantom pending order the team might try to fulfil.
-    await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+    await transitionOrder({ id: order.id }, "cancelled", "system", "card payment could not be started");
     return { ok: false, error: "We couldn't start the card payment. Please try again or choose Cash on Delivery." };
   }
 }

@@ -60,6 +60,9 @@ export function CheckoutView() {
   const isBusiness = businessChoice ?? !!saved.company;
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [submitting, setSubmitting] = useState(false);
+  // One key per submit attempt: a double-click or retry of the same attempt
+  // returns the same order. Regenerated after a failure so a corrected retry is new.
+  const [attemptKey, setAttemptKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
 
   // Plain onSubmit + preventDefault, not the `action` prop: React 19 resets
@@ -106,12 +109,14 @@ export function CheckoutView() {
         months: item.months,
       })),
       locale: locale as "en" | "ar",
+      idempotencyKey: attemptKey,
       // The server re-checks this; the cast only satisfies the literal `true` type.
       acceptTerms: (formData.get("acceptTerms") === "on") as true,
     });
 
     if (!result.ok) {
       setSubmitting(false);
+      setAttemptKey(crypto.randomUUID());
       setError(result.error);
       return;
     }
