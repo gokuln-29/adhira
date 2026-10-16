@@ -32,7 +32,7 @@ export type AuthResult =
 
 // Call FIRST in every admin server action and mutating route handler: server
 // actions are public POST endpoints, so nothing else (layouts, hidden buttons)
-// protects them. Replaces the database-level RLS the Supabase build relied on.
+// protects them. There is no database-level RLS: this plus the least-privilege DB user is the access control.
 export async function authorize(permission: Permission): Promise<AuthResult> {
   if (!(await assertSameOrigin())) return { ok: false, error: "Request blocked." };
   const admin = await getCurrentAdmin();

@@ -6,7 +6,7 @@ import { escapeLike } from "@/lib/db/helpers";
 import { hydrateProducts, productColumns } from "@/lib/data/product-loader";
 import { withinRateLimit } from "@/lib/security/rate-limit";
 
-// Typeahead for the header search box (was a direct browser -> Supabase query).
+// Typeahead for the header search box.
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {

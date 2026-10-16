@@ -29,6 +29,8 @@ export interface ProductRow extends PricedProduct, ProductRules {
   details: ProductCardDetail[];
   status: "draft" | "active";
   tags: string[];
+  // Admin-only meaning; null = stock not tracked.
+  stock_qty: number | null;
   product_images: ProductImageRow[];
   categories: { name: string; name_ar: string | null; slug: string } | null;
 }

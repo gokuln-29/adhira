@@ -14,7 +14,7 @@ import { getActiveProducts, getCategories, toProductCard } from "@/lib/data/prod
 import { buildAlternates } from "@/lib/seo/alternates";
 import { cn } from "@/lib/utils";
 
-// Public, session-independent content (via the anon/public Supabase client)
+// Public, session-independent content (read from MySQL without touching cookies)
 // — safe to cache and revalidate rather than render dynamically per-request.
 export const revalidate = 300;
 

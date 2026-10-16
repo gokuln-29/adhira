@@ -553,7 +553,7 @@
         {
           "heading": "Who we share it with",
           "body": [
-            "Only the services we need to run the shop: our payment provider (Stripe) for card payments, our hosting and database provider (Supabase), and delivery or email services where required.",
+            "Only the services we need to run the shop: our payment provider (Stripe) for card payments, our hosting provider (Hostinger), Cloudflare (image hosting), Brevo (email), and delivery services where required.",
             "We do not sell your personal information."
           ]
         },

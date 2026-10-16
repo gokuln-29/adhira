@@ -32,6 +32,7 @@ export const productColumns = {
   rental_deposit: products.rental_deposit,
   status: products.status,
   tags: products.tags,
+  stock_qty: products.stock_qty,
 } as const;
 
 type BaseProduct = Omit<ProductRow, "product_images" | "categories">;

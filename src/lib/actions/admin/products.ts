@@ -35,6 +35,7 @@ export interface ProductFormInput {
   status: "draft" | "active";
   images: ProductImageInput[];
   min_order_qty: number;
+  stock_qty: number | null;
   min_order_value: number;
   allows_vessel: boolean;
   vessel_price: number;
@@ -62,7 +63,7 @@ async function replaceImages(tx: Tx, productId: string, images: ProductImageInpu
       const key = keyFromPublicUrl(img.url);
       if (key) keep.add(key);
       // Metadata comes from the upload record (new images) or the row being
-      // replaced (images kept from before, incl. ones migrated from Supabase).
+      // replaced (images kept from before, incl. ones migrated from the old storage).
       const meta = key
         ? ((await tx.select().from(media_uploads).where(eq(media_uploads.final_key, key)).limit(1))[0] ?? beforeByKey.get(key))
         : undefined;
@@ -103,6 +104,7 @@ function toColumns(input: ProductInput) {
     tags: input.tags,
     status: input.status,
     min_order_qty: input.min_order_qty,
+    stock_qty: input.stock_qty,
     min_order_value: input.min_order_value,
     allows_vessel: input.allows_vessel,
     vessel_price: input.vessel_price,

@@ -35,6 +35,7 @@ export const productInputSchema = z
       .max(20),
 
     // Order rules
+    stock_qty: z.number().int().min(0).max(1_000_000).nullable(),
     min_order_qty: z.number().int().min(1, "Minimum quantity must be at least 1.").max(1000),
     min_order_value: money,
     // Glass vessel

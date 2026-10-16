@@ -54,6 +54,7 @@ export function ProductForm({
     !!product &&
     (product.min_order_qty > 1 || product.min_order_value > 0 || product.allows_vessel || product.is_rental);
   const [minQty, setMinQty] = useState(String(product?.min_order_qty ?? 1));
+  const [stockQty, setStockQty] = useState(product?.stock_qty == null ? "" : String(product.stock_qty));
   const [minValue, setMinValue] = useState(product?.min_order_value ? String(product.min_order_value) : "");
   const [allowsVessel, setAllowsVessel] = useState(product?.allows_vessel ?? false);
   const [vesselPrice, setVesselPrice] = useState(product?.vessel_price ? String(product.vessel_price) : "");
@@ -173,6 +174,7 @@ export function ProductForm({
       status,
       images,
       min_order_qty: Number(minQty) || 1,
+      stock_qty: stockQty.trim() === "" ? null : Math.max(0, Math.floor(Number(stockQty) || 0)),
       min_order_value: Number(minValue) || 0,
       allows_vessel: allowsVessel,
       vessel_price: Number(vesselPrice) || 0,
@@ -417,6 +419,16 @@ export function ProductForm({
             </summary>
             <div className="mt-6 flex flex-col gap-6">
           <Card className="flex flex-col gap-4 p-6">
+            <MonoLabel muted={false}>Stock</MonoLabel>
+            <Input
+              label="Units in stock (optional)"
+              type="number"
+              min="0"
+              step="1"
+              value={stockQty}
+              onChange={(e) => setStockQty(e.target.value)}
+              hint="Leave empty if you don't track stock. When set, checkout sells at most this many and stops at 0; cancelling an order puts units back."
+            />
             <MonoLabel muted={false}>Minimum order</MonoLabel>
             <p className="text-sm text-(--color-muted)">
               Customers can&apos;t check out with less than this. Leave at 1 and 0 for no minimum.
