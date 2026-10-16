@@ -11,4 +11,4 @@ const resolvedSiteUrl =
   "http://localhost:3000";
 
 export const SITE_URL = resolvedSiteUrl;
-export const SITE_NAME = "Flowers N Plants";
+export const SITE_NAME = "Adhira flowers";

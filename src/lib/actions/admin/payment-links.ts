@@ -47,7 +47,7 @@ export async function createPaymentLink(
   if (isStripeConfigured() && input.amount > 0) {
     const stripe = getStripe();
     const product = await stripe.products.create({
-      name: input.description.trim() || "Flowers N Plants payment",
+      name: input.description.trim() || "Adhira flowers payment",
     });
     const price = await stripe.prices.create({
       product: product.id,

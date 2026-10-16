@@ -1,4 +1,4 @@
-# Deploying Flowers N Plants to a Hostinger VPS
+# Deploying Adhira flowers to a Hostinger VPS
 
 The VPS runs **two containers**: the website (Next.js) and Caddy (automatic HTTPS).
 The **database, login and product images live in Supabase (cloud)**. That means no

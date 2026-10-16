@@ -1,4 +1,4 @@
-# Production image for the Flowers N Plants storefront + admin.
+# Production image for the Adhira flowers storefront + admin.
 #
 #   docker compose -f docker-compose.prod.yml build
 #
