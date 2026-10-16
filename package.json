@@ -15,6 +15,7 @@
     "verify:webhook": "tsx --conditions=react-server scripts/verify-webhook.ts",
     "verify:invoices": "tsx --conditions=react-server scripts/verify-invoices.ts",
     "verify:time": "tsx --conditions=react-server scripts/verify-time.ts",
+    "verify:delivery": "tsx --conditions=react-server scripts/verify-delivery.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {

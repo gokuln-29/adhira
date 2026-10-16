@@ -58,6 +58,13 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Security headers/CSP are in `next.config.ts` (img-src/connect-src include the media + R2 origins from env) and repeated in Nginx.
 - Store-wide values (WhatsApp, contacts, TRN, hero image) live in `store_settings` (single row, id 1), edited in Admin > Settings. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
 
+## Delivery rules (fees, cut-off, windows)
+
+- Admin-editable in **Admin > Delivery** (owner only; tables `delivery_zones`, `delivery_settings`, `delivery_blackouts`): per-emirate enabled / fee (before VAT) / free-over threshold / same-day, the same-day cut-off (Dubai time) and minimum prep hours, how far ahead to book, closed weekdays, closed dates, and which of the three windows (morning/afternoon/evening) are on. Defaults: all emirates on, fees **0**, same-day in Dubai/Sharjah/Ajman before 14:00, 2 h prep.
+- **One rule engine, two callers**: `src/lib/delivery/rules.ts` is pure; the browser uses it for the preview (banner, product-page estimator, checkout fee/date/slot) and `placeOrder` runs `validateDelivery` against *fresh* DB rules as the authority (`getDeliveryRulesFresh`; the UI copy comes from the cached `getDeliveryRules`, tag `catalog`). Date and slot are required on every order.
+- The fee is a taxable supply: `orders.delivery_fee` (before VAT), `orders.delivery_vat`, and `orders.vat` includes it. Stripe gets a "Delivery" line and a VAT line covering goods + delivery (`lib/stripe/line-items.ts`, tested to sum to `orders.total`). Invoices snapshot `delivery_fee`/`delivery_vat` and print delivery as a taxed line.
+- Don't hardcode "2 PM" or "in Dubai" in copy: the banner and estimator are generated from the rules; static pages say "selected emirates ... daily cut-off".
+
 ## Invoices (UAE tax invoice)
 
 - Issued in the **same transaction as the payment** (`markOrderPaid` → `issueInvoice`), so the number exists iff the payment does and the sequence is gap-free (`invoice_counters` row lock). Format `AF/<FY>/<seq>` with seq padded to 3 digits; the counter restarts each financial year. Change `FY_START_MONTH` in `lib/invoices/number.ts` if the accountant wants calendar years.

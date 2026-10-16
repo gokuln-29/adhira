@@ -4,6 +4,8 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { DeliveryRulesProvider } from "@/lib/delivery/context";
+import { getDeliveryRules } from "@/lib/data/delivery";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { organizationJsonLd, localBusinessJsonLd } from "@/lib/seo/organization";
@@ -70,7 +72,7 @@ export default async function LocaleLayout({
   // every one of them to render dynamically regardless of `revalidate`.
   setRequestLocale(locale);
 
-  const messages = await getMessages();
+  const [messages, deliveryRules] = await Promise.all([getMessages(), getDeliveryRules()]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -83,7 +85,9 @@ export default async function LocaleLayout({
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={localBusinessJsonLd()} />
         <NextIntlClientProvider messages={messages}>
-          <CartProvider>{children}</CartProvider>
+          <DeliveryRulesProvider rules={deliveryRules}>
+            <CartProvider>{children}</CartProvider>
+          </DeliveryRulesProvider>
           <WhatsAppButton />
         </NextIntlClientProvider>
       </body>

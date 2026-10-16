@@ -5,6 +5,7 @@ import { db, type Tx } from "@/lib/db";
 import { customers, order_items, order_status_events, orders, products } from "@/lib/db/schema";
 import { isDuplicateKey, newId } from "@/lib/db/helpers";
 import { priceLine, type LineSelection } from "@/lib/pricing";
+import { validateDelivery, type DeliveryRules } from "@/lib/delivery/rules";
 import type { ValidatedOrderInput } from "@/lib/validators/order";
 
 export interface PlacedLine {
@@ -40,8 +41,9 @@ export type PlaceOrderResult =
       lines: PlacedLine[];
       vatFils: number;
       depositFils: number;
+      deliveryFils: number;
     }
-  | { ok: false; reason: "unavailable" | "rule" | "stock"; message: string };
+  | { ok: false; reason: "unavailable" | "rule" | "stock" | "delivery"; message: string };
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -54,7 +56,7 @@ function orderNumber(): string {
 
 class Reject extends Error {
   constructor(
-    public reason: "unavailable" | "rule" | "stock",
+    public reason: "unavailable" | "rule" | "stock" | "delivery",
     message: string,
   ) {
     super(message);
@@ -103,6 +105,8 @@ export async function placeOrder(
   pickById: Map<string, LineSelection>,
   idempotencyKey: string | null,
   notes: string | null,
+  deliveryRules: DeliveryRules,
+  now: Date = new Date(),
 ): Promise<PlaceOrderResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -119,7 +123,7 @@ export async function placeOrder(
           .from(orders)
           .where(eq(orders.idempotency_key, idempotencyKey))
           .limit(1);
-        if (prior[0]) return { ok: true as const, replay: true, order: prior[0], lines: [], vatFils: 0, depositFils: 0 };
+        if (prior[0]) return { ok: true as const, replay: true, order: prior[0], lines: [], vatFils: 0, depositFils: 0, deliveryFils: 0 };
       }
 
       const ids = [...pickById.keys()].sort();
@@ -190,9 +194,20 @@ export async function placeOrder(
       }
 
       const subtotalFils = lines.reduce((s, l) => s + l.lineFils, 0);
-      const vatFils = lines.reduce((s, l) => s + l.vatFils, 0);
       const depositFils = lines.reduce((s, l) => s + l.depositFils, 0);
-      const deliveryFils = 0;
+
+      // Fee, cut-off, closed days and time window are all decided here from the
+      // database rules, never from what the browser displayed.
+      const delivery = validateDelivery(
+        deliveryRules,
+        { emirate: input.emirate, date: input.deliveryDate, slot: input.deliverySlot, goodsFils: subtotalFils },
+        now,
+      );
+      if (!delivery.ok) throw new Reject("delivery", delivery.message);
+      const deliveryFils = delivery.feeFils;
+      const deliveryVatFils = delivery.vatFils;
+      // Delivery is a taxable supply: its VAT is part of the order's VAT.
+      const vatFils = lines.reduce((s, l) => s + l.vatFils, 0) + deliveryVatFils;
       // Deposits are refundable and outside the VAT base, but part of what is charged.
       const totalFils = subtotalFils + vatFils + depositFils + deliveryFils;
 
@@ -216,6 +231,7 @@ export async function placeOrder(
             subtotal: subtotalFils / 100,
             vat: vatFils / 100,
             delivery_fee: deliveryFils / 100,
+            delivery_vat: deliveryVatFils / 100,
             deposit_total: depositFils / 100,
             deposit_status: depositFils > 0 ? "held" : "none",
             total: totalFils / 100,
@@ -275,6 +291,7 @@ export async function placeOrder(
         lines,
         vatFils,
         depositFils,
+        deliveryFils,
       };
     });
   } catch (err) {
@@ -293,7 +310,7 @@ export async function placeOrder(
         .from(orders)
         .where(eq(orders.idempotency_key, idempotencyKey))
         .limit(1);
-      if (prior[0]) return { ok: true, replay: true, order: prior[0], lines: [], vatFils: 0, depositFils: 0 };
+      if (prior[0]) return { ok: true, replay: true, order: prior[0], lines: [], vatFils: 0, depositFils: 0, deliveryFils: 0 };
     }
     throw err;
   }

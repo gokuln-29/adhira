@@ -13,6 +13,7 @@ export interface InvoiceView {
   vat: number;
   deposit_total: number;
   delivery_fee: number;
+  delivery_vat: number;
   total: number;
   order: { number: string; public_token: string; created_at: string; payment_method: string; delivery_date: string | null };
   lines: {
@@ -75,6 +76,7 @@ async function load(where: ReturnType<typeof eq>): Promise<InvoiceView | null> {
     vat: invoice.vat,
     deposit_total: invoice.deposit_total,
     delivery_fee: invoice.delivery_fee,
+    delivery_vat: invoice.delivery_vat,
     total: invoice.total,
     order: {
       number: r.order_number,

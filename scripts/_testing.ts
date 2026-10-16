@@ -22,3 +22,8 @@ export async function cleanupVerifyData(pool: Pool, fy: string, counterBefore: n
     conn.release();
   }
 }
+
+/** A bookable delivery date for tests: 3 days from now in Dubai (default rules have no closed days). */
+export function testDeliveryDate(daysAhead = 3): string {
+  return new Date(Date.now() + daysAhead * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" });
+}

@@ -71,6 +71,10 @@ export default async function OrderConfirmationPage({
                 <span>{formatAED(order.subtotal)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-(--color-muted)">{t("delivery")}</span>
+                <span>{order.delivery_fee > 0 ? formatAED(order.delivery_fee) : t("free")}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-(--color-muted)">{t("vat")}</span>
                 <span>{formatAED(order.vat)}</span>
               </div>

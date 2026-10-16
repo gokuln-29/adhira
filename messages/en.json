@@ -17,7 +17,8 @@
     "searching": "Searching...",
     "noResults": "No products match your search.",
     "viewAllResults": "View all results for \"{query}\"",
-    "announcement": "Same-day delivery in Dubai for orders before 2 PM  ·  VAT invoices for business"
+    "announcement": "Same-day delivery in {places} for orders before {cutoff}  ·  VAT invoices for business",
+    "announcementNext": "Next-day delivery across the UAE  ·  VAT invoices for business"
   },
   "Home": {
     "metaTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",
@@ -30,7 +31,7 @@
     "trust": [
       {
         "title": "Same-day delivery",
-        "body": "In Dubai, for orders placed before 2 PM."
+        "body": "In selected emirates, for orders placed before the daily cut-off."
       },
       {
         "title": "VAT invoices",
@@ -149,8 +150,8 @@
     "relatedTitle": "You may also like",
     "estimateDelivery": "Estimate delivery",
     "showImage": "Show image {n}",
-    "sameDayDelivery": "Same-day delivery for orders placed before 2:00 PM",
-    "nextDayDelivery": "Next-day delivery",
+    "sameDayDelivery": "Same-day delivery for orders placed before {cutoff}",
+    "nextDayDelivery": "Earliest delivery: {date}",
     "minQty": "Minimum order: {qty} units",
     "minValue": "Minimum order value: {value}",
     "minMonths": "Minimum rental: {months, plural, one {# month} other {# months}}",
@@ -167,10 +168,11 @@
     "perMonth": "/ month",
     "minOrderShort": "Min. {qty}",
     "infoDelivery": "Delivery",
-    "infoDeliveryBody": "Choose your date and time slot at checkout. Same-day delivery in Dubai for orders placed before 2 PM, subject to availability.",
+    "infoDeliveryBody": "Choose your date and time slot at checkout. Same-day delivery is offered in selected emirates before the daily cut-off, subject to availability.",
     "infoReturns": "Returns & deposits",
     "infoReturnsBody": "Fresh flowers can't be returned, but tell us straight away if something isn't right. Glass vessel and rental plant deposits are refunded when items come back in good condition.",
-    "readMore": "Read more"
+    "readMore": "Read more",
+    "noDelivery": "We don't deliver to this emirate yet"
   },
   "Cart": {
     "title": "Cart",
@@ -231,9 +233,15 @@
     "rentalMonths": "Rental: {months, plural, one {# month} other {# months}}",
     "withVessel": "With glass vessel",
     "moreAddress": "Apartment, area or landmark (optional)",
-    "deliveryDateHint": "Leave empty for the earliest delivery",
+    "deliveryDateHint": "Earliest available: {date}",
     "addGiftMessage": "Add a gift message (optional)",
-    "acceptTerms": "I agree to the <terms>Terms & conditions</terms> and <privacy>Privacy policy</privacy>."
+    "acceptTerms": "I agree to the <terms>Terms & conditions</terms> and <privacy>Privacy policy</privacy>.",
+    "delivery": "Delivery",
+    "free": "Free",
+    "noDelivery": "We don't deliver to {emirate} yet. Please contact us.",
+    "noBooking": "We can't take delivery bookings right now. Please contact us.",
+    "dateClosed": "We don't deliver on that day. Please choose another date.",
+    "slotTooSoon": "That slot is too soon for today. Please choose a later one."
   },
   "OrderConfirmation": {
     "eyebrow": "Order confirmed",
@@ -245,7 +253,9 @@
     "total": "Total",
     "continueShopping": "Continue shopping",
     "deposit": "Refundable deposit",
-    "invoice": "Tax invoice {number} — view or download PDF"
+    "invoice": "Tax invoice {number} — view or download PDF",
+    "delivery": "Delivery",
+    "free": "Free"
   },
   "LeadForm": {
     "yourName": "Your name",
@@ -472,7 +482,7 @@
         {
           "heading": "Dates and time slots",
           "body": [
-            "Choose your preferred date and time slot at checkout. Same-day delivery in Dubai is available for orders placed before 2 PM, subject to availability.",
+            "Choose your preferred date and time slot at checkout. Same-day delivery is offered in selected emirates for orders placed before the daily cut-off time shown at checkout, subject to availability.",
             "After you order, we confirm the delivery details with you."
           ]
         },

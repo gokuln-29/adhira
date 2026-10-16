@@ -10,6 +10,8 @@ import { useCart } from "@/lib/cart/cart-context";
 import { formatAED } from "@/lib/pricing";
 import { createOrder, type Emirate, type PaymentMethod } from "@/lib/actions/orders";
 import { EMIRATES } from "@/lib/constants/emirates";
+import { useDeliveryRules } from "@/lib/delivery/context";
+import { addDays, dubaiNow, DELIVERY_SLOTS, earliestDate, isDeliverableDate, slotsFor, validateDelivery } from "@/lib/delivery/rules";
 
 const SAVED_KEY = "fg_checkout_v1";
 const SAVED_FIELDS = ["name", "email", "phone", "emirate", "line1", "line2", "area", "landmark", "company", "trn"] as const;
@@ -21,11 +23,12 @@ export function CheckoutView() {
   const router = useRouter();
   const locale = useLocale();
 
-  const slots: { value: string; label: string }[] = [
-    { value: "Morning (9am - 12pm)", label: t("slotMorning") },
-    { value: "Afternoon (12pm - 4pm)", label: t("slotAfternoon") },
-    { value: "Evening (4pm - 8pm)", label: t("slotEvening") },
-  ];
+  const slotLabels: Record<string, string> = {
+    morning: t("slotMorning"),
+    afternoon: t("slotAfternoon"),
+    evening: t("slotEvening"),
+  };
+  const rules = useDeliveryRules();
 
   const paymentMethods: { value: PaymentMethod; label: string; available: boolean }[] = [
     { value: "card", label: t("cardLabel"), available: true },
@@ -33,7 +36,7 @@ export function CheckoutView() {
 
   // Returning customers shouldn't retype everything: details from their last
   // order are kept in this browser only (never sent anywhere until checkout).
-  const [init, setInit] = useState<{ saved: Record<string, string>; ready: boolean; minDate?: string }>({
+  const [init, setInit] = useState<{ saved: Record<string, string>; ready: boolean; now?: Date }>({
     saved: {},
     ready: false,
   });
@@ -50,10 +53,44 @@ export function CheckoutView() {
     setInit({
       saved,
       ready: true,
-      minDate: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" }),
+      now: new Date(),
     });
   }, []);
-  const { saved, ready, minDate } = init;
+  const { saved, ready } = init;
+
+  // Keep "now" fresh so the cut-off passing while the page is open updates the options.
+  const [tick, setTick] = useState<Date | null>(null);
+  useEffect(() => {
+    const id = setInterval(() => setTick(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const now = tick ?? init.now ?? null;
+
+  const [emirateChoice, setEmirateChoice] = useState<string | null>(null);
+  const emirate = emirateChoice ?? (saved.emirate || "Dubai");
+  const [chosenDate, setChosenDate] = useState<string | null>(null);
+  const [chosenSlot, setChosenSlot] = useState<string | null>(null);
+
+  // The same rule code the server runs as the authority (fees, cut-off, closed days, windows).
+  const earliest = rules && now ? earliestDate(rules, emirate, now) : null;
+  const date = chosenDate && earliest && chosenDate >= earliest ? chosenDate : (earliest ?? "");
+  const slotOptions = rules && now && date ? slotsFor(rules, date, now) : [];
+  const slot = slotOptions.some((s) => s.id === chosenSlot) ? chosenSlot! : (slotOptions[0]?.id ?? "");
+  const check = rules && now ? validateDelivery(rules, { emirate, date, slot, goodsFils: Math.round(subtotal * 100) }, now) : null;
+  const deliveryFee = check?.ok ? check.feeFils / 100 : 0;
+  const deliveryVat = check?.ok ? check.vatFils / 100 : 0;
+  const grandVat = vat + deliveryVat;
+  const grandTotal = total + deliveryFee + deliveryVat;
+  const deliveryProblem = !check || check.ok
+    ? null
+    : check.code === "zone_disabled"
+      ? t("noDelivery", { emirate: tEmirates(emirate) })
+      : check.code === "slot_too_soon"
+        ? t("slotTooSoon")
+        : rules && date && !isDeliverableDate(rules, date)
+          ? t("dateClosed")
+          : t("noBooking");
+  const maxDate = rules && now ? addDays(dubaiNow(now).date, rules.maxDaysAhead) : undefined;
 
   const [businessChoice, setBusinessChoice] = useState<boolean | null>(null);
   const isBusiness = businessChoice ?? !!saved.company;
@@ -77,6 +114,10 @@ export function CheckoutView() {
       setError(t("fixMinimums"));
       return;
     }
+    if (deliveryProblem) {
+      setError(deliveryProblem);
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
@@ -95,8 +136,8 @@ export function CheckoutView() {
         area: String(formData.get("area") || "") || undefined,
         landmark: String(formData.get("landmark") || "") || undefined,
       },
-      deliveryDate: String(formData.get("deliveryDate") || "") || undefined,
-      deliverySlot: String(formData.get("deliverySlot") || "") || undefined,
+      deliveryDate: date,
+      deliverySlot: slot as "morning" | "afternoon" | "evening",
       giftMessage: String(formData.get("giftMessage") || "") || undefined,
       poNumber: isBusiness ? String(formData.get("poNumber") || "") || undefined : undefined,
       paymentMethod: payment,
@@ -132,7 +173,7 @@ export function CheckoutView() {
       // Full navigation to Stripe's hosted page — the cart is cleared on
       // the confirmation page, not here, so a cancelled payment leaves it
       // intact for the buyer to try again.
-      window.location.href = result.redirectUrl;
+      window.location.assign(result.redirectUrl);
       return;
     }
 
@@ -175,7 +216,14 @@ export function CheckoutView() {
 
         <fieldset className="flex flex-col gap-5">
           <legend className="mb-3 font-display text-3xl">{t("deliveryAddress")}</legend>
-          <Select name="emirate" label={t("emirate")} required defaultValue={saved.emirate || "Dubai"}>
+          <Select
+            name="emirate"
+            label={t("emirate")}
+            required
+            value={emirate}
+            onChange={(e) => setEmirateChoice(e.target.value)}
+            error={check && !check.ok && check.code === "zone_disabled" ? deliveryProblem ?? undefined : undefined}
+          >
             {EMIRATES.map((e) => (
               <option key={e} value={e}>
                 {tEmirates(e)}
@@ -196,11 +244,22 @@ export function CheckoutView() {
             </div>
           </details>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="deliveryDate" type="date" min={minDate} label={t("deliveryDate")} hint={t("deliveryDateHint")} />
-            <Select name="deliverySlot" label={t("deliverySlot")}>
-              {slots.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
+            <Input
+              name="deliveryDate"
+              type="date"
+              required
+              min={earliest ?? undefined}
+              max={maxDate}
+              value={date}
+              onChange={(e) => setChosenDate(e.target.value)}
+              label={t("deliveryDate")}
+              hint={earliest ? t("deliveryDateHint", { date: new Date(`${earliest}T12:00:00Z`).toLocaleDateString(locale === "ar" ? "ar-AE" : "en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) }) : undefined}
+              error={check && !check.ok && check.code !== "zone_disabled" ? deliveryProblem ?? undefined : undefined}
+            />
+            <Select name="deliverySlot" label={t("deliverySlot")} required value={slot} onChange={(e) => setChosenSlot(e.target.value)}>
+              {(slotOptions.length > 0 ? slotOptions : DELIVERY_SLOTS).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {slotLabels[s.id]}
                 </option>
               ))}
             </Select>
@@ -282,7 +341,7 @@ export function CheckoutView() {
           </span>
         </label>
 
-        <Button type="submit" size="lg" disabled={submitting}>
+        <Button type="submit" size="lg" disabled={submitting || !!deliveryProblem}>
           {submitting ? t("placingOrder") : t("placeOrder")}
         </Button>
       </div>
@@ -321,8 +380,12 @@ export function CheckoutView() {
             <span>{formatAED(subtotal)}</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-(--color-muted)">{t("delivery")}</span>
+            <span>{check?.ok ? (deliveryFee > 0 ? formatAED(deliveryFee) : t("free")) : "—"}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-(--color-muted)">{t("vat")}</span>
-            <span>{formatAED(vat)}</span>
+            <span>{formatAED(grandVat)}</span>
           </div>
           {deposit > 0 && (
             <div className="flex justify-between">
@@ -334,7 +397,7 @@ export function CheckoutView() {
         {deposit > 0 && <p className="pt-3 text-xs text-(--color-muted)">{t("depositNote")}</p>}
         <div className="flex justify-between pt-4 font-mono-label text-sm">
           <span>{t("total")}</span>
-          <span>{formatAED(total)}</span>
+          <span>{formatAED(grandTotal)}</span>
         </div>
       </div>
     </form>

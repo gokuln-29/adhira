@@ -149,16 +149,28 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceView }) {
               <td className="border border-neutral-300 p-1.5 text-end">{money(l.line_total + l.vat)}</td>
             </tr>
           ))}
+          {invoice.delivery_fee > 0 && (
+            <tr className="align-top">
+              <td className="border border-neutral-300 p-1.5">{invoice.lines.length + 1}</td>
+              <td className="border border-neutral-300 p-1.5">
+                <div>Delivery</div>
+                <div lang="ar" dir="rtl" className="text-start" style={{ fontFamily: "var(--font-arabic)" }}>التوصيل</div>
+              </td>
+              <td className="border border-neutral-300 p-1.5 text-end">1</td>
+              <td className="border border-neutral-300 p-1.5 text-end">{money(invoice.delivery_fee)}</td>
+              <td className="border border-neutral-300 p-1.5 text-end">{money(invoice.delivery_fee)}</td>
+              <td className="border border-neutral-300 p-1.5 text-end">5%</td>
+              <td className="border border-neutral-300 p-1.5 text-end">{money(invoice.delivery_vat)}</td>
+              <td className="border border-neutral-300 p-1.5 text-end">{money(invoice.delivery_fee + invoice.delivery_vat)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
       <table className="ms-auto mt-4 w-[95mm] border-collapse">
         <tbody>
-          <tr><td className="p-1"><Bi k="subtotal" /></td><td className="p-1 text-end">{money(invoice.subtotal)}</td></tr>
+          <tr><td className="p-1"><Bi k="subtotal" /></td><td className="p-1 text-end">{money(invoice.subtotal + invoice.delivery_fee)}</td></tr>
           <tr><td className="p-1"><Bi k="vatTotal" /></td><td className="p-1 text-end">{money(invoice.vat)}</td></tr>
-          {invoice.delivery_fee > 0 && (
-            <tr><td className="p-1"><Bi k="delivery" /></td><td className="p-1 text-end">{money(invoice.delivery_fee)}</td></tr>
-          )}
           {invoice.deposit_total > 0 && (
             <tr><td className="p-1"><Bi k="deposit" /></td><td className="p-1 text-end">{money(invoice.deposit_total)}</td></tr>
           )}

@@ -7,6 +7,8 @@ import { routing } from "@/i18n/routing";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart/cart-context";
+import { useDeliveryRules } from "@/lib/delivery/context";
+import { formatCutoff } from "@/lib/delivery/rules";
 
 const navItems = [
   { key: "shop", href: "/shop" },
@@ -22,6 +24,9 @@ export function Header() {
   const locale = useLocale();
   const pathname = usePathname();
   const { count } = useCart();
+  const rules = useDeliveryRules();
+  const tEmirates = useTranslations("Emirates");
+  const sameDayPlaces = (rules?.zones ?? []).filter((z) => z.enabled && z.same_day).map((z) => tEmirates(z.emirate));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -41,7 +46,9 @@ export function Header() {
   return (
     <>
       <div className="bg-(--color-ink) px-4 py-2 text-center font-mono-label text-[10px] tracking-[0.16em] text-white/80">
-        {t("announcement")}
+        {rules && sameDayPlaces.length > 0
+          ? t("announcement", { places: sameDayPlaces.join(locale === "ar" ? "، " : ", "), cutoff: formatCutoff(rules.sameDayCutoff, locale) })
+          : t("announcementNext")}
       </div>
       <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-canvas)/85 backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:gap-4 sm:px-6 py-4 md:py-5">

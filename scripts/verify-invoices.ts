@@ -10,6 +10,9 @@ async function main() {
   const { db, pool } = await import("../src/lib/db");
   const { products, orders, order_items, invoices, invoice_counters } = await import("../src/lib/db/schema");
   const { placeOrder } = await import("../src/lib/orders/place-order");
+  const { getDeliveryRulesFresh } = await import("../src/lib/data/delivery");
+  const { testDeliveryDate } = await import("./_testing");
+  const rules = await getDeliveryRulesFresh();
   const { markOrderPaid } = await import("../src/lib/orders/transitions");
   const { issueInvoice } = await import("../src/lib/invoices/issue");
   const { orderInputSchema } = await import("../src/lib/validators/order");
@@ -34,9 +37,9 @@ async function main() {
     const input = orderInputSchema.parse({
       customer: { name: `Inv Bot ${i}`, email: `inv${i}@verify.test`, phone: "+971500000000", company: i % 2 ? "Acme LLC" : undefined, trn: i % 2 ? "100123456700003" : undefined },
       emirate: "Dubai", address: { line1: "1 Test St" }, paymentMethod: "card",
-      items: [{ productId: p.id, qty: Math.max(p.min_order_qty, 3), vessel: false, months: 1 }], locale: "en", acceptTerms: true,
+      items: [{ productId: p.id, qty: Math.max(p.min_order_qty, 3), vessel: false, months: 1 }], locale: "en", acceptTerms: true, deliveryDate: testDeliveryDate(), deliverySlot: "morning",
     });
-    const r = await placeOrder(input, new Map([[p.id, { qty: Math.max(p.min_order_qty, 3), vessel: false, months: 1 }]]), null, null);
+    const r = await placeOrder(input, new Map([[p.id, { qty: Math.max(p.min_order_qty, 3), vessel: false, months: 1 }]]), null, null, rules);
     assert(r.ok);
     return r.order.id;
   };

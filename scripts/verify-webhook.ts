@@ -20,6 +20,9 @@ async function main() {
   const counterBefore = await counterSnapshot(pool, fyNow);
   const { orders, products, stripe_events, order_status_events } = await import("../src/lib/db/schema");
   const { placeOrder } = await import("../src/lib/orders/place-order");
+  const { getDeliveryRulesFresh } = await import("../src/lib/data/delivery");
+  const { testDeliveryDate } = await import("./_testing");
+  const rules = await getDeliveryRulesFresh();
   const { transitionOrder } = await import("../src/lib/orders/transitions");
   const { orderInputSchema } = await import("../src/lib/validators/order");
   const stripe = new Stripe("sk_test_unused");
@@ -56,9 +59,9 @@ async function main() {
     const input = orderInputSchema.parse({
       customer: { name: "Webhook Bot", email: `${tag}@verify.test`, phone: "+971500000000" },
       emirate: "Dubai", address: { line1: "1 Test St" }, paymentMethod: "card",
-      items: [{ productId: p.id, qty: p.min_order_qty }], locale: "en", acceptTerms: true,
+      items: [{ productId: p.id, qty: p.min_order_qty }], locale: "en", acceptTerms: true, deliveryDate: testDeliveryDate(), deliverySlot: "morning",
     });
-    const r = await placeOrder(input, new Map([[p.id, { qty: p.min_order_qty, vessel: false, months: 1 }]]), null, null);
+    const r = await placeOrder(input, new Map([[p.id, { qty: p.min_order_qty, vessel: false, months: 1 }]]), null, null, rules);
     assert(r.ok);
     const sessionId = `cs_test_${tag}_${Date.now()}`;
     await db.update(orders).set({ stripe_checkout_session_id: sessionId }).where(eq(orders.id, r.order.id));

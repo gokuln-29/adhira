@@ -338,6 +338,8 @@ export const orders = mysqlTable(
     subtotal: money("subtotal").notNull().default(0),
     vat: money("vat").notNull().default(0),
     delivery_fee: money("delivery_fee").notNull().default(0),
+    // VAT charged on the delivery fee (already included in `vat`).
+    delivery_vat: money("delivery_vat").notNull().default(0),
     deposit_total: money("deposit_total").notNull().default(0),
     deposit_status: varchar("deposit_status", { length: 10 })
       .$type<"none" | "held" | "refunded">()
@@ -513,6 +515,7 @@ export const invoices = mysqlTable(
     vat: money("vat").notNull(),
     deposit_total: money("deposit_total").notNull().default(0),
     delivery_fee: money("delivery_fee").notNull().default(0),
+    delivery_vat: money("delivery_vat").notNull().default(0),
     total: money("total").notNull(),
     currency: char("currency", { length: 3 }).notNull().default("AED"),
   },
@@ -551,6 +554,41 @@ export const ops_alerts = mysqlTable(
   },
   (t) => [uniqueIndex("ops_alerts_kind_ref_uq").on(t.kind, t.ref), index("ops_alerts_open_idx").on(t.resolved_at)],
 );
+
+// ---------------------------------------------------------------------------
+// Delivery rules (admin-editable; Admin > Delivery)
+// ---------------------------------------------------------------------------
+
+export const delivery_zones = mysqlTable("delivery_zones", {
+  emirate: varchar("emirate", { length: 30 }).primaryKey(),
+  enabled: boolean("enabled").notNull().default(true),
+  // Charged before VAT. 0 = free delivery.
+  fee: money("fee").notNull().default(0),
+  // Free delivery when the goods subtotal (before VAT) reaches this amount. NULL = never.
+  free_over: money("free_over"),
+  // Same-day delivery offered here (before the cut-off).
+  same_day: boolean("same_day").notNull().default(false),
+});
+
+// Single row (id 1).
+export const delivery_settings = mysqlTable("delivery_settings", {
+  id: int("id").primaryKey().default(1),
+  same_day_cutoff: char("same_day_cutoff", { length: 5 }).notNull().default("14:00"), // HH:MM, Dubai time
+  // A slot can't be chosen for today if it starts sooner than this many hours from now.
+  same_day_min_prep_hours: int("same_day_min_prep_hours").notNull().default(2),
+  max_days_ahead: int("max_days_ahead").notNull().default(60),
+  // 0 = Sunday ... 6 = Saturday. Days we don't deliver.
+  closed_weekdays: json("closed_weekdays").$type<number[]>().notNull(),
+  // Slot ids switched off: "morning" | "afternoon" | "evening".
+  disabled_slots: json("disabled_slots").$type<string[]>().notNull(),
+  updated_at: updatedAt(),
+});
+
+// Public holidays, Eid, stock-take days...: nothing is delivered on these dates.
+export const delivery_blackouts = mysqlTable("delivery_blackouts", {
+  date: date("date", { mode: "string" }).primaryKey(),
+  note: varchar("note", { length: 200 }),
+});
 
 export const rate_limits = mysqlTable("rate_limits", {
   key: varchar("key", { length: 255 }).primaryKey(),

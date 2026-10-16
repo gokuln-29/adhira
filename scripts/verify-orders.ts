@@ -16,6 +16,9 @@ async function main() {
   const counterBefore = await counterSnapshot(pool, fyNow);
   const { products, orders, order_status_events } = await import("../src/lib/db/schema");
   const { placeOrder } = await import("../src/lib/orders/place-order");
+  const { getDeliveryRulesFresh } = await import("../src/lib/data/delivery");
+  const { testDeliveryDate } = await import("./_testing");
+  const rules = await getDeliveryRulesFresh();
   const { transitionOrder, markOrderPaid } = await import("../src/lib/orders/transitions");
 
   const [p] = await db.select().from(products).where(eq(products.status, "active")).limit(1);
@@ -31,6 +34,8 @@ async function main() {
     items: [{ productId: p.id, qty: p.min_order_qty, vessel: false, months: 1 }],
     locale: "en" as const,
     acceptTerms: true as const,
+    deliveryDate: testDeliveryDate(),
+    deliverySlot: "morning" as const,
   });
   const results: string[] = [];
   const ok = (name: string) => results.push(`PASS ${name}`);
@@ -39,7 +44,7 @@ async function main() {
     // 1. oversell: stock for exactly one order, 8 concurrent checkouts
     await db.update(products).set({ stock_qty: p.min_order_qty }).where(eq(products.id, p.id));
     const runs = await Promise.all(
-      Array.from({ length: 8 }, (_, i) => placeOrder(baseInput(`race${i}@verify.test`), sel, null, null)),
+      Array.from({ length: 8 }, (_, i) => placeOrder(baseInput(`race${i}@verify.test`), sel, null, null, rules)),
     );
     const won = runs.filter((r) => r.ok);
     const lost = runs.filter((r) => !r.ok);
@@ -64,8 +69,8 @@ async function main() {
     await db.update(products).set({ stock_qty: null }).where(eq(products.id, p.id));
     const key = `verify-${Date.now()}-abcdefgh`;
     const [a, b] = await Promise.all([
-      placeOrder(baseInput("idem@verify.test"), sel, key, null),
-      placeOrder(baseInput("idem@verify.test"), sel, key, null),
+      placeOrder(baseInput("idem@verify.test"), sel, key, null, rules),
+      placeOrder(baseInput("idem@verify.test"), sel, key, null, rules),
     ]);
     assert(a.ok && b.ok);
     assert.equal(a.order.id, b.order.id);

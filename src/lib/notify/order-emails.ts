@@ -19,6 +19,7 @@ const TEXT = {
     items: "Items",
     subtotal: "Subtotal",
     vat: "VAT",
+    delivery: "Delivery",
     deposit: "Refundable deposit",
     total: "Total",
     rental: (m: number) => `Rental, ${m} month${m === 1 ? "" : "s"}`,
@@ -38,6 +39,7 @@ const TEXT = {
     items: "المنتجات",
     subtotal: "المجموع الفرعي",
     vat: "ضريبة القيمة المضافة",
+    delivery: "التوصيل",
     deposit: "تأمين قابل للاسترداد",
     total: "الإجمالي",
     rental: (m: number) => `إيجار، ${m} أشهر`,
@@ -58,6 +60,7 @@ interface OrderRow {
   notes: string | null;
   subtotal: number;
   vat: number;
+  delivery_fee: number;
   deposit_total: number;
   total: number;
   customers: { name: string; email: string; phone: string | null; company: string | null } | null;
@@ -84,6 +87,7 @@ async function loadOrder(number: string): Promise<OrderRow | null> {
         notes: orders.notes,
         subtotal: orders.subtotal,
         vat: orders.vat,
+        delivery_fee: orders.delivery_fee,
         deposit_total: orders.deposit_total,
         total: orders.total,
         c_name: customers.name,
@@ -153,6 +157,7 @@ ${row(t.deliveryOn, order.delivery_date ?? t.asap)}
 <table style="width:100%;border-collapse:collapse;font-size:14px">${items}</table>
 <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
 ${row(t.subtotal, formatAED(Number(order.subtotal)))}
+${Number(order.delivery_fee) > 0 ? row(t.delivery, formatAED(Number(order.delivery_fee))) : ""}
 ${row(t.vat, formatAED(Number(order.vat)))}
 ${Number(order.deposit_total) > 0 ? row(t.deposit, formatAED(Number(order.deposit_total))) : ""}
 ${row(t.total, formatAED(Number(order.total)), true)}

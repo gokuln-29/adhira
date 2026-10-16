@@ -27,12 +27,10 @@ export const orderInputSchema = z.object({
     area: optionalText(120),
     landmark: optionalText(200),
   }),
-  deliveryDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  deliverySlot: optionalText(60),
+  // Both are required: the server checks them against the delivery rules (fees,
+  // cut-off, closed days, time windows) and picks the fee from the emirate.
+  deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a delivery date."),
+  deliverySlot: z.enum(["morning", "afternoon", "evening"], "Please choose a delivery time slot."),
   giftMessage: optionalText(500),
   poNumber: optionalText(60),
   paymentMethod: z.enum(["card", "tabby", "tamara"]),

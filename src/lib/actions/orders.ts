@@ -3,6 +3,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
+import { DELIVERY_SLOTS } from "@/lib/delivery/rules";
+import { getDeliveryRulesFresh } from "@/lib/data/delivery";
+import { buildStripeLineItems } from "@/lib/stripe/line-items";
 import { placeOrder } from "@/lib/orders/place-order";
 import { transitionOrder } from "@/lib/orders/transitions";
 import { raiseAlert } from "@/lib/ops/alerts";
@@ -28,16 +31,6 @@ export type OrderResult =
 
 const GENERIC_ERROR = "We couldn't place your order. Please try again or contact us.";
 
-function todayInDubai(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" });
-}
-
-function addYears(isoDate: string, years: number): string {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCFullYear(d.getUTCFullYear() + years);
-  return d.toISOString().slice(0, 10);
-}
-
 // The browser tells us WHICH products and HOW MANY. Everything money-related
 // (price, discount, VAT, totals) is read from the database here, so a
 // tampered localStorage cart can't change what gets charged.
@@ -62,13 +55,6 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     };
   }
 
-  if (input.deliveryDate) {
-    const today = todayInDubai();
-    if (input.deliveryDate < today || input.deliveryDate > addYears(today, 1)) {
-      return { ok: false, error: "Please choose a valid delivery date." };
-    }
-  }
-
   if (!(await withinRateLimit("order", 10, 600))) {
     return { ok: false, error: "Too many orders from this device. Please try again in a few minutes." };
   }
@@ -88,14 +74,14 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     [
       input.giftMessage && `Gift message: ${input.giftMessage}`,
       input.poNumber && `PO number: ${input.poNumber}`,
-      input.deliverySlot && `Delivery slot: ${input.deliverySlot}`,
+      `Delivery slot: ${DELIVERY_SLOTS.find((s) => s.id === input.deliverySlot)?.label ?? input.deliverySlot}`,
     ]
       .filter(Boolean)
       .join(" · ") || null;
 
   let placed;
   try {
-    placed = await placeOrder(input, pickById, input.idempotencyKey ?? null, notes);
+    placed = await placeOrder(input, pickById, input.idempotencyKey ?? null, notes, await getDeliveryRulesFresh());
   } catch (err) {
     console.error("[createOrder] placeOrder failed", err);
     return { ok: false, error: GENERIC_ERROR };
@@ -122,46 +108,12 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
       {
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [
-          ...lines.map((l) => ({
-            price_data: {
-              currency: "aed",
-              product_data: {
-                name: l.isRental ? `${l.name} (rental, ${l.months} months)` : l.name,
-              },
-              unit_amount: l.unitFils,
-            },
-            quantity: l.qty,
-          })),
-          ...lines
-            .filter((l) => l.vessel)
-            .map((l) => ({
-              price_data: {
-                currency: "aed",
-                product_data: { name: `Glass vessel: ${l.name}` },
-                unit_amount: l.vesselUnitFils,
-              },
-              quantity: l.qty,
-            })),
-          // Prices are stored VAT-exclusive with VAT broken out separately,
-          // so it needs its own line for the charge to match `orders.total`.
-          {
-            price_data: {
-              currency: "aed",
-              product_data: { name: "VAT" },
-              unit_amount: vatFils,
-            },
-            quantity: 1,
-          },
-          {
-            price_data: {
-              currency: "aed",
-              product_data: { name: "Refundable deposit" },
-              unit_amount: depositFils,
-            },
-            quantity: 1,
-          },
-        ].filter((l) => l.price_data.unit_amount > 0),
+        line_items: buildStripeLineItems({
+          lines,
+          deliveryFils: placed.deliveryFils,
+          vatFils,
+          depositFils,
+        }),
         customer_email: input.customer.email,
         metadata: { order_number: order.number, locale: input.locale },
         success_url: `${SITE_URL}/${input.locale}/order-confirmation/${order.public_token}`,
