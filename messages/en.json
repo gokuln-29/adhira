@@ -404,12 +404,16 @@
   },
   "SignIn": {
     "title": "Sign in",
-    "subtitle": "We'll email you a link — no password needed.",
+    "subtitle": "We'll email you a 6-digit code — no password needed.",
     "checkEmailTitle": "Check your email",
-    "checkEmailBody": "We sent a sign-in link to {email}.",
+    "checkEmailBody": "We sent a 6-digit code to {email}.",
     "email": "Email",
-    "sendLink": "Send sign-in link",
-    "sending": "Sending..."
+    "sendLink": "Send sign-in code",
+    "sending": "Sending...",
+    "code": "6-digit code",
+    "verify": "Sign in",
+    "verifying": "Checking...",
+    "useDifferentEmail": "Use a different email"
   },
   "Whatsapp": {
     "label": "Chat on WhatsApp",

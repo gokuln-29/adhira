@@ -1,29 +1,18 @@
-import { cache } from "react";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { readAdminSession } from "@/lib/auth/admin-session";
+import { assertSameOrigin } from "@/lib/auth/origin";
 import { roleCan, type AdminUser, type Permission } from "@/lib/admin/roles";
 
 export { roleCan, ROLE_PERMISSIONS } from "@/lib/admin/roles";
 export type { AdminRole, AdminUser, Permission } from "@/lib/admin/roles";
 
-// `cache` dedupes the two Supabase round trips when the layout and a page (or
-// several actions in one request) both ask who the admin is.
-export const getCurrentAdmin = cache(async (): Promise<AdminUser | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from("admin_users")
-    .select("id, name, role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as unknown as AdminUser | null;
-});
+// Only a fully authenticated session counts: password AND (if enrolled) MFA.
+export async function getCurrentAdmin(): Promise<AdminUser | null> {
+  const s = await readAdminSession();
+  if (!s || !s.mfaPassed) return null;
+  const { id, name, role } = s.admin;
+  return { id, name, role };
+}
 
 export function can(admin: AdminUser | null, permission: Permission): boolean {
   return roleCan(admin?.role, permission);
@@ -41,9 +30,11 @@ export type AuthResult =
   | { ok: true; admin: AdminUser }
   | { ok: false; error: string };
 
-// Call FIRST in every admin server action: server actions are public POST
-// endpoints, so nothing else (layouts, hidden buttons) protects them.
+// Call FIRST in every admin server action and mutating route handler: server
+// actions are public POST endpoints, so nothing else (layouts, hidden buttons)
+// protects them. Replaces the database-level RLS the Supabase build relied on.
 export async function authorize(permission: Permission): Promise<AuthResult> {
+  if (!(await assertSameOrigin())) return { ok: false, error: "Request blocked." };
   const admin = await getCurrentAdmin();
   if (!admin) return { ok: false, error: "Please sign in again." };
   if (!can(admin, permission)) {

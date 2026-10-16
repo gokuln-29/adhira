@@ -1,6 +1,6 @@
 // Pure role logic with no server imports, so client components (the sidebar)
-// can share it with server code. The database (`has_admin_role()` in RLS) is
-// the real enforcement; this drives clean errors and what the UI shows.
+// can share it with server code. `authorize()` in `lib/admin/auth.ts` is
+// the real enforcement; this also drives what the UI shows.
 export type AdminRole = "owner" | "manager" | "staff";
 
 export interface AdminUser {

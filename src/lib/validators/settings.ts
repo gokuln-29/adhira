@@ -2,19 +2,13 @@ import { z } from "zod";
 
 const blankToNull = (v: string | undefined) => (v && v.trim() ? v.trim() : null);
 
-// Hero images must come from our own storage (or the seed image host) so
-// `next/image` can load them and nobody can point the homepage at a random host.
+// Hero images must come from our own media domain (R2) or the seed image host
+// so `next/image` can load them and nobody can point the homepage at a random host.
 function allowedImageHost(url: string): boolean {
   try {
     const u = new URL(url);
-    const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL
-      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
-      : null;
-    return (
-      u.origin === supabase ||
-      u.hostname.endsWith(".supabase.co") ||
-      u.hostname === "images.unsplash.com"
-    );
+    const media = process.env.MEDIA_PUBLIC_URL ? new URL(process.env.MEDIA_PUBLIC_URL).origin : null;
+    return u.origin === media || u.hostname === "images.unsplash.com";
   } catch {
     return false;
   }
@@ -43,7 +37,7 @@ export const storeSettingsSchema = z.object({
     .max(2000)
     .optional()
     .transform(blankToNull)
-    .refine((v) => v === null || allowedImageHost(v), "Upload the hero image here, or use an Unsplash / Supabase image URL."),
+    .refine((v) => v === null || allowedImageHost(v), "Upload the hero image here, or use an Unsplash image URL."),
 });
 
 export type StoreSettingsInput = z.input<typeof storeSettingsSchema>;

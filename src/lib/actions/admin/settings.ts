@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { store_settings } from "@/lib/db/schema";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import { storeSettingsSchema, type StoreSettingsInput } from "@/lib/validators/settings";
@@ -17,10 +19,10 @@ export async function updateStoreSettings(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the details." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("store_settings").update(parsed.data).eq("id", true);
-  if (error) {
-    console.error("[updateStoreSettings]", error);
+  try {
+    await db.update(store_settings).set(parsed.data).where(eq(store_settings.id, 1));
+  } catch (err) {
+    console.error("[updateStoreSettings]", err);
     return { ok: false, error: "Couldn't save the settings. Please try again." };
   }
   revalidatePath("/admin/settings");

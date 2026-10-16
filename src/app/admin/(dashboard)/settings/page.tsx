@@ -4,7 +4,8 @@ import { MonoLabel } from "@/components/ui/mono-label";
 import { StaffPanel } from "@/components/admin/settings/staff-panel";
 import { StoreSettingsForm } from "@/components/admin/settings/store-settings-form";
 import { getAllStaff } from "@/lib/data/admin/staff";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { store_settings } from "@/lib/db/schema";
 import type { StoreSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -19,14 +20,20 @@ const keyChecks = [
 ] as const;
 
 export default async function AdminSettingsPage() {
-  const supabase = await createClient();
-  const [staff, { data: settings }] = await Promise.all([
+  const [staff, settingsRows] = await Promise.all([
     getAllStaff(),
-    supabase
-      .from("store_settings")
-      .select("whatsapp_number, contact_phone, contact_email, trn, hero_image_url")
-      .maybeSingle(),
+    db
+      .select({
+        whatsapp_number: store_settings.whatsapp_number,
+        contact_phone: store_settings.contact_phone,
+        contact_email: store_settings.contact_email,
+        trn: store_settings.trn,
+        hero_image_url: store_settings.hero_image_url,
+      })
+      .from(store_settings)
+      .limit(1),
   ]);
+  const settings = settingsRows[0];
 
   return (
     <div className="flex flex-col gap-8">

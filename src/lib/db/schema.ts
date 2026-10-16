@@ -67,6 +67,8 @@ export const admin_users = mysqlTable(
     password_hash: varchar("password_hash", { length: 255 }).notNull(),
     totp_secret: varchar("totp_secret", { length: 255 }),
     totp_enabled: boolean("totp_enabled").notNull().default(false),
+    // Last accepted TOTP time-step; codes at or before it are rejected (replay).
+    totp_last_step: int("totp_last_step"),
     // Hashed one-time recovery codes (JSON string[]).
     recovery_codes: json("recovery_codes").$type<string[]>(),
     failed_logins: int("failed_logins").notNull().default(0),
@@ -83,7 +85,6 @@ export const admin_sessions = mysqlTable(
     id: uuid("id").primaryKey(),
     admin_id: uuid("admin_id").notNull().references(() => admin_users.id, { onDelete: "cascade" }),
     token_hash: char("token_hash", { length: 64 }).notNull(),
-    csrf_token: char("csrf_token", { length: 64 }).notNull(),
     // false until the TOTP step passes (for accounts with MFA enabled).
     mfa_passed: boolean("mfa_passed").notNull().default(false),
     ip: varchar("ip", { length: 64 }),

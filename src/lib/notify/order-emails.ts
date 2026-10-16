@@ -1,6 +1,8 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { SITE_URL } from "@/lib/seo/site";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers, order_items, orders, store_settings } from "@/lib/db/schema";
+import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { formatAED } from "@/lib/pricing";
 import { esc, isEmailConfigured, sendEmail } from "@/lib/notify/email";
 
@@ -66,18 +68,57 @@ interface OrderRow {
 }
 
 async function loadOrder(number: string): Promise<OrderRow | null> {
-  const { data, error } = await createAdminClient()
-    .from("orders")
-    .select(
-      "number, public_token, channel, emirate, delivery_date, address, notes, subtotal, vat, deposit_total, total, customers(name, email, phone, company), order_items(name, qty, line_total, vessel, rental_months)",
-    )
-    .eq("number", number)
-    .maybeSingle();
-  if (error) {
-    console.error("[order-emails] load failed", error);
+  try {
+    const rows = await db
+      .select({
+        id: orders.id,
+        number: orders.number,
+        public_token: orders.public_token,
+        channel: orders.channel,
+        emirate: orders.emirate,
+        delivery_date: orders.delivery_date,
+        address: orders.address,
+        notes: orders.notes,
+        subtotal: orders.subtotal,
+        vat: orders.vat,
+        deposit_total: orders.deposit_total,
+        total: orders.total,
+        c_name: customers.name,
+        c_email: customers.email,
+        c_phone: customers.phone,
+        c_company: customers.company,
+      })
+      .from(orders)
+      .leftJoin(customers, eq(orders.customer_id, customers.id))
+      .where(eq(orders.number, number))
+      .limit(1);
+    const o = rows[0];
+    if (!o) return null;
+    const items = await db
+      .select({
+        name: order_items.name,
+        qty: order_items.qty,
+        line_total: order_items.line_total,
+        vessel: order_items.vessel,
+        rental_months: order_items.rental_months,
+      })
+      .from(order_items)
+      .where(eq(order_items.order_id, o.id));
+    return {
+      ...o,
+      address: o.address as OrderRow["address"],
+      customers: o.c_name == null ? null : { name: o.c_name, email: o.c_email ?? "", phone: o.c_phone, company: o.c_company },
+      order_items: items,
+    };
+  } catch (err) {
+    console.error("[order-emails] load failed", err);
     return null;
   }
-  return data as unknown as OrderRow | null;
+}
+
+async function contactEmail(): Promise<string | null> {
+  const rows = await db.select({ e: store_settings.contact_email }).from(store_settings).limit(1);
+  return rows[0]?.e ?? null;
 }
 
 const row = (label: string, value: string, strong = false) =>
@@ -98,7 +139,7 @@ function customerHtml(order: OrderRow, locale: "en" | "ar"): string {
   const link = `${SITE_URL}/${locale}/order-confirmation/${order.public_token}`;
   return `<!doctype html><html dir="${t.dir}"><body style="margin:0;background:#fafbfa;font-family:Arial,Helvetica,sans-serif;color:#0e1512">
 <div style="max-width:560px;margin:0 auto;padding:32px 20px">
-<p style="font-size:12px;letter-spacing:2px;color:#0e7c5a;margin:0 0 12px">FLOWERS N PLANTS</p>
+<p style="font-size:12px;letter-spacing:2px;color:#0e7c5a;margin:0 0 12px">${esc(SITE_NAME.toUpperCase())}</p>
 <h1 style="font-size:24px;margin:0 0 8px">${esc(t.heading)}</h1>
 <p style="color:#6b756f;margin:0 0 24px">${esc(t.intro)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px">
@@ -158,11 +199,7 @@ export async function sendOrderNotifications(number: string, locale: "en" | "ar"
       });
     }
 
-    const { data: settings } = await createAdminClient()
-      .from("store_settings")
-      .select("contact_email")
-      .maybeSingle();
-    const team = teamEmailAddress(settings?.contact_email ?? null);
+    const team = teamEmailAddress(await contactEmail());
     if (team) {
       await sendEmail({
         to: team,
@@ -186,11 +223,7 @@ export async function sendLeadNotification(lead: {
 }): Promise<void> {
   if (!isEmailConfigured()) return;
   try {
-    const { data: settings } = await createAdminClient()
-      .from("store_settings")
-      .select("contact_email")
-      .maybeSingle();
-    const team = teamEmailAddress(settings?.contact_email ?? null);
+    const team = teamEmailAddress(await contactEmail());
     if (!team) return;
     await sendEmail({
       to: team,

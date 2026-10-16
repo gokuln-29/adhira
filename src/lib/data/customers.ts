@@ -1,4 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers, orders } from "@/lib/db/schema";
+import { readCustomerSession } from "@/lib/auth/customer-session";
 
 export interface CustomerProfile {
   id: string;
@@ -21,38 +24,41 @@ export interface CustomerOrder {
 }
 
 export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return readCustomerSession();
 }
 
 export async function getCurrentCustomer(): Promise<CustomerProfile | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from("customers")
-    .select("id, name, email, phone, company, trn, type")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as unknown as CustomerProfile | null;
+  const session = await readCustomerSession();
+  if (!session) return null;
+  const rows = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      company: customers.company,
+      trn: customers.trn,
+      type: customers.type,
+    })
+    .from(customers)
+    .where(eq(customers.id, session.id))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
+// Callers pass the id of the signed-in customer (never a client-supplied one).
 export async function getOrdersForCustomer(customerId: string): Promise<CustomerOrder[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, number, status, total, currency, delivery_date, created_at")
-    .eq("customer_id", customerId)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as unknown as CustomerOrder[];
+  return db
+    .select({
+      id: orders.id,
+      number: orders.number,
+      status: orders.status,
+      total: orders.total,
+      currency: orders.currency,
+      delivery_date: orders.delivery_date,
+      created_at: orders.created_at,
+    })
+    .from(orders)
+    .where(eq(orders.customer_id, customerId))
+    .orderBy(desc(orders.created_at));
 }

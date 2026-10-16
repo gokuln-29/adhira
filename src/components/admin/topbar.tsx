@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { MonoLabel } from "@/components/ui/mono-label";
-import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { adminLogout } from "@/lib/actions/admin/auth";
 import type { AdminUser } from "@/lib/admin/auth";
 
 export function AdminTopbar({ admin }: { admin: AdminUser }) {
@@ -15,12 +16,14 @@ export function AdminTopbar({ admin }: { admin: AdminUser }) {
         <MonoLabel>
           {admin.name} &middot; {admin.role}
         </MonoLabel>
+        <Link href="/admin/account" className="font-mono-label text-[11px] text-(--color-muted) hover:text-(--color-primary)">
+          Account
+        </Link>
         <button
           type="button"
           className="font-mono-label text-[11px] text-(--color-muted) hover:text-(--color-primary)"
           onClick={async () => {
-            const supabase = createClient();
-            await supabase.auth.signOut();
+            await adminLogout();
             router.push("/admin/login");
             router.refresh();
           }}

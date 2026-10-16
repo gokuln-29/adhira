@@ -6,7 +6,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MonoLabel } from "@/components/ui/mono-label";
-import { addStaffMember, removeStaffMember } from "@/lib/actions/admin/staff";
+import { addStaffMember, removeStaffMember, resetStaffMfa } from "@/lib/actions/admin/staff";
 import type { StaffRow } from "@/lib/data/admin/staff";
 
 export function StaffPanel({ staff }: { staff: StaffRow[] }) {
@@ -66,8 +66,23 @@ export function StaffPanel({ staff }: { staff: StaffRow[] }) {
           <div key={s.id} className="flex items-center justify-between px-4 py-3">
             <div>
               <p className="text-sm">{s.name}</p>
-              <MonoLabel className="text-[10px]">{s.role}</MonoLabel>
+              <MonoLabel className="text-[10px]">
+                {s.role} · {s.email} · 2FA {s.totp_enabled ? "on" : "off"}
+              </MonoLabel>
             </div>
+            {s.totp_enabled && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm(`Reset ${s.name}'s two-factor authentication and sign them out everywhere?`)) return;
+                  await resetStaffMfa(s.id);
+                  router.refresh();
+                }}
+                className="font-mono-label ms-auto me-4 text-[10px] text-(--color-muted)"
+              >
+                Reset 2FA
+              </button>
+            )}
             <button
               type="button"
               onClick={async () => {
