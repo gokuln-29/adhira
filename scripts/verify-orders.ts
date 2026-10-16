@@ -2,7 +2,7 @@
 //   npm run verify:orders
 // Checks: simultaneous checkouts can't oversell, idempotency replay returns the
 // same order, the state machine rejects illegal moves + audits, cancel restocks,
-// COD is never auto-paid, payment is idempotent.
+// payment status is only changed by markOrderPaid, which is idempotent.
 import "./_env";
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
@@ -23,7 +23,7 @@ async function main() {
     customer: { name: "Verify Bot", email, phone: "+971500000000" },
     emirate: "Dubai" as const,
     address: { line1: "1 Test Street" },
-    paymentMethod: "cod" as const,
+    paymentMethod: "card" as const,
     items: [{ productId: p.id, qty: p.min_order_qty, vessel: false, months: 1 }],
     locale: "en" as const,
     acceptTerms: true as const,
@@ -68,7 +68,7 @@ async function main() {
     assert.equal([a, b].filter((r) => r.ok && !r.replay).length, 1);
     ok("same idempotency key (concurrent) -> one order, one replay");
 
-    // 4. state machine + audit + COD never auto-paid
+    // 4. state machine + audit; payment untouched by fulfilment moves
     const id = a.order.id;
     const [o1] = await db.select().from(orders).where(eq(orders.id, id));
     assert.equal(o1.payment_status, "unpaid");
@@ -78,8 +78,8 @@ async function main() {
       assert.equal((await transitionOrder({ id }, s, "admin:verify")).ok, true, s);
     }
     const [o2] = await db.select().from(orders).where(eq(orders.id, id));
-    assert.equal(o2.payment_status, "unpaid", "COD must stay unpaid until staff confirm cash");
-    ok("COD order walked to delivered and is still UNPAID");
+    assert.equal(o2.payment_status, "unpaid", "only a verified payment may mark an order paid");
+    ok("fulfilment moves never mark an order paid (still UNPAID)");
     const events = await db.select().from(order_status_events).where(eq(order_status_events.order_id, id));
     assert.equal(events.length, 5);
     ok("audit trail has 5 events (placed + 4 transitions)");

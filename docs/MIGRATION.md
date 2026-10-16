@@ -49,7 +49,7 @@ Embedded selects (`product_images(...)`, `categories!inner(...)`) become explici
 - `updated_at` triggers → `ON UPDATE CURRENT_TIMESTAMP(3)`.
 - `admin_users.auth_user_id` → own `admin_users` table with `email`, `password_hash`, `totp_secret`; `customers.auth_user_id` dropped (OTP is keyed by email).
 - New tables: `admin_sessions`, `customer_sessions`, `otp_codes`, `order_status_events` (audit), `stripe_events` (dedupe), `idempotency_keys`, `rate_limits`.
-- Order statuses move to the PDF state machine: `pending, confirmed, preparing, dispatched, delivered, cancelled, refunded`; payment state is a separate `payment_status` (`unpaid, paid, refunded`) so COD is never auto-marked paid. Old values map: `paid→confirmed+paid`, `processing→preparing`, `out_for_delivery→dispatched`.
+- Order statuses move to the PDF state machine: `pending, confirmed, preparing, dispatched, delivered, cancelled, refunded`; payment state is a separate `payment_status` (`unpaid, paid, refunded`) so a payment is only recorded by a verified event (Cash on Delivery was later removed). Old values map: `paid→confirmed+paid`, `processing→preparing`, `out_for_delivery→dispatched`.
 - `products` gets `stock_qty` (nullable = untracked) for the oversell-safe checkout.
 
 ## Phases and verification

@@ -1,0 +1,1 @@
+ALTER TABLE `orders` MODIFY COLUMN `payment_method` varchar(10) NOT NULL DEFAULT 'card';

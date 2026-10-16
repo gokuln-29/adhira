@@ -23,5 +23,5 @@ binlogs), **RTO 8 h** for storefront + admin.
 8. **Deploy the app:** `deploy/scripts/deploy.sh main`, confirm `/api/health`.
 9. **Reconcile orders lost between the backup and the incident**: Stripe dashboard payments,
    confirmation emails sent, customer messages. Re-create or refund manually.
-10. **Smoke test** a COD order + admin login before switching DNS / removing the 503.
+10. **Smoke test** a Stripe test-mode order (or the checkout error path if Stripe is off) + admin login before switching DNS / removing the 503.
 11. **Rotate** any credential that may have been exposed; write the incident report.

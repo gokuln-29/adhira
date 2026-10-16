@@ -134,7 +134,7 @@ Existing images from the Supabase build: `npm run media:migrate` (idempotent).
 Stripe: webhook endpoint `https://adhiraflowers.ae/api/stripe/webhook`, events
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
 `checkout.session.expired`; paste the signing secret into `STRIPE_WEBHOOK_SECRET`. Without keys
-the site takes Cash on Delivery only. Brevo: verify the sender/domain (SPF + DKIM) for
+customers cannot check out (card is the only payment method), so Stripe keys are required before launch. Brevo: verify the sender/domain (SPF + DKIM) for
 `EMAIL_FROM`; sign-in codes cannot be sent in production without it.
 
 ## 9. Backups and restore drills (PDF section 7)

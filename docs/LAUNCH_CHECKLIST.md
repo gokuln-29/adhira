@@ -17,7 +17,7 @@ Owner / date columns are for you to fill when you re-verify on the VPS.
 |---|---|---|
 | Legal entity, licensing emirate, service area, support contacts | — | _______ |
 | VPS plan / Ubuntu release / region / recovery-console access | ≥ 2 vCPU, 4 GB, Ubuntu 24.04 | _______ |
-| Payment methods at launch | COD + Stripe card (needs keys); Tabby/Tamara need merchant approval | _______ |
+| Payment methods at launch | Card via Stripe only (Cash on Delivery removed) — **Stripe keys are required to take any order**; Tabby/Tamara need merchant approval | _______ |
 | RPO / RTO | 24 h / 8 h | _______ |
 | Retention | 14 daily + 8 weekly + 12 monthly | _______ |
 | Offsite backup provider | Google Drive (dedicated account + MFA) via rclone, or S3-compatible | _______ |
@@ -92,7 +92,7 @@ This is an operational list, not legal or tax advice; confirm with a UAE-qualifi
 | Stock race, unavailable product, cancellation, refund flows | **verified** (local) | `npm run verify:orders`: 8 concurrent checkouts of the last unit → exactly 1 order, stock 0; cancel restocks; cancelled order can't reopen; same idempotency key concurrently → 1 order; illegal transitions rejected; 5 audit rows. Substitution and *Stripe refunds* are manual (admin sets `refunded`; money is refunded in the Stripe dashboard). |
 | Payment gateway sandbox + webhook replay/duplicate/invalid signature | **partial** | `npm run verify:webhook` against the real route: invalid signature → 400; wrong amount / currency / session id → not paid; unpaid async → ignored; valid → paid + confirmed; duplicate event id → no change; late event doesn't regress status; `session.expired` → cancelled. **Not verified:** a real Stripe test transaction (no keys in this environment), refund webhooks, delayed callbacks beyond the above. |
 | Email/SMS notifications | **partial** | Order/lead/alert/OTP email code on Brevo's API; **never sent to Brevo** here (no key). Dev fallback printed OTP codes. SMS: not implemented. |
-| Mobile checkout, address entry, slot, confirmation | **partial** | Desktop Playwright COD checkout verified (double-click → 1 order; unpaid; confirmation by random token; order number alone → 404). Mobile viewport review **pending**. |
+| Mobile checkout, address entry, slot, confirmation | **partial** | Desktop Playwright: checkout offers only Card / Apple Pay; with an invalid Stripe key the customer sees an error and the order is cancelled (audit: placed + cancelled). The earlier success path (double-click → 1 order, confirmation by random token, order number alone → 404) was verified with Cash on Delivery before it was removed; the card success path needs a real Stripe test key. Mobile viewport review **pending**. |
 
 ### Recovery and launch
 | Item | Status | Evidence |

@@ -14,7 +14,7 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - **Cloudflare R2** for images (presigned PUT uploads, server-side re-encode with `sharp`), served from `MEDIA_PUBLIC_URL`
 - **Brevo** transactional API for sign-in codes, order and alert emails
 - **next-intl**: `en` / `ar`, full RTL, path-prefixed locales
-- **Stripe**: Checkout, Payment Links, webhooks; COD live; Tabby/Tamara scaffolded only
+- **Stripe**: Checkout, Payment Links, webhooks; card payment is the only live method (no Cash on Delivery); Tabby/Tamara scaffolded only
 - **Deploy**: Hostinger Ubuntu VPS — Nginx + systemd (no Docker/PM2/Caddy). Release dirs + symlink. See `docs/DEPLOYMENT.md`.
 - Next.js 16 renamed `middleware.ts` → **`proxy.ts`** (`src/proxy.ts`). It now only does next-intl locale routing (and skips `/admin`).
 
@@ -47,7 +47,7 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Public actions: validate with Zod (`src/lib/validators/*`), call `assertSameOrigin()`, rate-limit with `withinRateLimit()` / `hitRateLimit()` (MySQL-backed). Return generic errors, `console.error` the detail.
 - Sessions: random token in an HttpOnly cookie (`SameSite=Strict` admin, `Lax` customer, `__Host-` prefix in production); only the SHA-256 is stored. New token on login and MFA. OTP codes are HMAC-hashed, expire in 10 min, 5 attempts, rate-limited.
 - **Order confirmation is looked up by `orders.public_token`** (random UUID), never the order number.
-- **Orders are written only through `placeOrder`; status/payment/deposit only through `src/lib/orders/transitions.ts`** (state machine in `lib/constants/order.ts`, every change in `order_status_events`). COD is never auto-paid: staff press "Mark cash received". Only the verified Stripe webhook marks card orders paid.
+- **Orders are written only through `placeOrder`; status/payment/deposit only through `src/lib/orders/transitions.ts`** (state machine in `lib/constants/order.ts`, every change in `order_status_events`). There is no Cash on Delivery or manual "mark paid": only the verified Stripe webhook sets `payment_status = paid` (and confirms the order). A checkout that never gets paid is cancelled (and restocked) by the `checkout.session.expired` webhook, or immediately if the Stripe session can't be created. `orders.payment_method` still allows legacy `cod` values for history only.
 - **Stripe webhook** (`api/stripe/webhook`): verify signature on the raw body, claim the event id in `stripe_events` (dedupe), require `session.id` == the order's stored session, `amount_total` == order total in fils and currency `aed`. Don't drop the VAT / deposit line items in `createOrder`'s Checkout session.
 - **Uploads**: admin asks for an intent (`requestUploadIntent`), PUTs to a presigned single-object URL under a random `staging/` key, then `finalizeUpload` reads the bytes back, rejects anything that isn't a real JPEG/PNG/WebP (SVG rejected), caps size/pixels, strips EXIF, re-encodes to WebP + derivatives, publishes under a random key, deletes the staging object. Product/category/settings validators accept only `MEDIA_PUBLIC_URL` (and Unsplash seed) image URLs.
 - Secrets only in env (`.env.example` lists names). `NEXT_PUBLIC_*` are build-time. Never import `lib/db`, `lib/auth/*`, `lib/media/{r2,process,store}` into a Client Component (they're `server-only`).

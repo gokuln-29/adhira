@@ -35,7 +35,7 @@ export const orderInputSchema = z.object({
   deliverySlot: optionalText(60),
   giftMessage: optionalText(500),
   poNumber: optionalText(60),
-  paymentMethod: z.enum(["cod", "card", "tabby", "tamara"]),
+  paymentMethod: z.enum(["card", "tabby", "tamara"]),
   items: z
     .array(
       z.object({

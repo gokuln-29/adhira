@@ -14,7 +14,7 @@ B2B florist and plant storefront with an admin panel, for offices in Dubai, Abu 
 | Images | Cloudflare R2, presigned uploads, `sharp` re-encode to WebP, custom media domain |
 | Email | Brevo transactional API |
 | i18n | next-intl, `en` / `ar`, path-prefixed, full RTL |
-| Payments | Stripe (Checkout, Payment Links, webhooks); COD live; Tabby/Tamara scaffolded |
+| Payments | Stripe (Checkout, Payment Links, webhooks); card only (no Cash on Delivery); Tabby/Tamara scaffolded |
 | Deploy | Hostinger Ubuntu VPS: Nginx + systemd, release dirs + symlink (`docs/DEPLOYMENT.md`) |
 | Backups | daily mysqldump → restic (encrypted) → offsite; restore drills; monitoring timer |
 
@@ -69,7 +69,6 @@ Tables: `categories`, `products`, `product_images`, `media_uploads`, `offers`, `
 Browse shop/PDP -> add to cart (localStorage) -> /checkout form (Zod, rate-limited)
   -> createOrder server action: reads price/VAT/deposit from DB (never trusts the browser)
   -> placeOrder: one transaction writes orders + order_items + audit row (status: pending, payment: unpaid)
-     |-- COD:  redirect to /order-confirmation/[public_token]; staff mark cash received later
      |-- Card: create Stripe Checkout Session (items + "VAT 5%" line) -> redirect to Stripe
                 -> Stripe webhook: verify signature, dedupe event, match session/amount/currency -> payment paid + confirmed
                 -> buyer lands on confirmation page -> cart cleared

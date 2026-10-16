@@ -3,7 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { getStoreSettings } from "@/lib/data/settings";
 
 // Only payment methods that actually work at checkout today.
-const paymentMarks = ["Cash on delivery", "Visa", "Mastercard"];
+const paymentMarks = ["Visa", "Mastercard", "Apple Pay"];
 
 export async function Footer() {
   const [t, settings] = await Promise.all([getTranslations("Footer"), getStoreSettings()]);

@@ -85,7 +85,7 @@ export async function transitionOrder(
 
 /**
  * Records a verified payment. Only the Stripe webhook (signature-checked, amount
- * and currency matched) or an admin confirming cash received may call this.
+ * and currency matched) may call this.
  * Idempotent: a repeat call for an already-paid order changes nothing.
  */
 export async function markOrderPaid(
@@ -108,12 +108,12 @@ export async function markOrderPaid(
         payment_status: "paid",
         paid_at: new Date().toISOString(),
         ...(details.paymentIntentId ? { stripe_payment_intent_id: details.paymentIntentId } : {}),
-        // Online payment confirms the order; COD stays where staff put it.
-        ...(order.status === "pending" && order.payment_method !== "cod" ? { status: "confirmed" as const } : {}),
+        // A verified payment confirms a pending order.
+        ...(order.status === "pending" ? { status: "confirmed" as const } : {}),
       })
       .where(eq(orders.id, order.id));
     await log(tx, order.id, "payment", order.payment_status, "paid", actor, details.note);
-    if (order.status === "pending" && order.payment_method !== "cod") {
+    if (order.status === "pending") {
       await log(tx, order.id, "status", "pending", "confirmed", actor, "payment received");
     }
     return { ok: true, changed: true } as const;

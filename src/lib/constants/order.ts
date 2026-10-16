@@ -1,5 +1,5 @@
 // Fulfilment state machine (PDF §4). Payment is tracked separately in
-// `orders.payment_status` so Cash on Delivery is never marked paid automatically.
+// `orders.payment_status`; only a verified payment event sets it to paid.
 export const ORDER_STATUSES = [
   "pending",
   "confirmed",

@@ -28,7 +28,6 @@ export function CheckoutView() {
   ];
 
   const paymentMethods: { value: PaymentMethod; label: string; available: boolean }[] = [
-    { value: "cod", label: t("codLabel"), available: true },
     { value: "card", label: t("cardLabel"), available: true },
   ];
 
@@ -58,7 +57,7 @@ export function CheckoutView() {
 
   const [businessChoice, setBusinessChoice] = useState<boolean | null>(null);
   const isBusiness = businessChoice ?? !!saved.company;
-  const [payment, setPayment] = useState<PaymentMethod>("cod");
+  const [payment, setPayment] = useState<PaymentMethod>("card");
   const [submitting, setSubmitting] = useState(false);
   // One key per submit attempt: a double-click or retry of the same attempt
   // returns the same order. Regenerated after a failure so a corrected retry is new.

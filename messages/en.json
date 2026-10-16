@@ -215,7 +215,6 @@
     "poNumber": "PO number (optional)",
     "payment": "Payment",
     "comingSoon": "Coming soon",
-    "codLabel": "Cash on Delivery",
     "cardLabel": "Card / Apple Pay",
     "tabbyLabel": "Tabby — pay in installments",
     "tamaraLabel": "Tamara — pay in installments",
@@ -596,7 +595,7 @@
         {
           "heading": "Payment",
           "body": [
-            "You can pay by cash on delivery or by card, depending on what is available at checkout. Card payments are processed securely by Stripe; we do not store your card details."
+            "You pay by card (Visa, Mastercard or Apple Pay) at checkout. Payments are processed securely by Stripe; we do not store your card details."
           ]
         },
         {

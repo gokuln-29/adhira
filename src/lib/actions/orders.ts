@@ -1,6 +1,5 @@
 "use server";
 
-import { after } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
@@ -9,7 +8,6 @@ import { transitionOrder } from "@/lib/orders/transitions";
 import { assertSameOrigin } from "@/lib/auth/origin";
 import { type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
-import { sendOrderNotifications } from "@/lib/notify/order-emails";
 import { withinRateLimit } from "@/lib/security/rate-limit";
 import { orderInputSchema, MAX_LINE_QTY } from "@/lib/validators/order";
 import { SITE_URL } from "@/lib/seo/site";
@@ -18,7 +16,7 @@ import type { EMIRATES } from "@/lib/constants/emirates";
 
 export type Emirate = (typeof EMIRATES)[number];
 
-export type PaymentMethod = "cod" | "card" | "tabby" | "tamara";
+export type PaymentMethod = "card" | "tabby" | "tamara";
 
 // What the browser may send. Prices are intentionally absent — see below.
 export type OrderInput = z.input<typeof orderInputSchema>;
@@ -53,13 +51,13 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
   if (input.paymentMethod === "tabby" || input.paymentMethod === "tamara") {
     return {
       ok: false,
-      error: "That payment method is coming soon — please choose Cash on Delivery or Card.",
+      error: "That payment method is coming soon — please pay by card.",
     };
   }
   if (input.paymentMethod === "card" && !isStripeConfigured()) {
     return {
       ok: false,
-      error: "Card payment isn't available yet — please choose Cash on Delivery.",
+      error: "Online payment isn't available right now. Please contact us to place your order.",
     };
   }
 
@@ -113,13 +111,6 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
       if (existing.status === "open" && existing.url) redirectUrl = existing.url;
     }
     return { ok: true, token: order.public_token, orderNumber: order.number, redirectUrl };
-  }
-
-  if (input.paymentMethod !== "card") {
-    // Cash on delivery: the order is final now, so email right away (after the
-    // response is sent, so it never slows checkout).
-    after(() => sendOrderNotifications(order.number, input.locale));
-    return { ok: true, token: order.public_token, orderNumber: order.number };
   }
 
   // Card: leave the order `pending` — the Stripe webhook is the source of
@@ -186,6 +177,6 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     console.error("[createOrder] stripe session failed", err);
     // Don't leave a phantom pending order the team might try to fulfil.
     await transitionOrder({ id: order.id }, "cancelled", "system", "card payment could not be started");
-    return { ok: false, error: "We couldn't start the card payment. Please try again or choose Cash on Delivery." };
+    return { ok: false, error: "We couldn't start the card payment. Please try again in a moment or contact us." };
   }
 }
