@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localizeCategory } from "@/lib/data/localize";
 import { Header } from "@/components/layout/header";
@@ -51,7 +51,12 @@ export default async function CategoryPage({
   const search = await searchParams;
 
   const category = await getCategoryBySlug(categorySlug);
-  if (!category) notFound();
+  if (!category) {
+    // Keep ?sort= / ?page= / ?tag= when the category was renamed.
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(search)) for (const x of Array.isArray(v) ? v : v === undefined ? [] : [v]) qs.append(k, x);
+    return notFoundOrRedirect("category", categorySlug, (s) => `/${locale}/shop/${s}${qs.size ? `?${qs}` : ""}`);
+  }
 
   const sortParam = Array.isArray(search.sort) ? search.sort[0] : search.sort;
   const pageParam = Number(Array.isArray(search.page) ? search.page[0] : search.page);

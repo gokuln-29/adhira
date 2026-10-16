@@ -58,6 +58,10 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Security headers/CSP are in `next.config.ts` (img-src/connect-src include the media + R2 origins from env) and repeated in Nginx.
 - Store-wide values (WhatsApp, contacts, TRN, hero image) live in `store_settings` (single row, id 1), edited in Admin > Settings. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
 
+## Slug redirects
+
+- Renaming a product, category or blog post keeps its old URL alive: `recordSlugChange` (inside the save transaction in the admin actions) stores `old slug -> item id` in `slug_redirects`; the storefront pages call `notFoundOrRedirect` (`lib/redirects-page.ts`) when a slug matches nothing and answer **308 permanent redirect** to the item's *current* slug (by id, so A→B→C never chains), keeping the locale and, for categories, the query string (?sort, ?page, ?tag). Unknown slugs still 404; drafts/unpublished targets aren't redirected to; a slug an item now uses is never a redirect; deleting an item deletes its redirects. Admin > Redirects (owners/managers) lists them and can remove one. New slug-bearing content types must call `recordSlugChange` / `clearRedirectsFor` in their save/delete actions and use `notFoundOrRedirect` on their page.
+
 ## Discount codes (coupons)
 
 - A coupon is an **active offer with a `code`** and type `percent` or `flat` (the old "code-only" type is not redeemable; the admin form flags it). Admin > Offers & Coupons: scope (all / chosen categories / chosen products via `offer_targets`), minimum spend, total uses, uses per customer (by email), first/last day (both inclusive, Dubai dates). One code per order. Codes are matched case-insensitively. Offers without a code are announcements only.

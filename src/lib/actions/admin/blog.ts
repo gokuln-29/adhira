@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { blog_posts } from "@/lib/db/schema";
 import { dbErrorMessage, newId } from "@/lib/db/helpers";
+import { clearRedirectsFor, recordSlugChange } from "@/lib/redirects";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
@@ -45,7 +46,10 @@ export async function createPost(input: PostFormInput): Promise<ActionResult<{ i
   if (!auth.ok) return auth;
   const id = newId();
   try {
-    await db.insert(blog_posts).values({ id, ...buildRow(input) });
+    await db.transaction(async (tx) => {
+      await tx.insert(blog_posts).values({ id, ...buildRow(input) });
+      await recordSlugChange(tx, "post", id, null, input.slug.trim());
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "post") };
   }
@@ -58,12 +62,15 @@ export async function updatePost(id: string, input: PostFormInput): Promise<Acti
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   try {
-    const existing = await db
-      .select({ published_at: blog_posts.published_at })
-      .from(blog_posts)
-      .where(eq(blog_posts.id, id))
-      .limit(1);
-    await db.update(blog_posts).set(buildRow(input, existing[0]?.published_at)).where(eq(blog_posts.id, id));
+    await db.transaction(async (tx) => {
+      const existing = await tx
+        .select({ published_at: blog_posts.published_at, slug: blog_posts.slug })
+        .from(blog_posts)
+        .where(eq(blog_posts.id, id))
+        .limit(1);
+      await tx.update(blog_posts).set(buildRow(input, existing[0]?.published_at)).where(eq(blog_posts.id, id));
+      await recordSlugChange(tx, "post", id, existing[0]?.slug, input.slug.trim());
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "post") };
   }
@@ -77,7 +84,10 @@ export async function deletePost(id: string): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   try {
-    await db.delete(blog_posts).where(eq(blog_posts.id, id));
+    await db.transaction(async (tx) => {
+      await tx.delete(blog_posts).where(eq(blog_posts.id, id));
+      await clearRedirectsFor(tx, "post", [id]);
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "post") };
   }

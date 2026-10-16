@@ -7,6 +7,7 @@ import { media_uploads, product_images, products } from "@/lib/db/schema";
 import { keyFromPublicUrl } from "@/lib/media/r2";
 import { deleteImageKeys } from "@/lib/media/store";
 import { dbErrorMessage, newId } from "@/lib/db/helpers";
+import { clearRedirectsFor, recordSlugChange } from "@/lib/redirects";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import type { ProductCardDetail } from "@/components/product/product-card";
@@ -135,6 +136,7 @@ export async function createProduct(raw: ProductFormInput): Promise<ActionResult
   try {
     await db.transaction(async (tx) => {
       await tx.insert(products).values({ id, ...toColumns(input) });
+      await recordSlugChange(tx, "product", id, null, input.slug);
       await replaceImages(tx, id, input.images);
     });
   } catch (err) {
@@ -156,7 +158,9 @@ export async function updateProduct(id: string, raw: ProductFormInput): Promise<
   let orphaned: string[] = [];
   try {
     orphaned = await db.transaction(async (tx) => {
+      const [before] = await tx.select({ slug: products.slug }).from(products).where(eq(products.id, id)).limit(1);
       await tx.update(products).set(toColumns(input)).where(eq(products.id, id));
+      await recordSlugChange(tx, "product", id, before?.slug, input.slug);
       return replaceImages(tx, id, input.images);
     });
   } catch (err) {
@@ -175,7 +179,10 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   if (!auth.ok) return auth;
   try {
     const imgs = await db.select({ k: product_images.object_key }).from(product_images).where(eq(product_images.product_id, id));
-    await db.delete(products).where(eq(products.id, id));
+    await db.transaction(async (tx) => {
+      await tx.delete(products).where(eq(products.id, id));
+      await clearRedirectsFor(tx, "product", [id]);
+    });
     await deleteImageKeys(imgs.map((i) => i.k).filter((k): k is string => !!k));
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "product") };
@@ -207,7 +214,10 @@ export async function bulkDeleteProducts(ids: string[]): Promise<ActionResult> {
   if (!auth.ok) return auth;
   if (ids.length === 0 || ids.length > MAX_BULK) return { ok: false, error: "Select between 1 and 200 products." };
   try {
-    await db.delete(products).where(inArray(products.id, ids));
+    await db.transaction(async (tx) => {
+      await tx.delete(products).where(inArray(products.id, ids));
+      await clearRedirectsFor(tx, "product", ids);
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "product") };
   }

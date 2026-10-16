@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories } from "@/lib/db/schema";
 import { dbErrorMessage, newId } from "@/lib/db/helpers";
+import { clearRedirectsFor, recordSlugChange } from "@/lib/redirects";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
@@ -33,7 +34,10 @@ export async function createCategory(input: CategoryFormInput): Promise<ActionRe
   if (!auth.ok) return auth;
   const id = newId();
   try {
-    await db.insert(categories).values({ id, ...toColumns(input) });
+    await db.transaction(async (tx) => {
+      await tx.insert(categories).values({ id, ...toColumns(input) });
+      await recordSlugChange(tx, "category", id, null, input.slug.trim());
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "category") };
   }
@@ -46,7 +50,11 @@ export async function updateCategory(id: string, input: CategoryFormInput): Prom
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   try {
-    await db.update(categories).set(toColumns(input)).where(eq(categories.id, id));
+    await db.transaction(async (tx) => {
+      const [before] = await tx.select({ slug: categories.slug }).from(categories).where(eq(categories.id, id)).limit(1);
+      await tx.update(categories).set(toColumns(input)).where(eq(categories.id, id));
+      await recordSlugChange(tx, "category", id, before?.slug, input.slug.trim());
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "category") };
   }
@@ -59,7 +67,10 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   try {
-    await db.delete(categories).where(eq(categories.id, id));
+    await db.transaction(async (tx) => {
+      await tx.delete(categories).where(eq(categories.id, id));
+      await clearRedirectsFor(tx, "category", [id]);
+    });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "category") };
   }

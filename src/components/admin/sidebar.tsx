@@ -34,6 +34,7 @@ const navGroups: {
     items: [
       { label: "Customers", href: "/admin/customers" },
       { label: "Reports", href: "/admin/reports", needs: "editContent" },
+      { label: "Redirects", href: "/admin/redirects", needs: "editContent" },
       { label: "Delivery", href: "/admin/delivery", needs: "ownerOnly" },
       { label: "Settings", href: "/admin/settings", needs: "ownerOnly" },
     ],

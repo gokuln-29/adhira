@@ -137,6 +137,7 @@ export function CategoryForm({
           setSlugTouched(true);
         }}
         required
+        hint="This is the web address. If you change it, the old link keeps working (it redirects to the new one)."
       />
       <Input
         label="Position"

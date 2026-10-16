@@ -628,6 +628,21 @@ export const delivery_blackouts = mysqlTable("delivery_blackouts", {
   note: varchar("note", { length: 200 }),
 });
 
+// "Old URL -> current item". When an admin renames a product / category / post slug the
+// old one is kept here so existing links, bookmarks and search results keep working.
+// Targets are stored by id, so repeated renames (A -> B -> C) all land on the latest slug.
+export const slug_redirects = mysqlTable(
+  "slug_redirects",
+  {
+    id: uuid("id").primaryKey(),
+    kind: varchar("kind", { length: 10 }).$type<"product" | "category" | "post">().notNull(),
+    old_slug: varchar("old_slug", { length: 200 }).notNull(),
+    target_id: uuid("target_id").notNull(),
+    created_at: createdAt(),
+  },
+  (t) => [uniqueIndex("slug_redirects_kind_old_uq").on(t.kind, t.old_slug), index("slug_redirects_target_idx").on(t.kind, t.target_id)],
+);
+
 export const rate_limits = mysqlTable("rate_limits", {
   key: varchar("key", { length: 255 }).primaryKey(),
   window_start: ts("window_start").notNull().default(sql`CURRENT_TIMESTAMP(3)`),

@@ -71,6 +71,13 @@
       "when": 1792152406362,
       "tag": "0009_coupons",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1792152882080,
+      "tag": "0010_slug_redirects",
+      "breakpoints": true
     }
   ]
 }

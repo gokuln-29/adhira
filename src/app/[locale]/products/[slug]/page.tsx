@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localizeProduct } from "@/lib/data/localize";
 import { Link } from "@/i18n/navigation";
@@ -58,7 +58,7 @@ export default async function ProductPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const raw = await getProductBySlug(slug);
-  if (!raw) notFound();
+  if (!raw) return notFoundOrRedirect("product", slug, (s) => `/${locale}/products/${s}`);
   const product = localizeProduct(raw, locale);
 
   const price = getEffectivePrice(product);

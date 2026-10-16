@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFoundOrRedirect } from "@/lib/redirects-page";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -47,7 +47,7 @@ export default async function BlogPostPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const post = await getPostBySlug(slug);
-  if (!post) notFound();
+  if (!post) return notFoundOrRedirect("post", slug, (s) => `/${locale}/blog/${s}`);
 
   const [b, blog] = await Promise.all([
     getTranslations("Breadcrumbs"),
