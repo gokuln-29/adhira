@@ -103,7 +103,13 @@ export default async function AdminOrderDetailPage({
         </Card>
 
         <div className="flex flex-col gap-6">
-          <PaymentPanel method={order.payment_method} status={order.payment_status} />
+          <PaymentPanel
+            number={order.number}
+            method={order.payment_method}
+            status={order.payment_status}
+            orderStatus={order.status}
+            canMarkPaid={can(admin, "ownerOnly")}
+          />
           {order.deposit_total > 0 && order.deposit_status !== "none" && (
             <DepositPanel
               number={order.number}

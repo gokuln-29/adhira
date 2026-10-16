@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { authorize } from "@/lib/admin/auth";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/constants/order";
-import { setDepositStatus, transitionOrder } from "@/lib/orders/transitions";
+import { after } from "next/server";
+import { z } from "zod";
+import { sendOrderNotifications } from "@/lib/notify/order-emails";
+import { markOrderPaid, setDepositStatus, transitionOrder } from "@/lib/orders/transitions";
 
 export type { OrderStatus };
 
@@ -21,6 +24,26 @@ export async function updateOrderStatus(number: string, status: OrderStatus): Pr
   if (!ORDER_STATUSES.includes(status)) return { ok: false, error: "Unknown status." };
   const res = await transitionOrder({ number }, status, `admin:${auth.admin.id}`);
   if (!res.ok) return res;
+  refresh(number);
+  return { ok: true };
+}
+
+const referenceSchema = z.string().trim().min(3, "Enter the bank / transfer reference (3+ characters).").max(200);
+
+// Owner-only escape hatch for money that arrived outside Stripe's normal flow
+// (bank transfer, or a payment the webhook flagged for review). Requires a
+// reference, is written to the order history, and emails the customer.
+export async function markPaidManually(number: string, reference: string): Promise<Result> {
+  const auth = await authorize("ownerOnly");
+  if (!auth.ok) return auth;
+  const ref = referenceSchema.safeParse(reference);
+  if (!ref.success) return { ok: false, error: ref.error.issues[0]?.message ?? "Enter a reference." };
+  const res = await markOrderPaid({ number }, `admin:${auth.admin.id}`, {
+    manual: true,
+    note: `manual: ${ref.data}`,
+  });
+  if (!res.ok) return res;
+  if (res.changed) after(() => sendOrderNotifications(number, "en"));
   refresh(number);
   return { ok: true };
 }

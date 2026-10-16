@@ -84,14 +84,14 @@ export async function transitionOrder(
 }
 
 /**
- * Records a verified payment. Only the Stripe webhook (signature-checked, amount
- * and currency matched) may call this.
+ * Records a verified payment. Callers: the Stripe webhook (signature-checked, amount
+ * and currency matched) and the owner-only manual action (reference required, audited).
  * Idempotent: a repeat call for an already-paid order changes nothing.
  */
 export async function markOrderPaid(
   where: { number: string } | { id: string },
   actor: Actor,
-  details: { paymentIntentId?: string | null; note?: string } = {},
+  details: { paymentIntentId?: string | null; note?: string; manual?: boolean } = {},
 ): Promise<TransitionResult> {
   return db.transaction(async (tx) => {
     const order = await lockOrder(tx, where);
@@ -107,6 +107,8 @@ export async function markOrderPaid(
       .set({
         payment_status: "paid",
         paid_at: new Date().toISOString(),
+        // Recorded by an owner (bank transfer, paid outside the site): say so on the order.
+        ...(details.manual ? { payment_method: "manual" as const } : {}),
         ...(details.paymentIntentId ? { stripe_payment_intent_id: details.paymentIntentId } : {}),
         // A verified payment confirms a pending order.
         ...(order.status === "pending" ? { status: "confirmed" as const } : {}),

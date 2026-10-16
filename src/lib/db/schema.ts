@@ -307,7 +307,7 @@ export const orders = mysqlTable(
       .notNull()
       .default("pending"),
     // Money state is separate from fulfilment so COD is never auto-"paid".
-    payment_method: varchar("payment_method", { length: 10 }).$type<"card" | "link" | "cod">().notNull().default("card"),
+    payment_method: varchar("payment_method", { length: 10 }).$type<"card" | "link" | "manual" | "cod">().notNull().default("card"),
     payment_status: varchar("payment_status", { length: 10 })
       .$type<"unpaid" | "paid" | "refunded">()
       .notNull()
