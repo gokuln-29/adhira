@@ -27,6 +27,7 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - `src/lib/db/{index,schema,helpers}.ts` — pool + Drizzle, tables, `newId()`/`isDuplicateKey()`/`dbErrorMessage()`.
 - `src/lib/auth/` — `crypto` (hash/HMAC/AES-GCM), `password` (Argon2id), `totp`, `admin-session`, `customer-session`, `cookies`, `origin` (`assertSameOrigin`).
 - `src/lib/orders/` — `place-order.ts` (the transaction), `transitions.ts` (state machine, payment, deposit; audit log).
+- `src/lib/invoices/` — `number.ts` (AF/2026-27/001, FY 1 Apr–31 Mar Dubai time), `issue.ts` (called inside `markOrderPaid`'s transaction), `data.ts`, `pdf.ts` (headless Chrome via `CHROME_PATH`). Pages: `src/app/invoice/[token]` (own root layout, bilingual) and `…/pdf`.
 - `src/lib/media/` — `config`, `r2`, `process` (sharp pipeline), `store`, `upload-client` (browser helper), `allowed-url`.
 - `src/lib/data/*` — storefront reads (Server Components, cached with `unstable_cache` + `CATALOG_TAG`); `data/admin/*` — admin reads. Row shapes are snake_case and timestamps are ISO strings (custom `ts` column type) so UI code is independent of the DB.
 - `src/lib/actions/*` — server actions; `actions/admin/*` must start with `authorize(...)`.
@@ -53,6 +54,13 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Secrets only in env (`.env.example` lists names). `NEXT_PUBLIC_*` are build-time. Never import `lib/db`, `lib/auth/*`, `lib/media/{r2,process,store}` into a Client Component (they're `server-only`).
 - Security headers/CSP are in `next.config.ts` (img-src/connect-src include the media + R2 origins from env) and repeated in Nginx.
 - Store-wide values (WhatsApp, contacts, TRN, hero image) live in `store_settings` (single row, id 1), edited in Admin > Settings. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
+
+## Invoices (UAE tax invoice)
+
+- Issued in the **same transaction as the payment** (`markOrderPaid` → `issueInvoice`), so the number exists iff the payment does and the sequence is gap-free (`invoice_counters` row lock). Format `AF/<FY>/<seq>` with seq padded to 3 digits; the counter restarts each financial year. Change `FY_START_MONTH` in `lib/invoices/number.ts` if the accountant wants calendar years.
+- Immutable: DB triggers block UPDATE/DELETE on `invoices`; supplier (legal name, address, TRN, contacts from Admin > Settings) and buyer details are **snapshotted when issued**. Lines come from `order_items` (name, `name_ar`, `vat_rate`, `vat` snapshots). Deposits are shown outside the VAT base.
+- Delivery: bearer link `/invoice/<orders.public_token>` (noindex, never the order/invoice number), PDF at `…/pdf`, PDF attached to the customer email when `CHROME_PATH` is set (link otherwise), linked from the confirmation page, account page and admin order page.
+- **Set the TRN (and legal name/address) in Admin > Settings before the first real order**: an invoice issued without it says "Supplier TRN not yet registered" and can't be corrected. No credit notes yet (refunds need one).
 
 ## Design tokens (`src/app/globals.css`)
 

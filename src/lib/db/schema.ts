@@ -352,9 +352,14 @@ export const order_items = mysqlTable(
     product_id: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
     // Snapshots, so later catalogue edits never rewrite a purchase.
     name: varchar("name", { length: 200 }).notNull(),
+    name_ar: varchar("name_ar", { length: 200 }),
     qty: int("qty").notNull(),
     unit_price: money("unit_price").notNull(),
+    // Goods + glass vessel, excluding VAT.
     line_total: money("line_total").notNull(),
+    vat_rate: decimal("vat_rate", { precision: 5, scale: 2, mode: "number" }).notNull().default(5),
+    // VAT on this line (line_total x vat_rate, rounded); the lines sum to orders.vat.
+    vat: money("vat").notNull().default(0),
     vessel: boolean("vessel").notNull().default(false),
     vessel_fee: money("vessel_fee").notNull().default(0),
     deposit: money("deposit").notNull().default(0),
@@ -372,7 +377,7 @@ export const order_status_events = mysqlTable(
   {
     id: uuid("id").primaryKey(),
     order_id: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-    kind: varchar("kind", { length: 20 }).$type<"status" | "payment" | "deposit">().notNull(),
+    kind: varchar("kind", { length: 20 }).$type<"status" | "payment" | "deposit" | "invoice">().notNull(),
     from_value: varchar("from_value", { length: 20 }),
     to_value: varchar("to_value", { length: 20 }).notNull(),
     // 'admin:<id>' | 'stripe' | 'system' | 'customer'
@@ -440,7 +445,65 @@ export const store_settings = mysqlTable("store_settings", {
   contact_email: varchar("contact_email", { length: 200 }),
   trn: varchar("trn", { length: 15 }),
   hero_image_url: varchar("hero_image_url", { length: 2000 }),
+  // Seller identity printed on tax invoices (snapshotted onto each invoice when issued).
+  legal_name: varchar("legal_name", { length: 200 }),
+  legal_name_ar: varchar("legal_name_ar", { length: 200 }),
+  address: varchar("address", { length: 500 }),
+  address_ar: varchar("address_ar", { length: 500 }),
   updated_at: updatedAt(),
+});
+
+// Tax invoices. Numbered AF/<financial year>/<seq>, gap-free per financial year,
+// assigned in the same transaction that records the payment. Immutable once issued.
+export const invoices = mysqlTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey(),
+    order_id: uuid("order_id").notNull().references(() => orders.id, { onDelete: "restrict" }),
+    number: varchar("number", { length: 30 }).notNull(),
+    fy: varchar("fy", { length: 7 }).notNull(), // e.g. "2026-27"
+    seq: int("seq").notNull(),
+    issued_at: ts("issued_at").notNull().default(sql`CURRENT_TIMESTAMP(3)`),
+    seller: json("seller")
+      .$type<{
+        legal_name: string | null;
+        legal_name_ar: string | null;
+        address: string | null;
+        address_ar: string | null;
+        trn: string | null;
+        phone: string | null;
+        email: string | null;
+      }>()
+      .notNull(),
+    buyer: json("buyer")
+      .$type<{
+        name: string;
+        company: string | null;
+        trn: string | null;
+        email: string;
+        phone: string | null;
+        emirate: string | null;
+        address: Record<string, unknown>;
+      }>()
+      .notNull(),
+    subtotal: money("subtotal").notNull(),
+    vat: money("vat").notNull(),
+    deposit_total: money("deposit_total").notNull().default(0),
+    delivery_fee: money("delivery_fee").notNull().default(0),
+    total: money("total").notNull(),
+    currency: char("currency", { length: 3 }).notNull().default("AED"),
+  },
+  (t) => [
+    uniqueIndex("invoices_order_uq").on(t.order_id),
+    uniqueIndex("invoices_number_uq").on(t.number),
+    uniqueIndex("invoices_fy_seq_uq").on(t.fy, t.seq),
+  ],
+);
+
+// One row per financial year; locked by the issuing transaction so numbers never skip.
+export const invoice_counters = mysqlTable("invoice_counters", {
+  fy: varchar("fy", { length: 7 }).primaryKey(),
+  last_seq: int("last_seq").notNull().default(0),
 });
 
 export const rate_limits = mysqlTable("rate_limits", {

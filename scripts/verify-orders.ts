@@ -10,6 +10,10 @@ import { eq } from "drizzle-orm";
 async function main() {
   if (/prod/i.test(process.env.DATABASE_URL ?? "")) throw new Error("refusing to run against a production-looking URL");
   const { db, pool } = await import("../src/lib/db");
+  const { financialYear } = await import("../src/lib/invoices/number");
+  const { cleanupVerifyData, counterSnapshot } = await import("./_testing");
+  const fyNow = financialYear();
+  const counterBefore = await counterSnapshot(pool, fyNow);
   const { products, orders, order_status_events } = await import("../src/lib/db/schema");
   const { placeOrder } = await import("../src/lib/orders/place-order");
   const { transitionOrder, markOrderPaid } = await import("../src/lib/orders/transitions");
@@ -91,8 +95,7 @@ async function main() {
     ok("marking paid twice changes once");
   } finally {
     await db.update(products).set({ stock_qty: original }).where(eq(products.id, p.id));
-    await pool.query("DELETE FROM orders WHERE customer_id IN (SELECT id FROM customers WHERE email LIKE '%@verify.test')");
-    await pool.query("DELETE FROM customers WHERE email LIKE '%@verify.test'");
+    await cleanupVerifyData(pool, fyNow, counterBefore);
     await pool.end();
   }
   console.log(results.join("\n"));

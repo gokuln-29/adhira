@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { customers, order_items, order_status_events, orders } from "@/lib/db/schema";
+import { customers, invoices, order_items, order_status_events, orders } from "@/lib/db/schema";
 
 export interface AdminOrderListRow {
   number: string;
@@ -36,6 +36,8 @@ export interface AdminOrderDetail extends AdminOrderListRow {
     deposit: number;
     rental_months: number | null;
   }[];
+  public_token: string;
+  invoice_number: string | null;
   history: {
     kind: string;
     from_value: string | null;
@@ -86,6 +88,7 @@ export async function getOrderByNumberAdmin(number: string): Promise<AdminOrderD
       delivery_fee: orders.delivery_fee,
       currency: orders.currency,
       payment_method: orders.payment_method,
+      public_token: orders.public_token,
       address: orders.address,
       notes: orders.notes,
       deposit_total: orders.deposit_total,
@@ -126,7 +129,8 @@ export async function getOrderByNumberAdmin(number: string): Promise<AdminOrderD
       .orderBy(desc(order_status_events.created_at)),
   ]);
 
-  return { ...shapeList(rest), order_items: items, history } as AdminOrderDetail;
+  const inv = await db.select({ number: invoices.number }).from(invoices).where(eq(invoices.order_id, id)).limit(1);
+  return { ...shapeList(rest), invoice_number: inv[0]?.number ?? null, order_items: items, history } as AdminOrderDetail;
 }
 
 export const ORDER_VIEWS = {

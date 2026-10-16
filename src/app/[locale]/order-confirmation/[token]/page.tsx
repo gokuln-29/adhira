@@ -46,6 +46,14 @@ export default async function OrderConfirmationPage({
               ` ${t("deliveringTo", { emirate: tEmirates(order.emirate) })}`}
           </p>
 
+          {order.invoice_number && (
+            <p className="mt-4 text-sm">
+              <a className="underline underline-offset-4" href={`/invoice/${token}`}>
+                {t("invoice", { number: order.invoice_number })}
+              </a>
+            </p>
+          )}
+
           <div className="mt-8 border border-(--color-hairline) p-6">
             <div className="flex flex-col divide-y divide-(--color-hairline)">
               {order.order_items.map((item, i) => (

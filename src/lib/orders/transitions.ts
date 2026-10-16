@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db, type Tx } from "@/lib/db";
 import { order_items, order_status_events, orders, products } from "@/lib/db/schema";
 import { newId } from "@/lib/db/helpers";
+import { issueInvoice } from "@/lib/invoices/issue";
 import { canTransition, type OrderStatus } from "@/lib/constants/order";
 
 // The one place order status / payment status / deposit status change. Every
@@ -16,7 +17,7 @@ export type TransitionResult = { ok: true; changed: boolean } | { ok: false; err
 async function log(
   tx: Tx,
   orderId: string,
-  kind: "status" | "payment" | "deposit",
+  kind: "status" | "payment" | "deposit" | "invoice",
   from: string | null,
   to: string,
   actor: Actor,
@@ -115,6 +116,9 @@ export async function markOrderPaid(
       })
       .where(eq(orders.id, order.id));
     await log(tx, order.id, "payment", order.payment_status, "paid", actor, details.note);
+    // Same transaction as the payment: the invoice number exists iff the payment does.
+    const invoiceNumber = await issueInvoice(tx, order);
+    await log(tx, order.id, "invoice", null, invoiceNumber, actor, "tax invoice issued");
     if (order.status === "pending") {
       await log(tx, order.id, "status", "pending", "confirmed", actor, "payment received");
     }

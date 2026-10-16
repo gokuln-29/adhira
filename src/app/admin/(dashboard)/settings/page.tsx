@@ -29,6 +29,10 @@ export default async function AdminSettingsPage() {
         contact_email: store_settings.contact_email,
         trn: store_settings.trn,
         hero_image_url: store_settings.hero_image_url,
+        legal_name: store_settings.legal_name,
+        legal_name_ar: store_settings.legal_name_ar,
+        address: store_settings.address,
+        address_ar: store_settings.address_ar,
       })
       .from(store_settings)
       .limit(1),
@@ -49,6 +53,10 @@ export default async function AdminSettingsPage() {
               contact_email: null,
               trn: null,
               hero_image_url: null,
+              legal_name: null,
+              legal_name_ar: null,
+              address: null,
+              address_ar: null,
             }
           }
         />

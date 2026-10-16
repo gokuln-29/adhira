@@ -15,6 +15,10 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
   const [phone, setPhone] = useState(settings.contact_phone ?? "");
   const [email, setEmail] = useState(settings.contact_email ?? "");
   const [trn, setTrn] = useState(settings.trn ?? "");
+  const [legalName, setLegalName] = useState(settings.legal_name ?? "");
+  const [legalNameAr, setLegalNameAr] = useState(settings.legal_name_ar ?? "");
+  const [address, setAddress] = useState(settings.address ?? "");
+  const [addressAr, setAddressAr] = useState(settings.address_ar ?? "");
   const [hero, setHero] = useState(settings.hero_image_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -41,6 +45,10 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
       contact_email: email,
       trn,
       hero_image_url: hero,
+      legal_name: legalName,
+      legal_name_ar: legalNameAr,
+      address,
+      address_ar: addressAr,
     });
     setSaving(false);
     setMessage(result.ok ? { ok: true, text: "Saved. The website is updated." } : { ok: false, text: result.error });
@@ -66,6 +74,25 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
           placeholder="15 digits"
           hint="Shown in the website footer. Leave empty to hide it."
         />
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-(--color-hairline) pt-4">
+        <span className="font-mono-label text-[11px] text-(--color-muted)">Tax invoice: supplier details</span>
+        {!settings.trn && (
+          <p className="text-sm text-red-700">
+            No TRN saved yet. Invoices issued before the TRN is entered will show &ldquo;TRN not yet registered&rdquo; and cannot
+            be corrected afterwards. Enter the TRN before taking real orders.
+          </p>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Legal name (English)" value={legalName} onChange={(e) => setLegalName(e.target.value)} />
+          <Input label="Legal name (Arabic)" dir="rtl" value={legalNameAr} onChange={(e) => setLegalNameAr(e.target.value)} />
+          <Input label="Address (English)" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input label="Address (Arabic)" dir="rtl" value={addressAr} onChange={(e) => setAddressAr(e.target.value)} />
+        </div>
+        <p className="text-xs text-(--color-muted)">
+          The supplier details, TRN, phone and email are copied onto each invoice at the moment it is issued.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

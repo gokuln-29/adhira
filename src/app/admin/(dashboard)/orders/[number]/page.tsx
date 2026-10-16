@@ -110,6 +110,26 @@ export default async function AdminOrderDetailPage({
             orderStatus={order.status}
             canMarkPaid={can(admin, "ownerOnly")}
           />
+          <Card className="p-6">
+            <MonoLabel muted={false} className="mb-3">
+              Tax invoice
+            </MonoLabel>
+            {order.invoice_number ? (
+              <p className="flex flex-col gap-1 text-sm">
+                <b dir="ltr">{order.invoice_number}</b>
+                <span className="flex gap-4 text-xs">
+                  <a className="underline underline-offset-4" href={`/invoice/${order.public_token}`} target="_blank" rel="noreferrer">
+                    View
+                  </a>
+                  <a className="underline underline-offset-4" href={`/invoice/${order.public_token}/pdf`}>
+                    Download PDF
+                  </a>
+                </span>
+              </p>
+            ) : (
+              <p className="text-xs text-(--color-muted)">Issued automatically when the payment is recorded.</p>
+            )}
+          </Card>
           {order.deposit_total > 0 && order.deposit_status !== "none" && (
             <DepositPanel
               number={order.number}

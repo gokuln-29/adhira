@@ -22,6 +22,20 @@
       "when": 1792148203250,
       "tag": "0002_card_only_default",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1792149453577,
+      "tag": "0003_invoices",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792149474478,
+      "tag": "0004_invoice_immutability",
+      "breakpoints": true
     }
   ]
 }

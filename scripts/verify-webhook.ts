@@ -13,6 +13,10 @@ async function main() {
   const secret = process.env.STRIPE_WEBHOOK_SECRET!;
   if (/prod/i.test(process.env.DATABASE_URL ?? "")) throw new Error("refusing: production-looking DATABASE_URL");
   const { db, pool } = await import("../src/lib/db");
+  const { financialYear } = await import("../src/lib/invoices/number");
+  const { cleanupVerifyData, counterSnapshot } = await import("./_testing");
+  const fyNow = financialYear();
+  const counterBefore = await counterSnapshot(pool, fyNow);
   const { orders, products, stripe_events, order_status_events } = await import("../src/lib/db/schema");
   const { placeOrder } = await import("../src/lib/orders/place-order");
   const { orderInputSchema } = await import("../src/lib/validators/order");
@@ -108,8 +112,7 @@ async function main() {
     assert.equal(await send(evt(`evt_unk_${Date.now()}`, "checkout.session.completed", { id: "cs_x", amount_total: 1, metadata: { order_number: "AF-NOPE" } })), 200);
     ok("unknown order number handled without error");
   } finally {
-    await pool.query("DELETE FROM orders WHERE customer_id IN (SELECT id FROM customers WHERE email LIKE '%@verify.test')");
-    await pool.query("DELETE FROM customers WHERE email LIKE '%@verify.test'");
+    await cleanupVerifyData(pool, fyNow, counterBefore);
     await pool.query("DELETE FROM stripe_events WHERE id LIKE 'evt_%'");
     await pool.end();
   }

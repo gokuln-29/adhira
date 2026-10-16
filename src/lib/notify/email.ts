@@ -10,6 +10,7 @@ export interface Email {
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: { name: string; content: Buffer }[];
 }
 
 export function isEmailConfigured(): boolean {
@@ -19,7 +20,7 @@ export function isEmailConfigured(): boolean {
 export async function sendEmail(email: Email): Promise<boolean> {
   if (!isEmailConfigured()) return false;
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const res = await fetch(process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         "api-key": process.env.BREVO_API_KEY!,
@@ -32,6 +33,9 @@ export async function sendEmail(email: Email): Promise<boolean> {
         subject: email.subject,
         htmlContent: email.html,
         ...(email.replyTo ? { replyTo: { email: email.replyTo } } : {}),
+        ...(email.attachments?.length
+          ? { attachment: email.attachments.map((a) => ({ name: a.name, content: a.content.toString("base64") })) }
+          : {}),
       }),
       signal: AbortSignal.timeout(8000),
     });

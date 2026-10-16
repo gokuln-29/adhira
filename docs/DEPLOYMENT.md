@@ -137,6 +137,14 @@ Stripe: webhook endpoint `https://adhiraflowers.ae/api/stripe/webhook`, events
 customers cannot check out (card is the only payment method), so Stripe keys are required before launch. Brevo: verify the sender/domain (SPF + DKIM) for
 `EMAIL_FROM`; sign-in codes cannot be sent in production without it.
 
+## 8b. Invoices
+
+Tax invoices are issued automatically when a payment is recorded. Before the first real order:
+enter the **TRN, legal name and address (English + Arabic)** in Admin > Settings. `provision.sh`
+installs headless Chrome into `/opt/adhira-chrome`; put its path in `CHROME_PATH` in `/etc/adhira/env`
+(printed at the end of provisioning) so the PDF is attached to customer emails. Check it with:
+open an invoice, click *Download PDF*; `journalctl -u adhira | grep "invoice pdf"` shows failures.
+
 ## 9. Backups and restore drills (PDF section 7)
 
 ```bash

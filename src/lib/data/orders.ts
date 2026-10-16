@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { order_items, orders } from "@/lib/db/schema";
+import { invoices, order_items, orders } from "@/lib/db/schema";
 
 export interface OrderConfirmation {
   number: string;
@@ -16,6 +16,7 @@ export interface OrderConfirmation {
   emirate: string | null;
   delivery_date: string | null;
   created_at: string;
+  invoice_number: string | null;
   order_items: { name: string; qty: number; unit_price: number; line_total: number }[];
 }
 
@@ -59,5 +60,6 @@ export async function getOrderByToken(token: string): Promise<OrderConfirmation 
     })
     .from(order_items)
     .where(eq(order_items.order_id, id));
-  return { ...rest, order_items: items };
+  const inv = await db.select({ number: invoices.number }).from(invoices).where(eq(invoices.order_id, id)).limit(1);
+  return { ...rest, invoice_number: inv[0]?.number ?? null, order_items: items };
 }

@@ -15,6 +15,8 @@ WorkingDirectory=/srv/adhira/current
 # Secrets live here, root:adhira 0640 -- never in the repo or the release dir.
 EnvironmentFile=/etc/adhira/env
 Environment=NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 NEXT_TELEMETRY_DISABLED=1
+# Headless Chrome (invoice PDFs) wants a writable HOME; ProtectHome hides the real one.
+Environment=HOME=/var/cache/adhira
 ExecStart=/usr/bin/node /srv/adhira/current/server.js
 Restart=always
 RestartSec=3

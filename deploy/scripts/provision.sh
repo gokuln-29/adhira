@@ -73,5 +73,15 @@ install -m 0644 "$(dirname "$0")/../mysql/adhira.cnf" /etc/mysql/mysql.conf.d/ad
 systemctl restart mysql
 if ss -ltn | grep ':3306' | grep -vq '127.0.0.1'; then echo "ERROR: MySQL is listening on a public address"; exit 1; fi
 
+# Headless Chrome for invoice PDFs (Arabic text needs a real browser engine).
+DEBIAN_FRONTEND=noninteractive apt-get -y install libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 \
+  libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 libpango-1.0-0 libcairo2 \
+  fonts-noto-core 2>/dev/null || echo "NOTE: some Chrome libraries have different names on this Ubuntu release; install what apt reports missing."
+if [ ! -d /opt/adhira-chrome ]; then
+  install -d -m 0755 /opt/adhira-chrome
+  npx --yes @puppeteer/browsers install chrome@stable --path /opt/adhira-chrome
+fi
+echo "Set CHROME_PATH in /etc/adhira/env to: $(find /opt/adhira-chrome -type f -name chrome -perm -u+x | head -1)"
+
 echo "Done. Next: create DB users (deploy/mysql/create-users.sql), write /etc/adhira/env,"
 echo "install nginx config + snippet, certbot, systemd units, backup + monitoring (see docs/DEPLOYMENT.md)."

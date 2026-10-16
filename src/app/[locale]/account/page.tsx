@@ -55,6 +55,11 @@ export default async function AccountPage() {
                       <div>
                         <p className="font-medium">{order.number}</p>
                         <MonoLabel className="text-[10px]">{order.status}</MonoLabel>
+                        {order.invoice_number && (
+                          <a className="text-xs underline underline-offset-4" href={`/invoice/${order.public_token}`}>
+                            {t("invoice", { number: order.invoice_number })}
+                          </a>
+                        )}
                       </div>
                       <MonoLabel muted={false}>{formatAED(order.total)}</MonoLabel>
                     </div>

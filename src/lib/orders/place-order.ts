@@ -10,6 +10,8 @@ import type { ValidatedOrderInput } from "@/lib/validators/order";
 export interface PlacedLine {
   productId: string;
   name: string;
+  nameAr: string | null;
+  vatRate: number;
   qty: number;
   vesselUnitFils: number;
   unitFils: number;
@@ -179,6 +181,8 @@ export async function placeOrder(
         lines.push({
           productId: p.id,
           name: p.name,
+          nameAr: p.name_ar,
+          vatRate: p.vat_rate,
           qty,
           vesselUnitFils: priced.vessel ? Math.round(p.vessel_price * 100) : 0,
           ...priced,
@@ -235,9 +239,12 @@ export async function placeOrder(
           order_id: orderId,
           product_id: l.productId,
           name: l.name,
+          name_ar: l.nameAr,
           qty: l.qty,
           unit_price: l.unitFils / 100,
           line_total: l.lineFils / 100,
+          vat_rate: l.vatRate,
+          vat: l.vatFils / 100,
           vessel: l.vessel,
           vessel_fee: l.vesselFils / 100,
           deposit: l.depositFils / 100,

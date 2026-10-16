@@ -13,6 +13,7 @@
     "admin:create": "tsx scripts/create-admin.ts",
     "media:migrate": "tsx --conditions=react-server scripts/migrate-images-to-r2.ts",
     "verify:webhook": "tsx --conditions=react-server scripts/verify-webhook.ts",
+    "verify:invoices": "tsx --conditions=react-server scripts/verify-invoices.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "mysql2": "^3.24.6",
     "next": "16.3.3",
     "next-intl": "^4.14.1",
+    "puppeteer-core": "^25.14.0",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",

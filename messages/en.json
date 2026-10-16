@@ -244,7 +244,8 @@
     "vat": "VAT",
     "total": "Total",
     "continueShopping": "Continue shopping",
-    "deposit": "Refundable deposit"
+    "deposit": "Refundable deposit",
+    "invoice": "Tax invoice {number} — view or download PDF"
   },
   "LeadForm": {
     "yourName": "Your name",
@@ -399,7 +400,8 @@
     "trnOptional": "TRN (optional)",
     "save": "Save",
     "saving": "Saving...",
-    "saved": "Saved."
+    "saved": "Saved.",
+    "invoice": "Tax invoice {number}"
   },
   "SignIn": {
     "title": "Sign in",

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { customers, orders } from "@/lib/db/schema";
+import { customers, invoices, orders } from "@/lib/db/schema";
 import { readCustomerSession } from "@/lib/auth/customer-session";
 
 export interface CustomerProfile {
@@ -21,6 +21,8 @@ export interface CustomerOrder {
   currency: string;
   delivery_date: string | null;
   created_at: string;
+  invoice_number: string | null;
+  public_token: string;
 }
 
 export async function getCurrentUser() {
@@ -57,8 +59,11 @@ export async function getOrdersForCustomer(customerId: string): Promise<Customer
       currency: orders.currency,
       delivery_date: orders.delivery_date,
       created_at: orders.created_at,
+      public_token: orders.public_token,
+      invoice_number: invoices.number,
     })
     .from(orders)
+    .leftJoin(invoices, eq(invoices.order_id, orders.id))
     .where(eq(orders.customer_id, customerId))
     .orderBy(desc(orders.created_at));
 }

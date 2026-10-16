@@ -15,5 +15,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // icon / apple-icon / opengraph-image are generated routes with no file extension.
-  matcher: ["/((?!api|_next|_vercel|icon|apple-icon|opengraph-image|.*\\..*).*)"],
+  matcher: ["/((?!api|invoice|_next|_vercel|icon|apple-icon|opengraph-image|.*\\..*).*)"],
 };

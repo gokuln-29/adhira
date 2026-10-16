@@ -1,9 +1,10 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { customers, order_items, orders, store_settings } from "@/lib/db/schema";
+import { customers, invoices, order_items, orders, store_settings } from "@/lib/db/schema";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { formatAED } from "@/lib/pricing";
+import { isPdfConfigured, renderInvoicePdf } from "@/lib/invoices/pdf";
 import { esc, isEmailConfigured, sendEmail } from "@/lib/notify/email";
 
 const TEXT = {
@@ -11,7 +12,7 @@ const TEXT = {
     dir: "ltr",
     subject: (n: string) => `Your order ${n} is confirmed`,
     heading: "Thank you for your order",
-    intro: "We've received your order and will confirm delivery details shortly.",
+    intro: "We've received your payment and your order. Your tax invoice is linked below (and attached as a PDF); we'll confirm delivery details shortly.",
     order: "Order",
     deliveryOn: "Delivery date",
     asap: "As soon as possible",
@@ -23,13 +24,14 @@ const TEXT = {
     rental: (m: number) => `Rental, ${m} month${m === 1 ? "" : "s"}`,
     vessel: "With glass vessel",
     view: "View your order",
+    invoice: "Download tax invoice",
     help: "Questions? Just reply to this email.",
   },
   ar: {
     dir: "rtl",
     subject: (n: string) => `تم تأكيد طلبك ${n}`,
     heading: "شكرًا لطلبك",
-    intro: "استلمنا طلبك وسنؤكد تفاصيل التوصيل قريبًا.",
+    intro: "استلمنا دفعتك وطلبك. الفاتورة الضريبية في الرابط أدناه (ومرفقة بصيغة PDF)، وسنؤكد تفاصيل التوصيل قريبًا.",
     order: "الطلب",
     deliveryOn: "تاريخ التوصيل",
     asap: "في أقرب وقت ممكن",
@@ -41,6 +43,7 @@ const TEXT = {
     rental: (m: number) => `إيجار، ${m} أشهر`,
     vessel: "مع إناء زجاجي",
     view: "عرض طلبك",
+    invoice: "تنزيل الفاتورة الضريبية",
     help: "لديك أسئلة؟ يكفي أن ترد على هذه الرسالة.",
   },
 } as const;
@@ -124,7 +127,7 @@ async function contactEmail(): Promise<string | null> {
 const row = (label: string, value: string, strong = false) =>
   `<tr><td style="padding:4px 0;color:#6b756f">${esc(label)}</td><td style="padding:4px 0;text-align:end;${strong ? "font-weight:700" : ""}">${esc(value)}</td></tr>`;
 
-function customerHtml(order: OrderRow, locale: "en" | "ar"): string {
+function customerHtml(order: OrderRow, locale: "en" | "ar", invoiceNumber: string | null): string {
   const t = TEXT[locale];
   const items = order.order_items
     .map((i) => {
@@ -155,6 +158,7 @@ ${Number(order.deposit_total) > 0 ? row(t.deposit, formatAED(Number(order.deposi
 ${row(t.total, formatAED(Number(order.total)), true)}
 </table>
 <p style="margin:28px 0"><a href="${esc(link)}" style="background:#0e7c5a;color:#fff;padding:12px 20px;text-decoration:none;font-size:14px">${esc(t.view)}</a></p>
+${invoiceNumber ? `<p style="margin:0 0 20px;font-size:14px"><a href="${esc(`${SITE_URL}/invoice/${order.public_token}`)}" style="color:#0e7c5a">${esc(t.invoice)} ${esc(invoiceNumber)}</a></p>` : ""}
 <p style="color:#6b756f;font-size:13px">${esc(t.help)}</p>
 </div></body></html>`;
 }
@@ -192,10 +196,28 @@ export async function sendOrderNotifications(number: string, locale: "en" | "ar"
     if (!order) return;
 
     if (order.customers?.email) {
+      // The invoice exists once payment is recorded. Attach the PDF when Chrome is
+      // available; otherwise the link in the email is the fallback.
+      const inv = await db
+        .select({ number: invoices.number })
+        .from(invoices)
+        .innerJoin(orders, eq(invoices.order_id, orders.id))
+        .where(eq(orders.number, order.number))
+        .limit(1);
+      const invoiceNumber = inv[0]?.number ?? null;
+      let attachments: { name: string; content: Buffer }[] | undefined;
+      if (invoiceNumber && isPdfConfigured()) {
+        try {
+          attachments = [{ name: `${invoiceNumber.replaceAll("/", "-")}.pdf`, content: await renderInvoicePdf(order.public_token) }];
+        } catch (err) {
+          console.error("[order-emails] invoice PDF failed, sending link only", err);
+        }
+      }
       await sendEmail({
         to: order.customers.email,
         subject: TEXT[locale].subject(order.number),
-        html: customerHtml(order, locale),
+        html: customerHtml(order, locale, invoiceNumber),
+        attachments,
       });
     }
 
