@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "cc2fb0f7-3bb3-48ec-b635-c3c155b94f94",
+  "id": "966bb007-c0f8-4216-b125-e9947b088e72",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "admin_sessions": {
@@ -23,13 +23,6 @@
         },
         "token_hash": {
           "name": "token_hash",
-          "type": "char(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "csrf_token": {
-          "name": "csrf_token",
           "type": "char(64)",
           "primaryKey": false,
           "notNull": true,
@@ -176,6 +169,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "totp_last_step": {
+          "name": "totp_last_step",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "recovery_codes": {
           "name": "recovery_codes",

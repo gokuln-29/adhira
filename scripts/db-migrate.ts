@@ -1,6 +1,6 @@
 // Applies drizzle/*.sql. Run with the schema-owner credentials, NOT the
 // least-privilege app user:  DATABASE_MIGRATE_URL=... npm run db:migrate
-import "dotenv/config";
+import "./_env";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import mysql from "mysql2/promise";

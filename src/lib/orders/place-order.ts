@@ -77,7 +77,15 @@ async function upsertCustomer(tx: Tx, c: ValidatedOrderInput["customer"]): Promi
     return id;
   } catch (err) {
     if (!isDuplicateKey(err)) throw err;
-    const again = await tx.select({ id: customers.id }).from(customers).where(eq(customers.email, email)).limit(1);
+    // A locking read is a "current read": under REPEATABLE READ a plain SELECT
+    // would keep returning this transaction's old snapshot (without the row
+    // another request just committed).
+    const again = await tx
+      .select({ id: customers.id })
+      .from(customers)
+      .where(eq(customers.email, email))
+      .limit(1)
+      .for("share");
     return again[0]!.id;
   }
 }
