@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { ops_alerts } from "@/lib/db/schema";
 import { newId } from "@/lib/db/helpers";
@@ -13,7 +13,9 @@ export type AlertKind =
   | "payment_closed_order" // money arrived for an order we had cancelled/refunded
   | "webhook_failed" // our webhook handler threw (DB down, bug...); Stripe will retry
   | "webhook_bad_signature" // burst of webhook calls with an invalid signature
-  | "stripe_session_failed"; // customers can't start card payment at all
+  | "stripe_session_failed" // customers can't start card payment at all
+  | "low_stock" // a tracked product is at or below the alert level
+  | "out_of_stock"; // a tracked product hit 0
 
 export interface RaiseAlert {
   kind: AlertKind;
@@ -22,6 +24,8 @@ export interface RaiseAlert {
   title: string;
   details?: string;
   orderNumber?: string;
+  /** Admin path to open from the email, e.g. /admin/products/<id>. */
+  link?: string;
   severity?: "critical" | "warning";
 }
 
@@ -40,14 +44,14 @@ async function contactEmail(): Promise<string | null> {
 async function emailAlert(a: RaiseAlert): Promise<boolean> {
   const to = alertEmailAddress(await contactEmail());
   if (!to) return false;
-  const orderLink = a.orderNumber ? `${SITE_URL}/admin/orders/${encodeURIComponent(a.orderNumber)}` : `${SITE_URL}/admin`;
+  const orderLink = a.link ? `${SITE_URL}${a.link}` : a.orderNumber ? `${SITE_URL}/admin/orders/${encodeURIComponent(a.orderNumber)}` : `${SITE_URL}/admin`;
   return sendEmail({
     to,
     subject: `[${SITE_NAME} ALERT] ${a.title}`,
     html: `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#0e1512">
 <h2 style="margin:0 0 8px;color:#b42318">${esc(a.title)}</h2>
 ${a.details ? `<p style="white-space:pre-wrap">${esc(a.details)}</p>` : ""}
-<p><a href="${esc(orderLink)}">${a.orderNumber ? `Open order ${esc(a.orderNumber)}` : "Open the admin dashboard"}</a></p>
+<p><a href="${esc(orderLink)}">${a.orderNumber ? `Open order ${esc(a.orderNumber)}` : a.link ? "Open in admin" : "Open the admin dashboard"}</a></p>
 <p style="color:#6b756f;font-size:13px">This alert is shown on the admin dashboard until someone resolves it. Repeats of the same problem won't email again.</p>
 </body></html>`,
   });
@@ -144,6 +148,7 @@ export async function getOpenAlerts(): Promise<OpenAlert[]> {
       last_seen_at: ops_alerts.last_seen_at,
     })
     .from(ops_alerts)
-    .where(isNull(ops_alerts.resolved_at))
+    // Stock alerts have their own dashboard panel (Stock), so they aren't repeated here.
+    .where(and(isNull(ops_alerts.resolved_at), notInArray(ops_alerts.kind, ["low_stock", "out_of_stock"])))
     .orderBy(desc(ops_alerts.last_seen_at));
 }

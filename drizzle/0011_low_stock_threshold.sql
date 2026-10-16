@@ -1,0 +1,1 @@
+ALTER TABLE `store_settings` ADD `low_stock_threshold` int DEFAULT 5 NOT NULL;

@@ -511,6 +511,8 @@ export const store_settings = mysqlTable("store_settings", {
   legal_name_ar: varchar("legal_name_ar", { length: 200 }),
   address: varchar("address", { length: 500 }),
   address_ar: varchar("address_ar", { length: 500 }),
+  // Tracked products at or below this many units count as "low stock" (0 = out).
+  low_stock_threshold: int("low_stock_threshold").notNull().default(5),
   updated_at: updatedAt(),
 });
 

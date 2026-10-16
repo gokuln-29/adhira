@@ -23,6 +23,8 @@ export interface ProductCardData extends PricedProduct, Partial<ProductRules> {
   details: ProductCardDetail[];
   image: { url: string; alt: string } | null;
   image2?: { url: string; alt: string } | null;
+  /** Tracked stock is 0. */
+  soldOut?: boolean;
 }
 
 export function ProductCard({
@@ -33,6 +35,7 @@ export function ProductCard({
   priority = false,
   perMonthLabel = "/ month",
   minOrderLabel = "Min. {qty}",
+  soldOutLabel = "Sold out",
 }: {
   product: ProductCardData;
   className?: string;
@@ -49,6 +52,7 @@ export function ProductCard({
   /** Translated by the caller for the same no-intl-context reason as above. */
   perMonthLabel?: string;
   minOrderLabel?: string;
+  soldOutLabel?: string;
 }) {
   const price = getEffectivePrice(product);
   const isRental = !!product.is_rental && (product.rental_monthly_price ?? 0) > 0;
@@ -58,7 +62,7 @@ export function ProductCard({
 
   const content = (
     <>
-      <div className="relative aspect-[4/5] overflow-hidden bg-(--color-hairline)/50">
+      <div className={cn("relative aspect-[4/5] overflow-hidden bg-(--color-hairline)/50", product.soldOut && "opacity-70")}>
         {product.image ? (
           <Image
             src={product.image.url}
@@ -87,11 +91,17 @@ export function ProductCard({
           </span>
         )}
 
-        <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100">
-          <span className={buttonVariants({ variant: "primary", size: "sm", className: "w-full backdrop-blur" })}>
-            {addToCartLabel}
+        {product.soldOut ? (
+          <span className="absolute end-3 top-3 bg-(--color-ink) px-2.5 py-1 font-mono-label text-[10px] tracking-[0.12em] text-white">
+            {soldOutLabel}
           </span>
-        </div>
+        ) : (
+          <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100">
+            <span className={buttonVariants({ variant: "primary", size: "sm", className: "w-full backdrop-blur" })}>
+              {addToCartLabel}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 pt-4">

@@ -172,7 +172,11 @@
     "infoReturns": "Returns & deposits",
     "infoReturnsBody": "Fresh flowers can't be returned, but tell us straight away if something isn't right. Glass vessel and rental plant deposits are refunded when items come back in good condition.",
     "readMore": "Read more",
-    "noDelivery": "We don't deliver to this emirate yet"
+    "noDelivery": "We don't deliver to this emirate yet",
+    "soldOut": "Sold out",
+    "outOfStockNotice": "This item is currently out of stock.",
+    "onlyLeft": "Only {n} left",
+    "stockBelowMinimum": "Only {n} left, which is below the minimum order for this item."
   },
   "Cart": {
     "title": "Cart",

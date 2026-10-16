@@ -9,6 +9,8 @@ import { buildStripeLineItems } from "@/lib/stripe/line-items";
 import { placeOrder } from "@/lib/orders/place-order";
 import { transitionOrder } from "@/lib/orders/transitions";
 import { raiseAlert } from "@/lib/ops/alerts";
+import { refreshStockPages, syncStockAlerts } from "@/lib/ops/stock";
+import { after } from "next/server";
 import { assertSameOrigin } from "@/lib/auth/origin";
 import { type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
@@ -88,6 +90,15 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
   }
   if (!placed.ok) return { ok: false, error: placed.message };
   const { order, lines, vatFils, depositFils } = placed;
+
+  if (!placed.replay) {
+    // Stock just went down: update the "N left" pages and raise a low/out-of-stock alert if needed.
+    const ids = lines.map((l) => l.productId);
+    after(async () => {
+      refreshStockPages();
+      await syncStockAlerts(ids);
+    });
+  }
 
   if (placed.replay) {
     // Same checkout submitted twice: hand back the original order, never a second one.

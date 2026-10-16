@@ -137,6 +137,7 @@ export function Plp({
                 <ProductCard
                   product={toProductCard(product, locale)}
                   addToCartLabel={pdp("addToCart")}
+                  soldOutLabel={pdp("soldOut")}
                   perMonthLabel={pdp("perMonth")}
                   minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })}
                   priority={i === 0}

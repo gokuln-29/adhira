@@ -19,6 +19,7 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
   const [legalNameAr, setLegalNameAr] = useState(settings.legal_name_ar ?? "");
   const [address, setAddress] = useState(settings.address ?? "");
   const [addressAr, setAddressAr] = useState(settings.address_ar ?? "");
+  const [lowStock, setLowStock] = useState(String(settings.low_stock_threshold));
   const [hero, setHero] = useState(settings.hero_image_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +50,7 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
       legal_name_ar: legalNameAr,
       address,
       address_ar: addressAr,
+      low_stock_threshold: Number(lowStock) || 0,
     });
     setSaving(false);
     setMessage(result.ok ? { ok: true, text: "Saved. The website is updated." } : { ok: false, text: result.error });
@@ -93,6 +95,21 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
         <p className="text-xs text-(--color-muted)">
           The supplier details, TRN, phone and email are copied onto each invoice at the moment it is issued.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-(--color-hairline) pt-4">
+        <span className="font-mono-label text-[11px] text-(--color-muted)">Stock alerts</span>
+        <div className="max-w-xs">
+          <Input
+            label="Low-stock level (units)"
+            type="number"
+            min="0"
+            max="1000"
+            value={lowStock}
+            onChange={(e) => setLowStock(e.target.value)}
+            hint="Products that track stock and have this many or fewer left show as low (an alert is emailed once). 0 units shows as out of stock."
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">

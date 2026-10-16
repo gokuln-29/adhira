@@ -21,6 +21,7 @@ export const storeSettingsSchema = z.object({
     .transform((v) => (v ?? "").replace(/\s/g, ""))
     .refine((v) => v === "" || /^[0-9]{15}$/.test(v), "TRN must be exactly 15 digits.")
     .transform((v) => v || null),
+  low_stock_threshold: z.number().int().min(0).max(1000),
   legal_name: z.string().max(200).optional().transform(blankToNull),
   legal_name_ar: z.string().max(200).optional().transform(blankToNull),
   address: z.string().max(500).optional().transform(blankToNull),

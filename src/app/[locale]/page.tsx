@@ -97,6 +97,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
   const cardLabels = {
     addToCartLabel: pdp("addToCart"),
+    soldOutLabel: pdp("soldOut"),
     perMonthLabel: pdp("perMonth"),
     minOrderLabel: pdp("minOrderShort", { qty: "{qty}" }),
   };

@@ -43,6 +43,7 @@ export function toProductCard(row: ProductRow, locale = "en"): ProductCardData {
     rental_min_months: row.rental_min_months,
     min_order_qty: row.min_order_qty,
     allows_vessel: row.allows_vessel,
+    soldOut: row.stock_qty != null && row.stock_qty <= 0,
   };
 }
 

@@ -9,7 +9,16 @@ import type { CartLineItem } from "@/lib/cart/types";
 
 type FormProduct = Omit<CartLineItem, "qty" | "vessel" | "months">;
 
-export function AddToCartForm({ product }: { product: FormProduct }) {
+export function AddToCartForm({
+  product,
+  stockLeft = null,
+  lowStockLevel = 0,
+}: {
+  product: FormProduct;
+  /** Units left when stock is tracked, otherwise null. Display only: checkout re-checks it. */
+  stockLeft?: number | null;
+  lowStockLevel?: number;
+}) {
   const t = useTranslations("Pdp");
   const { addItem } = useCart();
 
@@ -24,6 +33,12 @@ export function AddToCartForm({ product }: { product: FormProduct }) {
   const [added, setAdded] = useState(false);
 
   const line = priceLine(product, { qty, vessel, months });
+  const tracked = stockLeft !== null;
+  const soldOut = tracked && stockLeft <= 0;
+  // Fewer units than the smallest order the rules allow: effectively unavailable.
+  const belowMinimumStock = tracked && !soldOut && stockLeft < minQty;
+  const unavailable = soldOut || belowMinimumStock;
+  const atStockCap = tracked && qty >= stockLeft;
   const belowValue = line.problems.some((p) => p.code === "min_value");
 
   return (
@@ -57,6 +72,22 @@ export function AddToCartForm({ product }: { product: FormProduct }) {
             ))}
           </select>
         </label>
+      )}
+
+      {tracked && !soldOut && stockLeft <= lowStockLevel && (
+        <p role="status" className="font-mono-label text-[11px] text-amber-700">
+          {t("onlyLeft", { n: stockLeft })}
+        </p>
+      )}
+      {soldOut && (
+        <p role="status" className="border border-(--color-hairline) bg-(--color-hairline)/20 p-3 text-sm">
+          {t("outOfStockNotice")}
+        </p>
+      )}
+      {belowMinimumStock && (
+        <p role="status" className="border border-(--color-hairline) bg-(--color-hairline)/20 p-3 text-sm">
+          {t("stockBelowMinimum", { n: stockLeft })}
+        </p>
       )}
 
       {product.allows_vessel && (
@@ -96,7 +127,8 @@ export function AddToCartForm({ product }: { product: FormProduct }) {
           <button
             type="button"
             aria-label={t("increaseQty")}
-            className="px-3 py-2 font-mono-label text-sm hover:text-(--color-primary)"
+            disabled={unavailable || atStockCap}
+            className="px-3 py-2 font-mono-label text-sm hover:text-(--color-primary) disabled:opacity-30"
             onClick={() => setQty(qty + 1)}
           >
             +
@@ -129,14 +161,14 @@ export function AddToCartForm({ product }: { product: FormProduct }) {
       <Button
         type="button"
         size="lg"
-        disabled={belowValue}
+        disabled={belowValue || unavailable}
         onClick={() => {
           addItem({ ...product, vessel, months }, qty);
           setAdded(true);
           setTimeout(() => setAdded(false), 2000);
         }}
       >
-        {added ? t("added") : t("addToCart")}
+        {soldOut ? t("soldOut") : added ? t("added") : t("addToCart")}
       </Button>
     </div>
   );

@@ -12,6 +12,7 @@ export interface StoreSettings {
   legal_name_ar: string | null;
   address: string | null;
   address_ar: string | null;
+  low_stock_threshold: number;
 }
 
 const EMPTY: StoreSettings = {
@@ -24,6 +25,7 @@ const EMPTY: StoreSettings = {
   legal_name_ar: null,
   address: null,
   address_ar: null,
+  low_stock_threshold: 5,
 };
 
 // Shared with the catalog cache tag so `refreshStorefront()` refreshes it too.
@@ -40,6 +42,7 @@ export const getStoreSettings = unstable_cache(
         legal_name_ar: store_settings.legal_name_ar,
         address: store_settings.address,
         address_ar: store_settings.address_ar,
+        low_stock_threshold: store_settings.low_stock_threshold,
       })
       .from(store_settings)
       .limit(1);

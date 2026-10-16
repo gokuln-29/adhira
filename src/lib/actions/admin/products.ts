@@ -8,6 +8,7 @@ import { keyFromPublicUrl } from "@/lib/media/r2";
 import { deleteImageKeys } from "@/lib/media/store";
 import { dbErrorMessage, newId } from "@/lib/db/helpers";
 import { clearRedirectsFor, recordSlugChange } from "@/lib/redirects";
+import { syncStockAlerts } from "@/lib/ops/stock";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import type { ProductCardDetail } from "@/components/product/product-card";
@@ -145,6 +146,7 @@ export async function createProduct(raw: ProductFormInput): Promise<ActionResult
 
   revalidatePath("/admin/products");
   refreshStorefront();
+  await syncStockAlerts([id]);
   return { ok: true, id };
 }
 
@@ -171,6 +173,7 @@ export async function updateProduct(id: string, raw: ProductFormInput): Promise<
   revalidatePath("/admin/products");
   refreshStorefront();
   revalidatePath(`/admin/products/${id}`);
+  await syncStockAlerts([id]);
   return { ok: true };
 }
 
@@ -201,6 +204,7 @@ export async function bulkUpdateProductStatus(ids: string[], status: "draft" | "
   if (status !== "draft" && status !== "active") return { ok: false, error: "Unknown status." };
   try {
     await db.update(products).set({ status }).where(inArray(products.id, ids));
+    await syncStockAlerts(ids);
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "product") };
   }

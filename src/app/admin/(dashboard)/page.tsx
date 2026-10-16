@@ -10,6 +10,8 @@ import { getDashboardData } from "@/lib/data/admin/dashboard";
 import { can, getCurrentAdmin } from "@/lib/admin/auth";
 import { getTodayData } from "@/lib/data/admin/today";
 import { getOpenAlerts } from "@/lib/ops/alerts";
+import { getLowStockProducts } from "@/lib/ops/stock";
+import { LowStockPanel } from "@/components/admin/dashboard/low-stock-panel";
 import { AlertsPanel } from "@/components/admin/dashboard/alerts-panel";
 import type { OrderStatus } from "@/lib/constants/order";
 import { formatAED } from "@/lib/pricing";
@@ -33,11 +35,12 @@ export default async function AdminDashboardPage({
   const admin = await getCurrentAdmin();
   // Revenue figures are for owners and managers only.
   const showSales = can(admin, "editContent");
-  const [data, todayData, alerts] = await Promise.all([
+  const [data, todayData, alerts, lowStock] = await Promise.all([
     showSales ? getDashboardData(days) : Promise.resolve(null),
     getTodayData(),
     // Payment problems are for owners and managers.
     showSales ? getOpenAlerts() : Promise.resolve([]),
+    showSales ? getLowStockProducts() : Promise.resolve({ threshold: 0, items: [] }),
   ]);
 
   return (
@@ -45,6 +48,7 @@ export default async function AdminDashboardPage({
       <h1 className="text-2xl font-semibold">Today</h1>
 
       <AlertsPanel alerts={alerts} />
+      <LowStockPanel items={lowStock.items} threshold={lowStock.threshold} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/admin/orders?view=action">

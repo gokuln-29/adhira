@@ -78,6 +78,13 @@
       "when": 1792152882080,
       "tag": "0010_slug_redirects",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1792153220973,
+      "tag": "0011_low_stock_threshold",
+      "breakpoints": true
     }
   ]
 }

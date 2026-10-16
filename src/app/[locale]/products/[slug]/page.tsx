@@ -15,6 +15,7 @@ import { getActiveProducts, getProductBySlug, toProductCard, getActiveProductSlu
 import { formatAED, getEffectivePrice, vatNote } from "@/lib/pricing";
 import { routing } from "@/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { getStoreSettings } from "@/lib/data/settings";
 import { productJsonLd } from "@/lib/seo/product";
 import { JsonLd } from "@/components/seo/json-ld";
 
@@ -60,6 +61,7 @@ export default async function ProductPage({
   const raw = await getProductBySlug(slug);
   if (!raw) return notFoundOrRedirect("product", slug, (s) => `/${locale}/products/${s}`);
   const product = localizeProduct(raw, locale);
+  const settings = await getStoreSettings();
 
   const price = getEffectivePrice(product);
   const isRental = product.is_rental && (product.rental_monthly_price ?? 0) > 0;
@@ -94,6 +96,7 @@ export default async function ProductPage({
           price,
           saleEnd: product.sale_end,
           categoryName: product.categories?.name,
+          soldOut: product.stock_qty != null && product.stock_qty <= 0,
         })}
       />
       <Header />
@@ -161,6 +164,8 @@ export default async function ProductPage({
             )}
 
             <AddToCartForm
+              stockLeft={product.stock_qty}
+              lowStockLevel={settings.low_stock_threshold}
               product={{
                 productId: product.id,
                 slug: product.slug,
@@ -215,6 +220,7 @@ export default async function ProductPage({
             <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4 md:gap-x-7">
               {related.map((p) => (
                 <ProductCard key={p.id} product={toProductCard(p, locale)} addToCartLabel={pdp("addToCart")}
+                soldOutLabel={pdp("soldOut")}
                 perMonthLabel={pdp("perMonth")}
                 minOrderLabel={pdp("minOrderShort", { qty: "{qty}" })} />
               ))}

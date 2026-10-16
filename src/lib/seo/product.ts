@@ -10,6 +10,7 @@ export function productJsonLd({
   price,
   saleEnd,
   categoryName,
+  soldOut = false,
 }: {
   locale: string;
   slug: string;
@@ -19,6 +20,7 @@ export function productJsonLd({
   price: EffectivePrice;
   saleEnd: string | null;
   categoryName?: string | null;
+  soldOut?: boolean;
 }) {
   return {
     "@context": "https://schema.org",
@@ -32,7 +34,7 @@ export function productJsonLd({
       url: `${SITE_URL}/${locale}/products/${slug}`,
       priceCurrency: "AED",
       price: price.finalPrice.toFixed(2),
-      availability: "https://schema.org/InStock",
+      availability: soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
       ...(price.isOnSale && saleEnd ? { priceValidUntil: saleEnd.slice(0, 10) } : {}),
     },
   };

@@ -18,6 +18,7 @@
     "verify:delivery": "tsx --conditions=react-server scripts/verify-delivery.ts",
     "verify:coupons": "tsx --conditions=react-server scripts/verify-coupons.ts",
     "verify:redirects": "tsx --conditions=react-server scripts/verify-redirects.ts",
+    "verify:stock": "tsx --conditions=react-server scripts/verify-stock.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {

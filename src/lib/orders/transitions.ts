@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db, type Tx } from "@/lib/db";
 import { order_items, order_status_events, orders, products } from "@/lib/db/schema";
 import { newId } from "@/lib/db/helpers";
+import { refreshStockPages, syncStockAlerts } from "@/lib/ops/stock";
 import { issueInvoice } from "@/lib/invoices/issue";
 import { canTransition, type OrderStatus } from "@/lib/constants/order";
 
@@ -44,19 +45,22 @@ async function lockOrder(tx: Tx, where: { number: string } | { id: string }) {
   return rows[0] ?? null;
 }
 
-async function restock(tx: Tx, orderId: string) {
+async function restock(tx: Tx, orderId: string): Promise<string[]> {
   const items = await tx
     .select({ product_id: order_items.product_id, qty: order_items.qty })
     .from(order_items)
     .where(eq(order_items.order_id, orderId));
+  const touched: string[] = [];
   for (const it of items) {
     if (!it.product_id) continue;
+    touched.push(it.product_id);
     // NULL stock_qty means "not tracked": NULL + n stays NULL.
     await tx
       .update(products)
       .set({ stock_qty: sql`${products.stock_qty} + ${it.qty}` })
       .where(eq(products.id, it.product_id));
   }
+  return touched;
 }
 
 export async function transitionOrder(
@@ -65,7 +69,8 @@ export async function transitionOrder(
   actor: Actor,
   note?: string,
 ): Promise<TransitionResult> {
-  return db.transaction(async (tx) => {
+  let restocked: string[] = [];
+  const result = await db.transaction(async (tx) => {
     const order = await lockOrder(tx, where);
     if (!order) return { ok: false, error: "Order not found." } as const;
     if (order.status === to) return { ok: true, changed: false } as const;
@@ -79,9 +84,15 @@ export async function transitionOrder(
     await log(tx, order.id, "status", order.status, to, actor, note);
     if (patch.payment_status) await log(tx, order.id, "payment", order.payment_status, patch.payment_status, actor, note);
 
-    if (to === "cancelled") await restock(tx, order.id);
+    if (to === "cancelled") restocked = await restock(tx, order.id);
     return { ok: true, changed: true } as const;
   });
+  if (restocked.length > 0) {
+    // Units came back: pages should show them again and any open low/out alert may now clear.
+    refreshStockPages();
+    await syncStockAlerts(restocked);
+  }
+  return result;
 }
 
 /**
