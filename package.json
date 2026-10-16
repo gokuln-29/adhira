@@ -12,6 +12,7 @@
     "db:import-supabase": "tsx scripts/import-from-supabase.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "media:migrate": "tsx --conditions=react-server scripts/migrate-images-to-r2.ts",
+    "verify:webhook": "tsx --conditions=react-server scripts/verify-webhook.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {
