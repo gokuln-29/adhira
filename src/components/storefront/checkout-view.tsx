@@ -284,7 +284,7 @@ export function CheckoutView() {
           </Select>
           <Input name="line1" label={t("addressLine1")} required autoComplete="address-line1" defaultValue={saved.line1} />
           <details className="group" open={!!(saved.line2 || saved.area || saved.landmark)}>
-            <summary className="cursor-pointer font-mono-label text-[11px] text-(--color-primary)">
+            <summary className="cursor-pointer py-2 font-mono-label text-[11px] text-(--color-primary)">
               {t("moreAddress")}
             </summary>
             <div className="mt-4 flex flex-col gap-4">
@@ -317,7 +317,7 @@ export function CheckoutView() {
             </Select>
           </div>
           <details>
-            <summary className="cursor-pointer font-mono-label text-[11px] text-(--color-primary)">
+            <summary className="cursor-pointer py-2 font-mono-label text-[11px] text-(--color-primary)">
               {t("addGiftMessage")}
             </summary>
             <div className="mt-4">
@@ -332,6 +332,7 @@ export function CheckoutView() {
               type="checkbox"
               checked={isBusiness}
               onChange={(e) => setBusinessChoice(e.target.checked)}
+              className="h-6 w-6 shrink-0 accent-(--color-primary)"
             />
             {t("businessOrder")}
           </label>
@@ -355,6 +356,7 @@ export function CheckoutView() {
             >
               <input
                 type="radio"
+                className="h-6 w-6 shrink-0 accent-(--color-primary)"
                 name="payment"
                 value={method.value}
                 checked={payment === method.value}
@@ -376,7 +378,7 @@ export function CheckoutView() {
         )}
 
         <label className="flex items-start gap-3 text-sm">
-          <input type="checkbox" name="acceptTerms" required className="mt-1 h-4 w-4 accent-(--color-primary)" />
+          <input type="checkbox" name="acceptTerms" required className="mt-0.5 h-6 w-6 shrink-0 accent-(--color-primary)" />
           <span>
             {t.rich("acceptTerms", {
               terms: (chunks) => (
@@ -398,7 +400,7 @@ export function CheckoutView() {
         </Button>
       </div>
 
-      <div className="h-fit border border-(--color-hairline) bg-(--color-surface) p-8 lg:sticky lg:top-24">
+      <div className="h-fit max-lg:order-first border border-(--color-hairline) bg-(--color-surface) p-8 lg:sticky lg:top-24">
         <MonoLabel as="p" muted={false} className="mb-4">
           {t("orderSummary")}
         </MonoLabel>

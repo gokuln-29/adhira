@@ -58,6 +58,12 @@ Source of truth for architecture and operations: `Adhira_Flowers_Architecture_Se
 - Security headers/CSP are in `next.config.ts` (img-src/connect-src include the media + R2 origins from env) and repeated in Nginx.
 - Store-wide values (WhatsApp, contacts, TRN, hero image) live in `store_settings` (single row, id 1), edited in Admin > Settings. Product/category Arabic text is in `*_ar` columns with English fallback (`lib/data/localize.ts`).
 
+## Mobile and accessibility
+
+- Audited with axe-core (WCAG 2.0/2.1/2.2 A + AA + best practices) plus overflow and target-size checks on 14 storefront pages × 320 / 390 / 1280 px × en / ar: **0 violations, 0 horizontal overflow**. Rules to keep: every tappable control is >= 24 px (icons get a 44 px hit area via `size-11` with negative margins; inline links inside a sentence are exempt); an element with `aria-label` must contain its visible text (prefer visually-hidden text in the content over `aria-label`); decorative large text still needs 3:1 contrast; scroll-reveal content is measured after the animation, so don't judge contrast mid-fade; content must sit inside a landmark (the announcement bar is a labelled `<section>`); don't skip heading levels (`LeadForm` takes `headingAs`).
+- Checkout on phones shows the order summary (and the discount-code box) **first** (`max-lg:order-first`), then the form, so the total is seen before paying.
+- Admin is usable on phones: below `lg` the sidebar is a slide-out drawer (menu button top-left), content is full width and tables scroll inside their cards. Keep new admin pages free of fixed widths; check `/admin/*` at 390 px for page-level horizontal scroll.
+
 ## Stock
 
 - Optional per product (`products.stock_qty`, NULL = not tracked, always sellable). `placeOrder` locks the product rows and decrements; cancelling an order restocks. **Alert level** = `store_settings.low_stock_threshold` (Admin > Settings > Stock alerts, default 5; at or below is "low", 0 is "out").

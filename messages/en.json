@@ -18,7 +18,8 @@
     "noResults": "No products match your search.",
     "viewAllResults": "View all results for \"{query}\"",
     "announcement": "Same-day delivery in {places} for orders before {cutoff}  ·  VAT invoices for business",
-    "announcementNext": "Next-day delivery across the UAE  ·  VAT invoices for business"
+    "announcementNext": "Next-day delivery across the UAE  ·  VAT invoices for business",
+    "announcementLabel": "Delivery and invoice information"
   },
   "Home": {
     "metaTitle": "Fresh flowers, gifts and plant setups for offices, events and celebrations across the UAE",

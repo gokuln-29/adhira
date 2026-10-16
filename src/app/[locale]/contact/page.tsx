@@ -77,6 +77,7 @@ export default async function ContactPage({ params }: PageProps<"/[locale]/conta
           </div>
           <div className="lg:col-span-3">
             <LeadForm
+              headingAs="h2"
               title={t("formTitle")}
               requirementLabel={t("requirementLabel")}
               requirementPlaceholder={t("requirementPlaceholder")}

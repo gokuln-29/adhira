@@ -10,9 +10,9 @@ export function AdminTopbar({ admin }: { admin: AdminUser }) {
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-between border-b border-(--color-hairline) px-6 py-4">
+    <div className="flex items-center justify-between border-b border-(--color-hairline) py-4 pe-4 ps-14 sm:pe-6 lg:ps-6">
       <div />
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
         <MonoLabel>
           {admin.name} &middot; {admin.role}
         </MonoLabel>

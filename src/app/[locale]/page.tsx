@@ -132,7 +132,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
               </Link>
               <Link
                 href="/corporate#quote"
-                className="font-mono-label text-xs text-white underline decoration-white/40 underline-offset-8 transition-colors hover:decoration-white"
+                className="inline-flex min-h-11 items-center font-mono-label text-xs text-white underline decoration-white/40 underline-offset-8 transition-colors hover:decoration-white"
               >
                 {t("heroLink")} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
               </Link>
@@ -254,7 +254,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           <ol className="grid gap-12 md:grid-cols-3 md:gap-10">
             {steps.map((step, i) => (
               <li key={step.title} className="flex flex-col gap-3">
-                <span aria-hidden="true" className="font-display text-6xl text-(--color-primary)/30">
+                <span aria-hidden="true" className="font-display text-6xl text-(--color-primary)/75">
                   0{i + 1}
                 </span>
                 <h3 className="text-lg font-semibold">{step.title}</h3>

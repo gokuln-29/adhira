@@ -13,11 +13,14 @@ const frequencies = ["One-time", "Weekly", "Bi-weekly", "Monthly"] as const;
 
 export function LeadForm({
   title,
+  headingAs: Heading = "h3",
   requirementLabel,
   requirementPlaceholder,
   submitLabel,
 }: {
   title: string;
+  /** h3 under a section heading, h2 when the form follows the page h1 directly. */
+  headingAs?: "h2" | "h3";
   requirementLabel?: string;
   requirementPlaceholder?: string;
   submitLabel?: string;
@@ -81,7 +84,7 @@ export function LeadForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 border border-(--color-hairline) p-6">
-      <h3 className="text-xl font-semibold">{title}</h3>
+      <Heading className="text-xl font-semibold">{title}</Heading>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input name="contact" label={t("yourName")} required />

@@ -58,7 +58,7 @@ export function CartView() {
                         type="button"
                         onClick={() => removeItem(item.productId)}
                         aria-label={t("removeItem", { name: item.name })}
-                        className="font-mono-label text-[10px] text-(--color-muted) hover:text-(--color-primary)"
+                        className="-my-2 inline-flex min-h-11 items-center px-1 font-mono-label text-[10px] text-(--color-muted) hover:text-(--color-primary)"
                       >
                         {t("remove")}
                       </button>

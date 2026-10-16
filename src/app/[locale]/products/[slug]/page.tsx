@@ -122,7 +122,7 @@ export default async function ProductPage({
               {product.categories && (
                 <Link
                   href={`/shop/${product.categories.slug}`}
-                  className="font-mono-label text-[11px] tracking-[0.18em] text-(--color-primary) hover:underline"
+                  className="inline-flex min-h-8 w-fit items-center font-mono-label text-[11px] tracking-[0.18em] text-(--color-primary) hover:underline"
                 >
                   {product.categories.name}
                 </Link>

@@ -40,16 +40,18 @@ export function Header() {
     setMobileOpen((open) => !open);
   }
 
+  // 44x44 hit area around an 18px icon (WCAG 2.5.8 asks for 24px; phones want 44), with
+  // negative margins so the visual spacing of the header doesn't change.
   const iconBtn =
-    "text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none";
+    "-m-3 inline-flex size-11 items-center justify-center text-(--color-ink) transition-colors hover:text-(--color-primary) motion-reduce:transition-none";
 
   return (
     <>
-      <div className="bg-(--color-ink) px-4 py-2 text-center font-mono-label text-[10px] tracking-[0.16em] text-white/80">
+      <section aria-label={t("announcementLabel")} className="bg-(--color-ink) px-4 py-2 text-center font-mono-label text-[10px] tracking-[0.16em] text-white/80">
         {rules && sameDayPlaces.length > 0
           ? t("announcement", { places: sameDayPlaces.join(locale === "ar" ? "، " : ", "), cutoff: formatCutoff(rules.sameDayCutoff, locale) })
           : t("announcementNext")}
-      </div>
+      </section>
       <header className="sticky top-0 z-20 border-b border-(--color-hairline) bg-(--color-canvas)/85 backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:gap-4 sm:px-6 py-4 md:py-5">
           <div className="flex items-center">
@@ -68,7 +70,7 @@ export function Header() {
                 <Link
                   key={item.key}
                   href={item.href}
-                  className="group relative font-mono-label text-[11px] tracking-[0.14em] text-(--color-ink)"
+                  className="group relative inline-flex min-h-11 items-center font-mono-label text-[11px] tracking-[0.14em] text-(--color-ink)"
                 >
                   {t(item.key)}
                   <span className="absolute -bottom-1.5 start-0 h-px w-full origin-left scale-x-0 bg-(--color-gold) transition-transform duration-300 group-hover:scale-x-100 rtl:origin-right" />
@@ -77,7 +79,7 @@ export function Header() {
             </nav>
           </div>
 
-          <Link href="/" className="font-logo text-[0.95rem] text-(--color-ink) [--logo-tracking:0.13em] sm:text-[1.15rem] sm:[--logo-tracking:0.2em] md:text-[1.55rem] md:[--logo-tracking:0.24em]">
+          <Link href="/" className="inline-flex min-h-11 items-center font-logo text-[0.95rem] text-(--color-ink) [--logo-tracking:0.13em] sm:text-[1.15rem] sm:[--logo-tracking:0.2em] md:text-[1.55rem] md:[--logo-tracking:0.24em]">
             Adhira Flowers
           </Link>
 
@@ -95,10 +97,11 @@ export function Header() {
             <Link href="/account" aria-label={t("account")} className={cn(iconBtn, "hidden sm:block")}>
               <AccountIcon />
             </Link>
-            <Link href="/cart" aria-label={t("cart")} className={cn(iconBtn, "relative")}>
+            <Link href="/cart" className={cn(iconBtn, "relative")}>
+              <span className="sr-only">{t("cart")}</span>
               <CartIcon />
               {count > 0 && (
-                <span className="absolute -end-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--color-primary) px-1 font-mono-label text-[9px] text-white">
+                <span className="absolute end-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--color-primary) px-1 font-mono-label text-[9px] text-white">
                   {count}
                 </span>
               )}

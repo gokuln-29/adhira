@@ -79,7 +79,7 @@ export function Plp({
         <Link
           href={activeCategorySlug ? "/shop" : withQuery({})}
           className={cn(
-            "shrink-0 border-b-2 pb-4 font-mono-label text-[11px] tracking-[0.14em] transition-colors",
+            "min-w-8 shrink-0 border-b-2 pb-4 text-center font-mono-label text-[11px] tracking-[0.14em] transition-colors",
             !activeCategorySlug
               ? "border-(--color-ink) text-(--color-ink)"
               : "border-transparent text-(--color-muted) hover:text-(--color-ink)",
@@ -110,7 +110,7 @@ export function Plp({
             key={opt.value}
             href={withQuery({ sort: opt.value === "newest" ? undefined : opt.value })}
             className={cn(
-              "font-mono-label text-[11px] tracking-[0.1em] transition-colors",
+              "inline-flex min-h-8 items-center font-mono-label text-[11px] tracking-[0.1em] transition-colors",
               sort === opt.value
                 ? "text-(--color-primary) underline underline-offset-8"
                 : "text-(--color-muted) hover:text-(--color-ink)",

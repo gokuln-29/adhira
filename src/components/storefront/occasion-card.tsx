@@ -80,7 +80,6 @@ export function OccasionCard({
     <Link
       ref={cardRef}
       href={href}
-      aria-label={`${title}: ${cta}`}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       onFocus={() => setHovering(true)}
