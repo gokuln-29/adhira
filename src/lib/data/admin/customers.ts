@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers } from "@/lib/db/schema";
 
 export interface AdminCustomerRow {
   id: string;
@@ -11,11 +13,16 @@ export interface AdminCustomerRow {
 }
 
 export async function getAllCustomersAdmin(): Promise<AdminCustomerRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("customers")
-    .select("id, name, email, phone, company, type, created_at")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as AdminCustomerRow[];
+  return db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      company: customers.company,
+      type: customers.type,
+      created_at: customers.created_at,
+    })
+    .from(customers)
+    .orderBy(desc(customers.created_at));
 }

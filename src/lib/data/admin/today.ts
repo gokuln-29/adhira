@@ -1,6 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, asc, count, eq, inArray, lt, sum } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers, leads, orders } from "@/lib/db/schema";
+import { OPEN_STATUSES } from "@/lib/constants/order";
 
-const OPEN = ["pending", "paid", "processing", "out_for_delivery"];
+const OPEN = [...OPEN_STATUSES];
 
 export interface TodayOrder {
   number: string;
@@ -25,51 +28,47 @@ export interface TodayData {
 // "What do I need to do today?" — a handful of cheap indexed queries instead
 // of loading every order.
 export async function getTodayData(): Promise<TodayData> {
-  const supabase = await createClient();
   const dubai = (offsetDays: number) =>
     new Date(Date.now() + offsetDays * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" });
   const today = dubai(0);
   const tomorrow = dubai(1);
 
-  const [deliveringToday, tomorrowQ, overdue, needsAction, deposits, leads] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("number, status, emirate, delivery_date, total, customers(name)")
-      .eq("delivery_date", today)
-      .in("status", OPEN)
-      .order("created_at", { ascending: true })
+  const [deliveringToday, tomorrowQ, overdue, needsAction, deposits, newLeads] = await Promise.all([
+    db
+      .select({
+        number: orders.number,
+        status: orders.status,
+        emirate: orders.emirate,
+        delivery_date: orders.delivery_date,
+        total: orders.total,
+        customer_name: customers.name,
+      })
+      .from(orders)
+      .leftJoin(customers, eq(orders.customer_id, customers.id))
+      .where(and(eq(orders.delivery_date, today), inArray(orders.status, OPEN)))
+      .orderBy(asc(orders.created_at))
       .limit(30),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("delivery_date", tomorrow)
-      .in("status", OPEN),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .lt("delivery_date", today)
-      .in("status", OPEN),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["pending", "paid"]),
-    supabase.from("orders").select("deposit_total").eq("deposit_status", "held"),
-    supabase.from("leads").select("id", { count: "exact", head: true }).eq("stage", "new"),
+    db.select({ n: count() }).from(orders).where(and(eq(orders.delivery_date, tomorrow), inArray(orders.status, OPEN))),
+    db.select({ n: count() }).from(orders).where(and(lt(orders.delivery_date, today), inArray(orders.status, OPEN))),
+    db.select({ n: count() }).from(orders).where(inArray(orders.status, ["pending", "confirmed"])),
+    db
+      .select({ n: count(), total: sum(orders.deposit_total) })
+      .from(orders)
+      .where(eq(orders.deposit_status, "held")),
+    db.select({ n: count() }).from(leads).where(eq(leads.stage, "new")),
   ]);
 
-  for (const r of [deliveringToday, tomorrowQ, overdue, needsAction, deposits, leads]) {
-    if (r.error) throw r.error;
-  }
-
-  const held = (deposits.data ?? []) as { deposit_total: number }[];
   return {
     today,
-    deliveringToday: (deliveringToday.data ?? []) as unknown as TodayOrder[],
-    tomorrowCount: tomorrowQ.count ?? 0,
-    overdueCount: overdue.count ?? 0,
-    needsActionCount: needsAction.count ?? 0,
-    depositsHeldCount: held.length,
-    depositsHeldTotal: held.reduce((sum, r) => sum + Number(r.deposit_total), 0),
-    newLeadsCount: leads.count ?? 0,
+    deliveringToday: deliveringToday.map(({ customer_name, ...o }) => ({
+      ...o,
+      customers: customer_name == null ? null : { name: customer_name },
+    })),
+    tomorrowCount: tomorrowQ[0]?.n ?? 0,
+    overdueCount: overdue[0]?.n ?? 0,
+    needsActionCount: needsAction[0]?.n ?? 0,
+    depositsHeldCount: deposits[0]?.n ?? 0,
+    depositsHeldTotal: Number(deposits[0]?.total ?? 0),
+    newLeadsCount: newLeads[0]?.n ?? 0,
   };
 }

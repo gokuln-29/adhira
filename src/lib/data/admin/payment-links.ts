@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { customers, payment_links } from "@/lib/db/schema";
 
 export interface PaymentLinkRow {
   id: string;
@@ -13,13 +15,24 @@ export interface PaymentLinkRow {
 }
 
 export async function getAllPaymentLinksAdmin(): Promise<PaymentLinkRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("payment_links")
-    .select(
-      "id, amount, description, status, url, expires_at, paid_at, created_at, customers(name, phone)",
-    )
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as PaymentLinkRow[];
+  const rows = await db
+    .select({
+      id: payment_links.id,
+      amount: payment_links.amount,
+      description: payment_links.description,
+      status: payment_links.status,
+      url: payment_links.url,
+      expires_at: payment_links.expires_at,
+      paid_at: payment_links.paid_at,
+      created_at: payment_links.created_at,
+      customer_name: customers.name,
+      customer_phone: customers.phone,
+    })
+    .from(payment_links)
+    .leftJoin(customers, eq(payment_links.customer_id, customers.id))
+    .orderBy(desc(payment_links.created_at));
+  return rows.map(({ customer_name, customer_phone, ...r }) => ({
+    ...r,
+    customers: customer_name == null ? null : { name: customer_name, phone: customer_phone },
+  }));
 }

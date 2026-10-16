@@ -1,27 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { products } from "@/lib/db/schema";
+import { hydrateProducts, loadProductWhere, productColumns } from "@/lib/data/product-loader";
 import type { ProductRow } from "@/lib/data/types";
 
-import { PRODUCT_SELECT } from "@/lib/data/product-select";
-
 export async function getAllProductsAdmin(): Promise<ProductRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as unknown as ProductRow[];
+  const rows = await db.select(productColumns).from(products).orderBy(desc(products.created_at));
+  return hydrateProducts(rows);
 }
 
 export async function getProductByIdAdmin(id: string): Promise<ProductRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as unknown as ProductRow | null;
+  return loadProductWhere(eq(products.id, id));
 }

@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
-import { createPublicClient } from "@/lib/supabase/public";
+import { db } from "@/lib/db";
+import { store_settings } from "@/lib/db/schema";
 
 export interface StoreSettings {
   whatsapp_number: string | null;
@@ -20,11 +21,17 @@ const EMPTY: StoreSettings = {
 // Shared with the catalog cache tag so `refreshStorefront()` refreshes it too.
 export const getStoreSettings = unstable_cache(
   async (): Promise<StoreSettings> => {
-    const { data } = await createPublicClient()
-      .from("store_settings")
-      .select("whatsapp_number, contact_phone, contact_email, trn, hero_image_url")
-      .maybeSingle();
-    return data ?? EMPTY;
+    const rows = await db
+      .select({
+        whatsapp_number: store_settings.whatsapp_number,
+        contact_phone: store_settings.contact_phone,
+        contact_email: store_settings.contact_email,
+        trn: store_settings.trn,
+        hero_image_url: store_settings.hero_image_url,
+      })
+      .from(store_settings)
+      .limit(1);
+    return rows[0] ?? EMPTY;
   },
   ["store-settings"],
   { tags: ["catalog"], revalidate: 300 },

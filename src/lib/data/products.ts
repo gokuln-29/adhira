@@ -1,10 +1,13 @@
 import { unstable_cache } from "next/cache";
-import { createPublicClient } from "@/lib/supabase/public";
+import { and, asc, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { categories, products } from "@/lib/db/schema";
+import { escapeLike } from "@/lib/db/helpers";
+import { hydrateProducts, loadProductWhere, productColumns } from "@/lib/data/product-loader";
 import type { ProductRow, CategoryRow } from "@/lib/data/types";
 import type { ProductCardData } from "@/components/product/product-card";
 
 import { localizeProduct } from "@/lib/data/localize";
-import { PRODUCT_SELECT } from "@/lib/data/product-select";
 
 // Storefront reads are cached and tagged "catalog"; admin mutations call
 // `refreshStorefront()` (updateTag) so edits show up immediately instead of
@@ -12,8 +15,6 @@ import { PRODUCT_SELECT } from "@/lib/data/product-select";
 const CACHE_SECONDS = 300;
 export const CATALOG_TAG = "catalog";
 export const PAGE_SIZE = 24;
-
-const PRODUCT_SELECT_BY_CATEGORY = PRODUCT_SELECT.replace("categories(name, name_ar, slug)", "categories!inner(name, name_ar, slug)");
 
 export type ProductSort = "newest" | "price-asc" | "price-desc" | "name-asc";
 
@@ -45,20 +46,22 @@ export function toProductCard(row: ProductRow, locale = "en"): ProductCardData {
   };
 }
 
+const categoryColumns = {
+  id: categories.id,
+  name: categories.name,
+  name_ar: categories.name_ar,
+  slug: categories.slug,
+  image: categories.image,
+  position: categories.position,
+};
+
 export const getCategories = unstable_cache(fetchCategories, ["categories"], {
   tags: [CATALOG_TAG],
   revalidate: CACHE_SECONDS,
 });
 
 async function fetchCategories(): Promise<CategoryRow[]> {
-  const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, name_ar, slug, image, position")
-    .order("position", { ascending: true });
-
-  if (error) throw error;
-  return data ?? [];
+  return db.select(categoryColumns).from(categories).orderBy(asc(categories.position));
 }
 
 export const getCategoryBySlug = unstable_cache(fetchCategoryBySlug, ["category-by-slug"], {
@@ -67,15 +70,8 @@ export const getCategoryBySlug = unstable_cache(fetchCategoryBySlug, ["category-
 });
 
 async function fetchCategoryBySlug(slug: string): Promise<CategoryRow | null> {
-  const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, name_ar, slug, image, position")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
+  const rows = await db.select(categoryColumns).from(categories).where(eq(categories.slug, slug)).limit(1);
+  return rows[0] ?? null;
 }
 
 export interface ProductQuery {
@@ -100,49 +96,38 @@ export function getActiveProducts(opts?: ProductQuery): Promise<ProductRow[]> {
 }
 
 async function fetchActiveProducts(opts?: ProductQuery): Promise<ProductRow[]> {
-  const supabase = createPublicClient();
-  // One query with an inner join instead of "look up the category, then query".
-  let query = supabase
-    .from("products")
-    .select(opts?.categorySlug ? PRODUCT_SELECT_BY_CATEGORY : PRODUCT_SELECT)
-    .eq("status", "active");
-
-  if (opts?.categorySlug) {
-    query = query.eq("categories.slug", opts.categorySlug);
-  }
-  if (opts?.rentalOnly) {
-    query = query.eq("is_rental", true);
-  }
-  if (opts?.tag) {
-    query = query.contains("tags", [opts.tag]);
-  }
+  const conds: (SQL | undefined)[] = [eq(products.status, "active")];
+  if (opts?.categorySlug) conds.push(eq(categories.slug, opts.categorySlug));
+  if (opts?.rentalOnly) conds.push(eq(products.is_rental, true));
+  if (opts?.tag) conds.push(sql`JSON_CONTAINS(${products.tags}, JSON_QUOTE(${opts.tag}))`);
   if (opts?.q) {
-    const escaped = opts.q.replace(/[%_]/g, (c) => `\\${c}`);
-    query = query.or(`name.ilike.%${escaped}%,short_description.ilike.%${escaped}%`);
+    const pat = `%${escapeLike(opts.q)}%`;
+    conds.push(or(like(products.name, pat), like(products.short_description, pat)));
   }
 
-  switch (opts?.sort) {
-    case "price-asc":
-      query = query.order("base_price", { ascending: true });
-      break;
-    case "price-desc":
-      query = query.order("base_price", { ascending: false });
-      break;
-    case "name-asc":
-      query = query.order("name", { ascending: true });
-      break;
-    default:
-      query = query.order("created_at", { ascending: false });
-  }
+  const order =
+    opts?.sort === "price-asc"
+      ? asc(products.base_price)
+      : opts?.sort === "price-desc"
+        ? desc(products.base_price)
+        : opts?.sort === "name-asc"
+          ? asc(products.name)
+          : desc(products.created_at);
 
-  if (opts?.limit) {
-    const from = opts.offset ?? 0;
-    query = query.range(from, from + opts.limit - 1);
-  }
+  let query = db
+    .select(productColumns)
+    .from(products)
+    // Left join so uncategorised products still show; filtering on
+    // categories.slug above already excludes them when a category is requested.
+    .leftJoin(categories, eq(products.category_id, categories.id))
+    .where(and(...conds))
+    .orderBy(order, asc(products.id))
+    .$dynamic();
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as unknown as ProductRow[];
+  if (opts?.limit) query = query.limit(opts.limit).offset(opts.offset ?? 0);
+
+  const rows = await query;
+  return hydrateProducts(rows);
 }
 
 export const getProductBySlug = unstable_cache(fetchProductBySlug, ["product-by-slug"], {
@@ -153,8 +138,8 @@ export const getProductBySlug = unstable_cache(fetchProductBySlug, ["product-by-
 // Slugs to pre-render at build time; failures fall back to on-demand render.
 export async function getActiveProductSlugs(): Promise<string[]> {
   try {
-    const { data } = await createPublicClient().from("products").select("slug").eq("status", "active");
-    return (data ?? []).map((p) => p.slug);
+    const rows = await db.select({ slug: products.slug }).from(products).where(eq(products.status, "active"));
+    return rows.map((p) => p.slug);
   } catch {
     return [];
   }
@@ -162,22 +147,13 @@ export async function getActiveProductSlugs(): Promise<string[]> {
 
 export async function getCategorySlugs(): Promise<string[]> {
   try {
-    const { data } = await createPublicClient().from("categories").select("slug");
-    return (data ?? []).map((c) => c.slug);
+    const rows = await db.select({ slug: categories.slug }).from(categories);
+    return rows.map((c) => c.slug);
   } catch {
     return [];
   }
 }
 
 async function fetchProductBySlug(slug: string): Promise<ProductRow | null> {
-  const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as unknown as ProductRow | null;
+  return loadProductWhere(and(eq(products.slug, slug), eq(products.status, "active")) as SQL);
 }

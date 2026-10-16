@@ -1,8 +1,12 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { order_items, orders } from "@/lib/db/schema";
 
 export interface OrderConfirmation {
   number: string;
   status: string;
+  payment_method: string;
+  payment_status: string;
   subtotal: number;
   vat: number;
   delivery_fee: number;
@@ -21,19 +25,39 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // and Stripe redirect ever see), not by the human-readable order number —
 // numbers are shareable and must never unlock an order page. Backs the
 // guest-checkout confirmation page. Server Component use only.
-export async function getOrderByToken(
-  token: string,
-): Promise<OrderConfirmation | null> {
+export async function getOrderByToken(token: string): Promise<OrderConfirmation | null> {
   if (!UUID.test(token)) return null;
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "number, status, subtotal, vat, delivery_fee, deposit_total, total, currency, emirate, delivery_date, created_at, order_items(name, qty, unit_price, line_total)",
-    )
-    .eq("public_token", token)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as unknown as OrderConfirmation | null;
+  const rows = await db
+    .select({
+      id: orders.id,
+      number: orders.number,
+      status: orders.status,
+      payment_method: orders.payment_method,
+      payment_status: orders.payment_status,
+      subtotal: orders.subtotal,
+      vat: orders.vat,
+      delivery_fee: orders.delivery_fee,
+      deposit_total: orders.deposit_total,
+      total: orders.total,
+      currency: orders.currency,
+      emirate: orders.emirate,
+      delivery_date: orders.delivery_date,
+      created_at: orders.created_at,
+    })
+    .from(orders)
+    .where(eq(orders.public_token, token))
+    .limit(1);
+  const order = rows[0];
+  if (!order) return null;
+  const { id, ...rest } = order;
+  const items = await db
+    .select({
+      name: order_items.name,
+      qty: order_items.qty,
+      unit_price: order_items.unit_price,
+      line_total: order_items.line_total,
+    })
+    .from(order_items)
+    .where(eq(order_items.order_id, id));
+  return { ...rest, order_items: items };
 }

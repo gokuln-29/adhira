@@ -1,4 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { categories, customers, order_items, orders, payment_links, products } from "@/lib/db/schema";
+import { COMMITTED_STATUSES } from "@/lib/constants/order";
 
 export interface DashboardData {
   revenue: number;
@@ -23,40 +26,39 @@ export interface DashboardData {
   unpaidLinksTotal: number;
 }
 
-const COMMITTED_STATUSES = ["paid", "processing", "out_for_delivery", "delivered"];
+const COMMITTED: readonly string[] = COMMITTED_STATUSES;
 
 export async function getDashboardData(days: number): Promise<DashboardData> {
-  const supabase = await createClient();
   const now = new Date();
   const rangeStart = new Date(now.getTime() - days * 86400000);
   const prevStart = new Date(rangeStart.getTime() - days * 86400000);
 
-  const { data: orders, error: ordersError } = await supabase
-    .from("orders")
-    .select(
-      "id, number, status, total, channel, created_at, customers(name)",
-    )
-    .gte("created_at", prevStart.toISOString())
-    .order("created_at", { ascending: false });
-  if (ordersError) throw ordersError;
+  const rows = await db
+    .select({
+      id: orders.id,
+      number: orders.number,
+      status: orders.status,
+      total: orders.total,
+      channel: orders.channel,
+      created_at: orders.created_at,
+      customer_name: customers.name,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customer_id, customers.id))
+    .where(gte(orders.created_at, prevStart.toISOString()))
+    .orderBy(desc(orders.created_at));
 
-  const allOrders = (orders ?? []) as unknown as {
-    id: string;
-    number: string;
-    status: string;
-    total: number;
-    channel: string;
-    created_at: string;
-    customers: { name: string } | null;
-  }[];
+  const allOrders = rows.map(({ customer_name, ...o }) => ({
+    ...o,
+    customers: customer_name == null ? null : { name: customer_name },
+  }));
 
   const current = allOrders.filter((o) => new Date(o.created_at) >= rangeStart);
   const previous = allOrders.filter(
     (o) => new Date(o.created_at) < rangeStart && new Date(o.created_at) >= prevStart,
   );
 
-  const committed = (list: typeof allOrders) =>
-    list.filter((o) => COMMITTED_STATUSES.includes(o.status));
+  const committed = (list: typeof allOrders) => list.filter((o) => COMMITTED.includes(o.status));
 
   const revenue = committed(current).reduce((sum, o) => sum + o.total, 0);
   const revenuePrev = committed(previous).reduce((sum, o) => sum + o.total, 0);
@@ -98,28 +100,25 @@ export async function getDashboardData(days: number): Promise<DashboardData> {
   const orderIds = committed(current).map((o) => o.id);
   let categorySplit: { name: string; value: number }[] = [];
   if (orderIds.length > 0) {
-    const { data: items, error: itemsError } = await supabase
-      .from("order_items")
-      .select("line_total, order_id, products(categories(name))")
-      .in("order_id", orderIds);
-    if (itemsError) throw itemsError;
+    const items = await db
+      .select({ line_total: order_items.line_total, category: categories.name })
+      .from(order_items)
+      .leftJoin(products, eq(order_items.product_id, products.id))
+      .leftJoin(categories, eq(products.category_id, categories.id))
+      .where(inArray(order_items.order_id, orderIds));
 
     const map = new Map<string, number>();
-    for (const item of (items ?? []) as unknown as {
-      line_total: number;
-      products: { categories: { name: string } | null } | null;
-    }[]) {
-      const name = item.products?.categories?.name ?? "Uncategorized";
+    for (const item of items) {
+      const name = item.category ?? "Uncategorized";
       map.set(name, (map.get(name) ?? 0) + item.line_total);
     }
     categorySplit = Array.from(map.entries()).map(([name, value]) => ({ name, value }));
   }
 
-  const { data: links, error: linksError } = await supabase
-    .from("payment_links")
-    .select("amount")
-    .eq("status", "pending");
-  if (linksError) throw linksError;
+  const links = await db
+    .select({ amount: payment_links.amount })
+    .from(payment_links)
+    .where(and(eq(payment_links.status, "pending")));
 
   return {
     revenue,
@@ -134,7 +133,7 @@ export async function getDashboardData(days: number): Promise<DashboardData> {
     categorySplit,
     channelSplit,
     recentOrders,
-    unpaidLinksCount: links?.length ?? 0,
-    unpaidLinksTotal: (links ?? []).reduce((sum, l) => sum + (l.amount as number), 0),
+    unpaidLinksCount: links.length,
+    unpaidLinksTotal: links.reduce((sum, l) => sum + l.amount, 0),
   };
 }
