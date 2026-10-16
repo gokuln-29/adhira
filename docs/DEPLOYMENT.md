@@ -66,7 +66,7 @@ this least-privilege account (so even a compromised app cannot `DROP` a table).
 Create `/etc/adhira/env` (`root:adhira`, mode `0640`) from `.env.example`. Required in
 production: `NEXT_PUBLIC_SITE_URL=https://adhiraflowers.ae`, `DATABASE_URL`,
 `DATABASE_MIGRATE_URL`, `AUTH_SECRET` (`openssl rand -hex 32`), `BREVO_API_KEY`, `EMAIL_FROM`,
-`R2_*`, `MEDIA_PUBLIC_URL`. Optional: `STRIPE_*`. Secrets exist only here, never in git, the
+`R2_*`, `MEDIA_PUBLIC_URL`, `ALERT_EMAIL` (payment/webhook alerts). Optional: `STRIPE_*`. Secrets exist only here, never in git, the
 release directory or the browser. `NEXT_PUBLIC_*` values are compiled in at build time, so
 rebuild (deploy again) after changing them. `AUTH_SECRET` must stay stable.
 

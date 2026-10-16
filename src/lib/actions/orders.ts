@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { placeOrder } from "@/lib/orders/place-order";
 import { transitionOrder } from "@/lib/orders/transitions";
+import { raiseAlert } from "@/lib/ops/alerts";
 import { assertSameOrigin } from "@/lib/auth/origin";
 import { type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
@@ -175,6 +176,14 @@ export async function createOrder(raw: OrderInput): Promise<OrderResult> {
     return { ok: true, token: order.public_token, orderNumber: order.number, redirectUrl: session.url };
   } catch (err) {
     console.error("[createOrder] stripe session failed", err);
+    // Usually a bad/expired key or a Stripe outage: EVERY card checkout fails until fixed.
+    await raiseAlert({
+      kind: "stripe_session_failed",
+      ref: `hour:${new Date().toISOString().slice(0, 13)}`,
+      title: "Customers can't start card payments",
+      details: `Creating a Stripe Checkout session failed (latest order ${order.number}): ${(err as Error)?.message ?? err}\nCheck STRIPE_SECRET_KEY and https://status.stripe.com. The affected order was cancelled automatically.`,
+      orderNumber: order.number,
+    });
     // Don't leave a phantom pending order the team might try to fulfil.
     await transitionOrder({ id: order.id }, "cancelled", "system", "card payment could not be started");
     return { ok: false, error: "We couldn't start the card payment. Please try again in a moment or contact us." };

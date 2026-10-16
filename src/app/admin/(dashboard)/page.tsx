@@ -9,6 +9,8 @@ import { QuickStatusButton } from "@/components/admin/orders/quick-status-button
 import { getDashboardData } from "@/lib/data/admin/dashboard";
 import { can, getCurrentAdmin } from "@/lib/admin/auth";
 import { getTodayData } from "@/lib/data/admin/today";
+import { getOpenAlerts } from "@/lib/ops/alerts";
+import { AlertsPanel } from "@/components/admin/dashboard/alerts-panel";
 import type { OrderStatus } from "@/lib/constants/order";
 import { formatAED } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -31,14 +33,18 @@ export default async function AdminDashboardPage({
   const admin = await getCurrentAdmin();
   // Revenue figures are for owners and managers only.
   const showSales = can(admin, "editContent");
-  const [data, todayData] = await Promise.all([
+  const [data, todayData, alerts] = await Promise.all([
     showSales ? getDashboardData(days) : Promise.resolve(null),
     getTodayData(),
+    // Payment problems are for owners and managers.
+    showSales ? getOpenAlerts() : Promise.resolve([]),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Today</h1>
+
+      <AlertsPanel alerts={alerts} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/admin/orders?view=action">

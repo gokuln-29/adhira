@@ -7,6 +7,8 @@ import { isDuplicateKey } from "@/lib/db/helpers";
 import { getStripe } from "@/lib/stripe/client";
 import { sendOrderNotifications } from "@/lib/notify/order-emails";
 import { markOrderPaid, transitionOrder } from "@/lib/orders/transitions";
+import { autoResolveAlerts, raiseAlert } from "@/lib/ops/alerts";
+import { hitRateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,22 @@ export async function POST(request: NextRequest) {
     event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("[stripe webhook] signature verification failed", err);
+    // A few are normal noise (probes); a burst means a wrong STRIPE_WEBHOOK_SECRET
+    // (every real payment would then fail) or an attack.
+    try {
+      if (!(await hitRateLimit("stripe-bad-signature", 5, 600))) {
+        await raiseAlert({
+          kind: "webhook_bad_signature",
+          ref: `hour:${new Date().toISOString().slice(0, 13)}`,
+          title: "Stripe webhook: repeated invalid signatures",
+          details:
+            "More than 5 calls to /api/stripe/webhook in 10 minutes failed signature verification.\n" +
+            "If you just changed keys, check STRIPE_WEBHOOK_SECRET matches the endpoint's signing secret in the Stripe dashboard (real payments will NOT be recorded until it does). Otherwise someone is probing the endpoint.",
+        });
+      }
+    } catch {
+      // alerting must never change the response
+    }
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -37,9 +55,18 @@ export async function POST(request: NextRequest) {
   try {
     const outcome = await handleEvent(event);
     await db.update(stripe_events).set({ outcome: outcome.slice(0, 200) }).where(eq(stripe_events.id, event.id));
+    // A retry that finally worked clears the earlier failure alert for this event.
+    await autoResolveAlerts("webhook_failed", event.id);
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error("[stripe webhook] handler failed", event.type, err);
+    await raiseAlert({
+      kind: "webhook_failed",
+      ref: event.id,
+      title: `Stripe webhook failed (${event.type})`,
+      details: `Event ${event.id} could not be processed: ${(err as Error)?.message ?? err}\nStripe will retry automatically for up to 3 days; this alert clears itself if a retry succeeds. If it doesn't, a customer may have paid without the order being marked paid.`,
+      orderNumber: (event.data.object as { metadata?: { order_number?: string } })?.metadata?.order_number,
+    });
     // Let Stripe retry: mark failed so the next delivery may re-claim it.
     await db.update(stripe_events).set({ outcome: "failed" }).where(eq(stripe_events.id, event.id)).catch(() => {});
     return NextResponse.json({ error: "Temporary error" }, { status: 500 });
@@ -107,6 +134,18 @@ async function handlePaid(session: Stripe.Checkout.Session): Promise<string> {
         expected,
         currency: session.currency,
       });
+      await raiseAlert({
+        kind: "payment_mismatch",
+        ref: `${orderNumber}:${session.id}`,
+        title: order ? `Payment doesn't match order ${orderNumber}` : `Stripe payment for unknown order ${orderNumber}`,
+        details:
+          `Stripe session ${session.id} is marked paid, but it was NOT applied to the order.\n` +
+          `Charged: ${session.amount_total} ${session.currency?.toUpperCase()} (fils)\n` +
+          `Expected: ${expected ?? "n/a"} ${order?.currency ?? ""}\n` +
+          `Session on order: ${order?.sessionId ?? "n/a"}\n` +
+          "Check the payment in the Stripe dashboard. If it is genuine, refund it or (owner) use \"Record a payment received outside Stripe\" on the order.",
+        orderNumber: order ? orderNumber : undefined,
+      });
       return "mismatch: needs manual review";
     }
 
@@ -118,7 +157,16 @@ async function handlePaid(session: Stripe.Checkout.Session): Promise<string> {
         note: `stripe session ${session.id}`,
       },
     );
-    if (!res.ok) return `skipped: ${res.error}`;
+    if (!res.ok) {
+      await raiseAlert({
+        kind: "payment_closed_order",
+        ref: orderNumber,
+        title: `Customer paid for a closed order ${orderNumber}`,
+        details: `Stripe session ${session.id} was paid (${session.amount_total} fils), but ${res.error}\nRefund the customer in Stripe or create a new order for them.`,
+        orderNumber,
+      });
+      return `skipped: ${res.error}`;
+    }
     // Email only when THIS delivery changed the order, so retries never double-send.
     if (res.changed) {
       const locale = session.metadata?.locale === "ar" ? "ar" : "en";

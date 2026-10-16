@@ -529,6 +529,29 @@ export const invoice_counters = mysqlTable("invoice_counters", {
   last_seq: int("last_seq").notNull().default(0),
 });
 
+// Operational alerts that need a human (payment mismatches, failed webhooks, ...).
+// One row per (kind, ref): repeats bump `occurrences` instead of creating more rows
+// or more emails; resolving and then re-raising reopens the same row.
+export const ops_alerts = mysqlTable(
+  "ops_alerts",
+  {
+    id: uuid("id").primaryKey(),
+    kind: varchar("kind", { length: 40 }).notNull(),
+    ref: varchar("ref", { length: 120 }).notNull(),
+    severity: varchar("severity", { length: 10 }).$type<"critical" | "warning">().notNull().default("critical"),
+    title: varchar("title", { length: 200 }).notNull(),
+    details: text("details"),
+    order_number: varchar("order_number", { length: 40 }),
+    occurrences: int("occurrences").notNull().default(1),
+    email_sent_at: ts("email_sent_at"),
+    resolved_at: ts("resolved_at"),
+    resolved_by: uuid("resolved_by"),
+    created_at: createdAt(),
+    last_seen_at: ts("last_seen_at").notNull().default(sql`CURRENT_TIMESTAMP(3)`),
+  },
+  (t) => [uniqueIndex("ops_alerts_kind_ref_uq").on(t.kind, t.ref), index("ops_alerts_open_idx").on(t.resolved_at)],
+);
+
 export const rate_limits = mysqlTable("rate_limits", {
   key: varchar("key", { length: 255 }).primaryKey(),
   window_start: ts("window_start").notNull().default(sql`CURRENT_TIMESTAMP(3)`),
