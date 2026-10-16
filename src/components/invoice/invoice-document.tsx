@@ -22,6 +22,8 @@ const L = {
   subtotal: ["Total excl. VAT", "الإجمالي قبل الضريبة"],
   vatTotal: ["Total VAT", "إجمالي ضريبة القيمة المضافة"],
   delivery: ["Delivery", "التوصيل"],
+  gross: ["Total before discount", "الإجمالي قبل الخصم"],
+  discount: ["Discount", "الخصم"],
   deposit: ["Refundable deposit (not subject to VAT)", "تأمين قابل للاسترداد (غير خاضع للضريبة)"],
   grand: ["Total paid", "إجمالي المدفوع"],
   payment: ["Payment", "طريقة الدفع"],
@@ -133,6 +135,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceView }) {
                     {l.name_ar}
                   </div>
                 )}
+                {l.discount > 0 && (
+                  <div className="text-[10px] opacity-70">
+                    Discount −{money(l.discount)}{invoice.coupon_code ? ` (${invoice.coupon_code})` : ""} · الخصم
+                  </div>
+                )}
                 {(l.vessel || l.rental_months) && (
                   <div className="text-[10px] opacity-70">
                     {[l.rental_months ? L.rental[0].replace("{n}", String(l.rental_months)) : "", l.vessel ? L.vessel[0] : ""]
@@ -169,6 +176,12 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceView }) {
 
       <table className="ms-auto mt-4 w-[95mm] border-collapse">
         <tbody>
+          {invoice.discount_total > 0 && (
+            <>
+              <tr><td className="p-1"><Bi k="gross" /></td><td className="p-1 text-end">{money(invoice.subtotal + invoice.discount_total + invoice.delivery_fee)}</td></tr>
+              <tr><td className="p-1"><Bi k="discount" />{invoice.coupon_code ? ` (${invoice.coupon_code})` : ""}</td><td className="p-1 text-end">−{money(invoice.discount_total)}</td></tr>
+            </>
+          )}
           <tr><td className="p-1"><Bi k="subtotal" /></td><td className="p-1 text-end">{money(invoice.subtotal + invoice.delivery_fee)}</td></tr>
           <tr><td className="p-1"><Bi k="vatTotal" /></td><td className="p-1 text-end">{money(invoice.vat)}</td></tr>
           {invoice.deposit_total > 0 && (

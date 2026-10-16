@@ -62,6 +62,8 @@ export async function issueInvoice(tx: Tx, order: OrderRow, at: Date = new Date(
     deposit_total: order.deposit_total,
     delivery_fee: order.delivery_fee,
     delivery_vat: order.delivery_vat,
+    discount_total: order.discount_total,
+    coupon_code: order.coupon_code,
     total: order.total,
     currency: order.currency,
   });

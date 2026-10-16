@@ -241,7 +241,22 @@
     "noDelivery": "We don't deliver to {emirate} yet. Please contact us.",
     "noBooking": "We can't take delivery bookings right now. Please contact us.",
     "dateClosed": "We don't deliver on that day. Please choose another date.",
-    "slotTooSoon": "That slot is too soon for today. Please choose a later one."
+    "slotTooSoon": "That slot is too soon for today. Please choose a later one.",
+    "coupon": "Discount code",
+    "couponPlaceholder": "Enter code",
+    "couponApply": "Apply",
+    "couponRemove": "Remove",
+    "discountRow": "Discount ({code})",
+    "couponApplied": "{code} applied: {title}",
+    "coupon_invalid": "That code isn't valid.",
+    "coupon_not_started": "That code isn't active yet.",
+    "coupon_expired": "That code has expired.",
+    "coupon_min_subtotal": "Spend at least {min} (before VAT) on eligible items to use this code.",
+    "coupon_not_applicable": "That code doesn't apply to the items in your cart.",
+    "coupon_used_up": "That code has been fully used.",
+    "coupon_used_by_you": "You've already used that code.",
+    "coupon_rate": "Too many attempts. Please wait a few minutes.",
+    "coupon_cart": "Please review your cart and try again."
   },
   "OrderConfirmation": {
     "eyebrow": "Order confirmed",
@@ -255,7 +270,8 @@
     "deposit": "Refundable deposit",
     "invoice": "Tax invoice {number} — view or download PDF",
     "delivery": "Delivery",
-    "free": "Free"
+    "free": "Free",
+    "discount": "Discount"
   },
   "LeadForm": {
     "yourName": "Your name",

@@ -68,8 +68,14 @@ export default async function OrderConfirmationPage({
             <div className="mt-4 flex flex-col gap-2 border-t border-(--color-hairline) pt-4 font-mono-label text-xs">
               <div className="flex justify-between">
                 <span className="text-(--color-muted)">{t("subtotal")}</span>
-                <span>{formatAED(order.subtotal)}</span>
+                <span>{formatAED(order.subtotal + order.discount_total)}</span>
               </div>
+              {order.discount_total > 0 && (
+                <div className="flex justify-between text-(--color-primary)">
+                  <span>{t("discount")}{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                  <span>−{formatAED(order.discount_total)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-(--color-muted)">{t("delivery")}</span>
                 <span>{order.delivery_fee > 0 ? formatAED(order.delivery_fee) : t("free")}</span>

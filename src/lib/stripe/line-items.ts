@@ -8,6 +8,10 @@ export interface StripeLineInput {
   months: number;
   vessel: boolean;
   vesselUnitFils: number;
+  /** Line total before VAT AFTER any coupon (goods + vessel). */
+  lineFils: number;
+  /** Coupon discount taken off this line. */
+  discountFils: number;
 }
 
 export interface StripeLineItem {
@@ -28,8 +32,15 @@ export function buildStripeLineItems(input: {
   depositFils: number;
 }): StripeLineItem[] {
   return [
-    ...input.lines.map((l) => item(l.isRental ? `${l.name} (rental, ${l.months} months)` : l.name, l.unitFils, l.qty)),
-    ...input.lines.filter((l) => l.vessel).map((l) => item(`Glass vessel: ${l.name}`, l.vesselUnitFils, l.qty)),
+    // Stripe has no negative lines, so a discounted line is sent as ONE line at its net
+    // price (quantity 1) instead of unit price x qty.
+    ...input.lines
+      .filter((l) => l.discountFils > 0)
+      .map((l) => item(`${l.name} × ${l.qty}${l.vessel ? " with glass vessel" : ""}${l.isRental ? ` (rental, ${l.months} months)` : ""} (discount applied)`, l.lineFils)),
+    ...input.lines
+      .filter((l) => l.discountFils === 0)
+      .map((l) => item(l.isRental ? `${l.name} (rental, ${l.months} months)` : l.name, l.unitFils, l.qty)),
+    ...input.lines.filter((l) => l.vessel && l.discountFils === 0).map((l) => item(`Glass vessel: ${l.name}`, l.vesselUnitFils, l.qty)),
     // Prices are stored VAT-exclusive with VAT broken out separately, so it needs its
     // own line for the charge to match `orders.total`.
     item("Delivery", input.deliveryFils),

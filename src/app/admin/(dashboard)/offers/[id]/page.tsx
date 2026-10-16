@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OfferForm } from "@/components/admin/offers/offer-form";
 import { getOfferByIdAdmin } from "@/lib/data/admin/offers";
+import { getOfferPickOptions } from "@/lib/data/admin/pick-options";
 
 export async function generateMetadata({
   params,
@@ -19,13 +20,13 @@ export default async function EditOfferPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const offer = await getOfferByIdAdmin(id);
+  const [offer, pick] = await Promise.all([getOfferByIdAdmin(id), getOfferPickOptions()]);
   if (!offer) notFound();
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">{offer.title}</h1>
-      <OfferForm offer={offer} />
+      <OfferForm offer={offer} categories={pick.categories} products={pick.products} />
     </div>
   );
 }

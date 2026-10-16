@@ -64,6 +64,13 @@
       "when": 1792151278903,
       "tag": "0008_delivery_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1792152406362,
+      "tag": "0009_coupons",
+      "breakpoints": true
     }
   ]
 }

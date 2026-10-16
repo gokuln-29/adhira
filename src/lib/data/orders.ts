@@ -10,6 +10,8 @@ export interface OrderConfirmation {
   subtotal: number;
   vat: number;
   delivery_fee: number;
+  discount_total: number;
+  coupon_code: string | null;
   deposit_total: number;
   total: number;
   currency: string;
@@ -38,6 +40,8 @@ export async function getOrderByToken(token: string): Promise<OrderConfirmation 
       subtotal: orders.subtotal,
       vat: orders.vat,
       delivery_fee: orders.delivery_fee,
+      discount_total: orders.discount_total,
+      coupon_code: orders.coupon_code,
       deposit_total: orders.deposit_total,
       total: orders.total,
       currency: orders.currency,

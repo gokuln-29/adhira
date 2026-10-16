@@ -64,7 +64,8 @@ This is an operational list, not legal or tax advice; confirm with a UAE-qualifi
 | Marketing consent / privacy / direct-marketing | **partial** | Privacy and terms pages exist (processor list updated this session: Stripe, Hostinger, Cloudflare, Brevo). No marketing opt-in is collected. Advisor review pending. |
 | Privacy notice, terms, delivery, cancellation/refund, cookies | **pending** | Pages exist; legal review pending. No cookie banner (no analytics yet). |
 | Tax registration / record-keeping | **pending** | Accountant. |
-| Gift cards, promos, corporate quotes, event deposits, restricted goods | **pending** | Offers table exists but codes are not applied at checkout (admin-only for now). Deposits supported for vessels/rentals. |
+| Promos / discount codes | **verified** (local) | `npm run verify:coupons` (18 checks) + browser runs: percent/flat, category/product scope, minimum spend, inclusive first/last day, switched-off/unknown/expired codes, near-free orders refused, per-customer and total limits (5 simultaneous checkouts of a 2-use code → exactly 2), cancelled orders return the use; VAT is charged on the discounted amount; order, invoice (shows discount lines) and Stripe items agree to the fils; Arabic messages; admin create/edit/delete with validation. **You must review the live offers:** the seeded `CORP10` says "first order" (I limited it to 1 use per email); `FITOUT150` is expired and no longer shown. Gift cards, corporate quotes: **not built**. |
+| Event deposits, restricted goods | **pending** | Deposits supported for vessels/rentals. |
 | Vendor/data-location/retention/breach contacts documented | **pending** | Owner. |
 
 ## 11. Pre-deployment checklist

@@ -8,6 +8,7 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatAED } from "@/lib/pricing";
+import { quoteCoupon, type CouponQuote } from "@/lib/actions/coupons";
 import { createOrder, type Emirate, type PaymentMethod } from "@/lib/actions/orders";
 import { EMIRATES } from "@/lib/constants/emirates";
 import { useDeliveryRules } from "@/lib/delivery/context";
@@ -19,7 +20,7 @@ const SAVED_FIELDS = ["name", "email", "phone", "emirate", "line1", "line2", "ar
 export function CheckoutView() {
   const t = useTranslations("Checkout");
   const tEmirates = useTranslations("Emirates");
-  const { items, subtotal, vat, deposit, total, lines, valid } = useCart();
+  const { items, subtotal, vat, deposit, lines, valid } = useCart();
   const router = useRouter();
   const locale = useLocale();
 
@@ -66,6 +67,52 @@ export function CheckoutView() {
   }, []);
   const now = tick ?? init.now ?? null;
 
+  // Discount code (checked by the server; see lib/actions/coupons.ts).
+  const [couponInput, setCouponInput] = useState("");
+  const [applied, setApplied] = useState<{ code: string; title: string } | null>(null);
+  const [quote, setQuote] = useState<Extract<CouponQuote, { ok: true }> | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const cartLines = items.map((i) => ({ productId: i.productId, qty: i.qty, vessel: i.vessel, months: i.months }));
+  const cartKey = JSON.stringify(cartLines);
+  const couponMessage = (r: Extract<CouponQuote, { ok: false }>) =>
+    r.reason === "min_subtotal" && r.min != null
+      ? t("coupon_min_subtotal", { min: formatAED(r.min) })
+      : r.reason === "rate" || r.reason === "cart" || r.reason === "invalid" || r.reason === "not_started" || r.reason === "expired" || r.reason === "not_applicable" || r.reason === "used_up" || r.reason === "used_by_you"
+        ? t(`coupon_${r.reason}`)
+        : r.error;
+
+  // Re-quote when the cart changes so the discount never goes stale.
+  useEffect(() => {
+    if (!applied) return;
+    let live = true;
+    quoteCoupon({ code: applied.code, items: JSON.parse(cartKey) }).then((r) => {
+      if (!live) return;
+      if (r.ok) setQuote(r);
+      else {
+        setApplied(null);
+        setQuote(null);
+        setCouponError(couponMessage(r));
+      }
+    });
+    return () => {
+      live = false;
+    };
+    // couponMessage only reads translations; re-running on its identity would loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applied, cartKey]);
+
+  async function applyCoupon() {
+    setCouponBusy(true);
+    setCouponError(null);
+    const r = await quoteCoupon({ code: couponInput, items: cartLines });
+    setCouponBusy(false);
+    if (!r.ok) return setCouponError(couponMessage(r));
+    setApplied({ code: r.code, title: r.title });
+    setQuote(r);
+    setCouponInput("");
+  }
+
   const [emirateChoice, setEmirateChoice] = useState<string | null>(null);
   const emirate = emirateChoice ?? (saved.emirate || "Dubai");
   const [chosenDate, setChosenDate] = useState<string | null>(null);
@@ -76,11 +123,15 @@ export function CheckoutView() {
   const date = chosenDate && earliest && chosenDate >= earliest ? chosenDate : (earliest ?? "");
   const slotOptions = rules && now && date ? slotsFor(rules, date, now) : [];
   const slot = slotOptions.some((s) => s.id === chosenSlot) ? chosenSlot! : (slotOptions[0]?.id ?? "");
-  const check = rules && now ? validateDelivery(rules, { emirate, date, slot, goodsFils: Math.round(subtotal * 100) }, now) : null;
+  const check = rules && now ? validateDelivery(rules, { emirate, date, slot, goodsFils: Math.round(subtotal * 100) - (quote?.discountFils ?? 0) }, now) : null;
   const deliveryFee = check?.ok ? check.feeFils / 100 : 0;
   const deliveryVat = check?.ok ? check.vatFils / 100 : 0;
-  const grandVat = vat + deliveryVat;
-  const grandTotal = total + deliveryFee + deliveryVat;
+  // With a coupon the discount, and the VAT on what's left, come from the server's quote
+  // (the same code that prices the order); otherwise the plain cart totals apply.
+  const discount = quote ? quote.discountFils / 100 : 0;
+  const goodsVat = quote ? quote.goodsVatFils / 100 : vat;
+  const grandVat = goodsVat + deliveryVat;
+  const grandTotal = subtotal - discount + goodsVat + deposit + deliveryFee + deliveryVat;
   const deliveryProblem = !check || check.ok
     ? null
     : check.code === "zone_disabled"
@@ -149,6 +200,7 @@ export function CheckoutView() {
         months: item.months,
       })),
       locale: locale as "en" | "ar",
+      couponCode: applied?.code,
       idempotencyKey: attemptKey,
       // The server re-checks this; the cast only satisfies the literal `true` type.
       acceptTerms: (formData.get("acceptTerms") === "on") as true,
@@ -374,11 +426,57 @@ export function CheckoutView() {
             );
           })}
         </div>
+        <div className="flex flex-col gap-2 border-b border-(--color-hairline) py-4">
+          {applied ? (
+            <div className="flex items-start justify-between gap-3 text-xs">
+              <span className="text-(--color-primary)">{t("couponApplied", { code: applied.code, title: applied.title })}</span>
+              <button
+                type="button"
+                className="shrink-0 font-mono-label text-[10px] text-(--color-muted) underline"
+                onClick={() => {
+                  setApplied(null);
+                  setQuote(null);
+                }}
+              >
+                {t("couponRemove")}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  label={t("coupon")}
+                  placeholder={t("couponPlaceholder")}
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    // Enter must apply the code, not submit the whole order form.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (couponInput.trim()) void applyCoupon();
+                    }
+                  }}
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="button" variant="secondary" disabled={couponBusy || !couponInput.trim()} onClick={() => void applyCoupon()}>
+                {t("couponApply")}
+              </Button>
+            </div>
+          )}
+          {couponError && <p className="text-xs text-red-700">{couponError}</p>}
+        </div>
         <div className="flex flex-col gap-2 border-b border-(--color-hairline) py-4 font-mono-label text-xs">
           <div className="flex justify-between">
             <span className="text-(--color-muted)">{t("subtotal")}</span>
             <span>{formatAED(subtotal)}</span>
           </div>
+          {discount > 0 && applied && (
+            <div className="flex justify-between text-(--color-primary)">
+              <span>{t("discountRow", { code: applied.code })}</span>
+              <span>−{formatAED(discount)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-(--color-muted)">{t("delivery")}</span>
             <span>{check?.ok ? (deliveryFee > 0 ? formatAED(deliveryFee) : t("free")) : "—"}</span>

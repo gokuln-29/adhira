@@ -16,6 +16,7 @@
     "verify:invoices": "tsx --conditions=react-server scripts/verify-invoices.ts",
     "verify:time": "tsx --conditions=react-server scripts/verify-time.ts",
     "verify:delivery": "tsx --conditions=react-server scripts/verify-delivery.ts",
+    "verify:coupons": "tsx --conditions=react-server scripts/verify-coupons.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {

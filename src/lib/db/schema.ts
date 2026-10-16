@@ -265,13 +265,43 @@ export const offers = mysqlTable("offers", {
   type: varchar("type", { length: 10 }).$type<"percent" | "flat" | "code">().notNull(),
   value: money("value").notNull(),
   code: varchar("code", { length: 100 }).unique(),
-  scope: varchar("scope", { length: 20 }).notNull().default("all"),
+  scope: varchar("scope", { length: 20 }).$type<"all" | "category" | "product">().notNull().default("all"),
+  // Coupon rules (only meaningful when `code` is set; codes are matched case-insensitively).
+  // Smallest eligible goods total (before VAT) the code applies to.
+  min_subtotal: money("min_subtotal").notNull().default(0),
+  max_uses: int("max_uses"), // NULL = unlimited (orders that are not cancelled)
+  max_uses_per_customer: int("max_uses_per_customer"), // by email, NULL = unlimited
   starts: ts("starts"),
   ends: ts("ends"),
   active: boolean("active").notNull().default(true),
   created_at: createdAt(),
   updated_at: updatedAt(),
 });
+
+// Which categories / products a coupon with scope "category" / "product" applies to.
+export const offer_targets = mysqlTable(
+  "offer_targets",
+  {
+    offer_id: uuid("offer_id").notNull().references(() => offers.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 10 }).$type<"category" | "product">().notNull(),
+    target_id: uuid("target_id").notNull(),
+  },
+  (t) => [uniqueIndex("offer_targets_uq").on(t.offer_id, t.kind, t.target_id)],
+);
+
+// One row per order that used a coupon. Usage limits count rows whose order is not cancelled.
+export const offer_redemptions = mysqlTable(
+  "offer_redemptions",
+  {
+    id: uuid("id").primaryKey(),
+    offer_id: uuid("offer_id").notNull().references(() => offers.id, { onDelete: "cascade" }),
+    order_id: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    customer_email: varchar("customer_email", { length: 255 }).notNull(),
+    amount: money("amount").notNull(),
+    created_at: createdAt(),
+  },
+  (t) => [uniqueIndex("offer_redemptions_order_uq").on(t.order_id), index("offer_redemptions_offer_idx").on(t.offer_id, t.customer_email)],
+);
 
 export const blog_posts = mysqlTable(
   "blog_posts",
@@ -340,6 +370,10 @@ export const orders = mysqlTable(
     delivery_fee: money("delivery_fee").notNull().default(0),
     // VAT charged on the delivery fee (already included in `vat`).
     delivery_vat: money("delivery_vat").notNull().default(0),
+    // Coupon: `subtotal` and every line are already net of it; this is what was taken off.
+    discount_total: money("discount_total").notNull().default(0),
+    coupon_code: varchar("coupon_code", { length: 40 }),
+    offer_id: uuid("offer_id").references(() => offers.id, { onDelete: "set null" }),
     deposit_total: money("deposit_total").notNull().default(0),
     deposit_status: varchar("deposit_status", { length: 10 })
       .$type<"none" | "held" | "refunded">()
@@ -380,8 +414,10 @@ export const order_items = mysqlTable(
     name_ar: varchar("name_ar", { length: 200 }),
     qty: int("qty").notNull(),
     unit_price: money("unit_price").notNull(),
-    // Goods + glass vessel, excluding VAT.
+    // Goods + glass vessel, excluding VAT, AFTER any coupon discount.
     line_total: money("line_total").notNull(),
+    // Coupon discount allocated to this line (so gross = line_total + discount).
+    discount: money("discount").notNull().default(0),
     vat_rate: decimal("vat_rate", { precision: 5, scale: 2, mode: "number" }).notNull().default(5),
     // VAT on this line (line_total x vat_rate, rounded); the lines sum to orders.vat.
     vat: money("vat").notNull().default(0),
@@ -516,6 +552,8 @@ export const invoices = mysqlTable(
     deposit_total: money("deposit_total").notNull().default(0),
     delivery_fee: money("delivery_fee").notNull().default(0),
     delivery_vat: money("delivery_vat").notNull().default(0),
+    discount_total: money("discount_total").notNull().default(0),
+    coupon_code: varchar("coupon_code", { length: 40 }),
     total: money("total").notNull(),
     currency: char("currency", { length: 3 }).notNull().default("AED"),
   },

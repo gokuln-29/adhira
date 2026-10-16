@@ -41,7 +41,10 @@ export interface OfferRow {
   type: "percent" | "flat" | "code";
   value: number;
   code: string | null;
-  scope: string;
+  scope: "all" | "category" | "product";
+  min_subtotal: number;
+  max_uses: number | null;
+  max_uses_per_customer: number | null;
   starts: string | null;
   ends: string | null;
   active: boolean;

@@ -31,11 +31,14 @@ export interface AdminOrderDetail extends AdminOrderListRow {
     qty: number;
     unit_price: number;
     line_total: number;
+    discount: number;
     vessel: boolean;
     vessel_fee: number;
     deposit: number;
     rental_months: number | null;
   }[];
+  discount_total: number;
+  coupon_code: string | null;
   public_token: string;
   invoice_number: string | null;
   history: {
@@ -89,6 +92,8 @@ export async function getOrderByNumberAdmin(number: string): Promise<AdminOrderD
       currency: orders.currency,
       payment_method: orders.payment_method,
       public_token: orders.public_token,
+      discount_total: orders.discount_total,
+      coupon_code: orders.coupon_code,
       address: orders.address,
       notes: orders.notes,
       deposit_total: orders.deposit_total,
@@ -108,6 +113,7 @@ export async function getOrderByNumberAdmin(number: string): Promise<AdminOrderD
         qty: order_items.qty,
         unit_price: order_items.unit_price,
         line_total: order_items.line_total,
+        discount: order_items.discount,
         vessel: order_items.vessel,
         vessel_fee: order_items.vessel_fee,
         deposit: order_items.deposit,

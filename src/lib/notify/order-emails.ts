@@ -20,6 +20,7 @@ const TEXT = {
     subtotal: "Subtotal",
     vat: "VAT",
     delivery: "Delivery",
+    discount: "Discount",
     deposit: "Refundable deposit",
     total: "Total",
     rental: (m: number) => `Rental, ${m} month${m === 1 ? "" : "s"}`,
@@ -40,6 +41,7 @@ const TEXT = {
     subtotal: "المجموع الفرعي",
     vat: "ضريبة القيمة المضافة",
     delivery: "التوصيل",
+    discount: "الخصم",
     deposit: "تأمين قابل للاسترداد",
     total: "الإجمالي",
     rental: (m: number) => `إيجار، ${m} أشهر`,
@@ -61,6 +63,8 @@ interface OrderRow {
   subtotal: number;
   vat: number;
   delivery_fee: number;
+  discount_total: number;
+  coupon_code: string | null;
   deposit_total: number;
   total: number;
   customers: { name: string; email: string; phone: string | null; company: string | null } | null;
@@ -88,6 +92,8 @@ async function loadOrder(number: string): Promise<OrderRow | null> {
         subtotal: orders.subtotal,
         vat: orders.vat,
         delivery_fee: orders.delivery_fee,
+        discount_total: orders.discount_total,
+        coupon_code: orders.coupon_code,
         deposit_total: orders.deposit_total,
         total: orders.total,
         c_name: customers.name,
@@ -156,7 +162,8 @@ ${row(t.deliveryOn, order.delivery_date ?? t.asap)}
 <p style="font-weight:700;margin:20px 0 4px">${esc(t.items)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">${items}</table>
 <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
-${row(t.subtotal, formatAED(Number(order.subtotal)))}
+${row(t.subtotal, formatAED(Number(order.subtotal) + Number(order.discount_total)))}
+${Number(order.discount_total) > 0 ? row(`${t.discount}${order.coupon_code ? ` (${order.coupon_code})` : ""}`, `−${formatAED(Number(order.discount_total))}`) : ""}
 ${Number(order.delivery_fee) > 0 ? row(t.delivery, formatAED(Number(order.delivery_fee))) : ""}
 ${row(t.vat, formatAED(Number(order.vat)))}
 ${Number(order.deposit_total) > 0 ? row(t.deposit, formatAED(Number(order.deposit_total))) : ""}

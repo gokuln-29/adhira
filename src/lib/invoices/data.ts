@@ -14,6 +14,8 @@ export interface InvoiceView {
   deposit_total: number;
   delivery_fee: number;
   delivery_vat: number;
+  discount_total: number;
+  coupon_code: string | null;
   total: number;
   order: { number: string; public_token: string; created_at: string; payment_method: string; delivery_date: string | null };
   lines: {
@@ -22,6 +24,7 @@ export interface InvoiceView {
     qty: number;
     unit_price: number;
     line_total: number;
+    discount: number;
     vat_rate: number;
     vat: number;
     vessel: boolean;
@@ -56,6 +59,7 @@ async function load(where: ReturnType<typeof eq>): Promise<InvoiceView | null> {
       qty: order_items.qty,
       unit_price: order_items.unit_price,
       line_total: order_items.line_total,
+      discount: order_items.discount,
       vat_rate: order_items.vat_rate,
       vat: order_items.vat,
       vessel: order_items.vessel,
@@ -77,6 +81,8 @@ async function load(where: ReturnType<typeof eq>): Promise<InvoiceView | null> {
     deposit_total: invoice.deposit_total,
     delivery_fee: invoice.delivery_fee,
     delivery_vat: invoice.delivery_vat,
+    discount_total: invoice.discount_total,
+    coupon_code: invoice.coupon_code,
     total: invoice.total,
     order: {
       number: r.order_number,

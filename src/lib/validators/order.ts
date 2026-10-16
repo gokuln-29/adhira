@@ -45,6 +45,8 @@ export const orderInputSchema = z.object({
     )
     .min(1, "Your cart is empty.")
     .max(MAX_CART_LINES),
+  // Optional discount code; the server re-checks it against the database and cart.
+  couponCode: z.string().trim().max(40).optional().transform((v) => v || undefined),
   locale: z.enum(["en", "ar"]),
   // Generated per checkout attempt in the browser; a repeat submit returns the same order.
   idempotencyKey: z.string().min(16).max(64).regex(/^[A-Za-z0-9_-]+$/).optional(),

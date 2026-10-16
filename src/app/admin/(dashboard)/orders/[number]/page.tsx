@@ -79,8 +79,14 @@ export default async function AdminOrderDetailPage({
           <div className="mt-4 flex flex-col gap-2 border-t border-(--color-hairline) pt-4 font-mono-label text-xs">
             <div className="flex justify-between">
               <span className="text-(--color-muted)">Subtotal</span>
-              <span>{formatAED(order.subtotal)}</span>
+              <span>{formatAED(order.subtotal + order.discount_total)}</span>
             </div>
+            {order.discount_total > 0 && (
+              <div className="flex justify-between text-(--color-primary)">
+                <span>Discount{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                <span>−{formatAED(order.discount_total)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-(--color-muted)">VAT</span>
               <span>{formatAED(order.vat)}</span>
