@@ -1,4 +1,4 @@
-# Flowers N Plants — App Overview
+# Adhira Flowers — App Overview
 
 B2B florist and plant storefront with an admin panel, for offices in Dubai, Abu Dhabi and Sharjah (UAE). All product content (products, prices, images, details) is managed by admins in the database. Nothing is hardcoded.
 

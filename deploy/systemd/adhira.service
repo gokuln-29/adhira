@@ -2,7 +2,7 @@
 # systemd is the single process supervisor (no PM2): restart on crash, start on boot,
 # logs in the journal (rotated by journald).
 [Unit]
-Description=Adhira flowers (Next.js)
+Description=Adhira Flowers (Next.js)
 After=network-online.target mysql.service
 Wants=network-online.target
 Requires=mysql.service

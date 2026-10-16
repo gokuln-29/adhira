@@ -51,7 +51,7 @@ export async function Footer() {
       <div className="mx-auto max-w-7xl px-6 pt-20 pb-10">
         <div className="grid gap-14 lg:grid-cols-12">
           <div className="flex flex-col gap-6 lg:col-span-4">
-            <span className="font-logo text-2xl">Adhira flowers</span>
+            <span className="font-logo text-2xl">Adhira Flowers</span>
             <span className="gold-rule" />
             <p className="max-w-xs text-sm leading-relaxed text-white/65">{t("tagline")}</p>
             {(settings.contact_phone || settings.contact_email) && (
@@ -99,7 +99,7 @@ export async function Footer() {
 
         <div className="mt-16 flex flex-col items-start justify-between gap-5 border-t border-white/15 pt-8 md:flex-row md:items-center">
           <p className="font-mono-label text-[10px] tracking-[0.14em] text-white/55">
-            {settings.trn && <>{t("trn")} {settings.trn} &middot; </>}&copy; {new Date().getFullYear()} Adhira flowers &middot; {t("rights")}
+            {settings.trn && <>{t("trn")} {settings.trn} &middot; </>}&copy; {new Date().getFullYear()} Adhira Flowers &middot; {t("rights")}
           </p>
           <div className="flex flex-wrap gap-2">
             {paymentMarks.map((mark) => (

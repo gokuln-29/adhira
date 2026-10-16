@@ -62,7 +62,7 @@ export default async function AdminSettingsPage() {
       <section className="flex flex-col gap-4">
         <MonoLabel muted={false}>Brand</MonoLabel>
         <Card className="p-6 text-sm text-(--color-muted)">
-          <p>Adhira flowers — set via the design tokens in `src/app/globals.css`.</p>
+          <p>Adhira Flowers — set via the design tokens in `src/app/globals.css`.</p>
           <p className="mt-1">Editing brand colors/fonts here isn&apos;t wired up yet — they&apos;re code-level tokens, not database-backed.</p>
         </Card>
       </section>

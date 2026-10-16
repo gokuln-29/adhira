@@ -37,8 +37,8 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Adhira flowers | Corporate, Events & Celebrations — UAE",
-    template: "%s | Adhira flowers",
+    default: "Adhira Flowers | Corporate, Events & Celebrations — UAE",
+    template: "%s | Adhira Flowers",
   },
   description:
     "Fresh flower arrangements, corporate gifting, event florals and plant setups for offices, weddings, birthdays and celebrations across Dubai, Abu Dhabi and Sharjah.",

@@ -1,4 +1,4 @@
-# Adhira flowers — adhiraflowers.ae
+# Adhira Flowers — adhiraflowers.ae
 
 B2B flowers and plants storefront + admin for UAE offices. Next.js 16, MySQL (Drizzle), Cloudflare R2, Brevo, Stripe, next-intl (en/ar).
 

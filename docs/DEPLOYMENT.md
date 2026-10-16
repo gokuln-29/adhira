@@ -1,4 +1,4 @@
-# Deploying Adhira flowers (adhiraflowers.ae) to a Hostinger Ubuntu VPS
+# Deploying Adhira Flowers (adhiraflowers.ae) to a Hostinger Ubuntu VPS
 
 Source of truth: `Adhira_Flowers_Architecture_Setup_Plan.pdf`. This document is the
 runnable version of PDF sections 2, 5, 6, 7 and 8. Nothing here is marked "done" until

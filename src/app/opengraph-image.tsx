@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Adhira flowers: flowers, gifts and plant setups across the UAE";
+export const alt = "Adhira Flowers: flowers, gifts and plant setups across the UAE";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -21,7 +21,7 @@ export default function OpenGraphImage() {
         }}
       >
         <div style={{ fontSize: 26, letterSpacing: 6, color: "#6ee7b7", display: "flex" }}>
-          FLOWERS N PLANTS · UAE
+          ADHIRA FLOWERS · UAE
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 88, fontFamily: "Georgia, serif", lineHeight: 1.05, display: "flex" }}>
