@@ -5,7 +5,6 @@ import {
   check,
   customType,
   date,
-  datetime,
   decimal,
   index,
   int,

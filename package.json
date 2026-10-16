@@ -11,9 +11,12 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:import-supabase": "tsx scripts/import-from-supabase.ts",
     "admin:create": "tsx scripts/create-admin.ts",
+    "media:migrate": "tsx --conditions=react-server scripts/migrate-images-to-r2.ts",
     "verify:orders": "tsx --conditions=react-server scripts/verify-orders.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0",
     "@node-rs/argon2": "^2.2.2",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
@@ -26,6 +29,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
     "stripe": "^22.6.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.6.5"

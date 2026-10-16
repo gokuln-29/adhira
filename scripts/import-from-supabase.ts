@@ -35,7 +35,7 @@ async function main() {
   const pg = new Client({ connectionString: pgUrl });
   await pg.connect();
   const my = await mysql.createConnection({ uri: myUrl, timezone: "Z" });
-  const q = async (sql: string) => (await pg.query(sql)).rows as Record<string, any>[];
+  const q = async (sql: string) => (await pg.query(sql)).rows as Record<string, never>[];
 
   const counts: Record<string, number> = {};
   const insertAll = async (table: string, rows: Record<string, unknown>[]) => {

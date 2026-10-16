@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { isAllowedImageUrl } from "@/lib/media/allowed-url";
 
 const money = z.number().finite().min(0).max(1_000_000);
 const httpUrl = z
   .string()
   .max(2000)
-  .refine((v) => /^https?:\/\//i.test(v), "Image URL must start with http(s)://");
+  .refine(isAllowedImageUrl, "Images must be uploaded through the admin uploader.");
 
 export const productInputSchema = z
   .object({

@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { eq, inArray } from "drizzle-orm";
 import { db, type Tx } from "@/lib/db";
-import { product_images, products } from "@/lib/db/schema";
+import { media_uploads, product_images, products } from "@/lib/db/schema";
+import { keyFromPublicUrl } from "@/lib/media/r2";
+import { deleteImageKeys } from "@/lib/media/store";
 import { dbErrorMessage, newId } from "@/lib/db/helpers";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
@@ -46,19 +48,42 @@ export interface ProductFormInput {
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 // Replaces every image row for the product (simple and correct at this volume).
-async function replaceImages(tx: Tx, productId: string, images: ProductImageInput[]) {
+// Returns the R2 keys that are no longer referenced so the caller can delete
+// them once the transaction has committed.
+async function replaceImages(tx: Tx, productId: string, images: ProductImageInput[]): Promise<string[]> {
+  const before = await tx.select().from(product_images).where(eq(product_images.product_id, productId));
+  const beforeByKey = new Map(before.filter((b) => b.object_key).map((b) => [b.object_key!, b]));
   await tx.delete(product_images).where(eq(product_images.product_id, productId));
-  if (images.length === 0) return;
-  await tx.insert(product_images).values(
-    images.map((img, i) => ({
-      id: newId(),
-      product_id: productId,
-      url: img.url,
-      alt: img.alt,
-      position: i,
-      is_primary: img.is_primary,
-    })),
-  );
+
+  const keep = new Set<string>();
+  if (images.length > 0) {
+    const rows = [];
+    for (const [i, img] of images.entries()) {
+      const key = keyFromPublicUrl(img.url);
+      if (key) keep.add(key);
+      // Metadata comes from the upload record (new images) or the row being
+      // replaced (images kept from before, incl. ones migrated from Supabase).
+      const meta = key
+        ? ((await tx.select().from(media_uploads).where(eq(media_uploads.final_key, key)).limit(1))[0] ?? beforeByKey.get(key))
+        : undefined;
+      rows.push({
+        id: newId(),
+        product_id: productId,
+        url: img.url,
+        object_key: key,
+        alt: img.alt,
+        position: i,
+        is_primary: img.is_primary,
+        width: meta?.width ?? null,
+        height: meta?.height ?? null,
+        bytes: meta?.bytes ?? null,
+        checksum: meta?.checksum ?? null,
+        mime_type: meta ? "image/webp" : null,
+      });
+    }
+    await tx.insert(product_images).values(rows);
+  }
+  return before.map((b) => b.object_key).filter((k): k is string => !!k && !keep.has(k));
 }
 
 function toColumns(input: ProductInput) {
@@ -126,14 +151,16 @@ export async function updateProduct(id: string, raw: ProductFormInput): Promise<
   if (!checked.ok) return checked;
   const input = checked.input;
 
+  let orphaned: string[] = [];
   try {
-    await db.transaction(async (tx) => {
+    orphaned = await db.transaction(async (tx) => {
       await tx.update(products).set(toColumns(input)).where(eq(products.id, id));
-      await replaceImages(tx, id, input.images);
+      return replaceImages(tx, id, input.images);
     });
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "product") };
   }
+  await deleteImageKeys(orphaned);
 
   revalidatePath("/admin/products");
   refreshStorefront();
@@ -145,7 +172,9 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   try {
+    const imgs = await db.select({ k: product_images.object_key }).from(product_images).where(eq(product_images.product_id, id));
     await db.delete(products).where(eq(products.id, id));
+    await deleteImageKeys(imgs.map((i) => i.k).filter((k): k is string => !!k));
   } catch (err) {
     return { ok: false, error: dbErrorMessage(err, "product") };
   }

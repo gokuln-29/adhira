@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
+import { uploadImage } from "@/lib/media/upload-client";
 import { updateStoreSettings } from "@/lib/actions/admin/settings";
 import type { StoreSettings } from "@/lib/data/settings";
 
@@ -24,16 +24,12 @@ export function StoreSettingsForm({ settings }: { settings: StoreSettings }) {
     if (!file) return;
     setUploading(true);
     setMessage(null);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop();
-    const path = `site/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    setUploading(false);
-    if (error) {
-      setMessage({ ok: false, text: error.message });
-      return;
+    try {
+      setHero((await uploadImage(file, "hero")).url);
+    } catch (e) {
+      setMessage({ ok: false, text: e instanceof Error ? e.message : "Upload failed." });
     }
-    setHero(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
+    setUploading(false);
   }
 
   async function save() {

@@ -7,7 +7,7 @@ import { orders } from "@/lib/db/schema";
 import { placeOrder } from "@/lib/orders/place-order";
 import { transitionOrder } from "@/lib/orders/transitions";
 import { assertSameOrigin } from "@/lib/auth/origin";
-import { priceLine, type LineSelection } from "@/lib/pricing";
+import { type LineSelection } from "@/lib/pricing";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { sendOrderNotifications } from "@/lib/notify/order-emails";
 import { withinRateLimit } from "@/lib/security/rate-limit";

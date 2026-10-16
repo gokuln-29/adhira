@@ -18,7 +18,8 @@ async function main() {
   assert(p, "need an active product");
   const original = p.stock_qty;
   const sel = new Map([[p.id, { qty: p.min_order_qty, vessel: false, months: 1 }]]);
-  const baseInput = (email: string) => ({
+  const { orderInputSchema } = await import("../src/lib/validators/order");
+  const baseInput = (email: string) => orderInputSchema.parse({
     customer: { name: "Verify Bot", email, phone: "+971500000000" },
     emirate: "Dubai" as const,
     address: { line1: "1 Test Street" },

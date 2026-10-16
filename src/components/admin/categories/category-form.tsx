@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { uploadImage } from "@/lib/media/upload-client";
 import {
   createCategory,
   updateCategory,
@@ -41,21 +41,12 @@ export function CategoryForm({
     setUploading(true);
     setError(null);
 
-    const supabase = createClient();
-    const ext = file.name.split(".").pop();
-    const path = `categories/${crypto.randomUUID()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(path, file);
-
-    if (uploadError) {
-      setError(uploadError.message);
-      setUploading(false);
-      return;
+    try {
+      const img = await uploadImage(file, "category");
+      setImage(img.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
     }
-
-    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-    setImage(data.publicUrl);
     setUploading(false);
   }
 

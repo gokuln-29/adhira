@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { Card } from "@/components/ui/card";
 import { ProductCard, type ProductCardData } from "@/components/product/product-card";
-import { createClient } from "@/lib/supabase/client";
+import { uploadImage } from "@/lib/media/upload-client";
 import {
   createProduct,
   updateProduct,
@@ -90,23 +90,15 @@ export function ProductForm({
     setUploading(true);
     setError(null);
 
-    const supabase = createClient();
     const uploaded: ProductImageInput[] = [];
 
     for (const file of Array.from(files)) {
-      const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(path, file);
-
-      if (uploadError) {
-        setError(uploadError.message);
-        continue;
+      try {
+        const img = await uploadImage(file, "product");
+        uploaded.push({ url: img.url, alt: "", is_primary: false });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Upload failed.");
       }
-
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      uploaded.push({ url: data.publicUrl, alt: "", is_primary: false });
     }
 
     setImages((prev) => {
