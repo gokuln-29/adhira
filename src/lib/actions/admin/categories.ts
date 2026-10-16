@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { categories } from "@/lib/db/schema";
+import { dbErrorMessage, newId } from "@/lib/db/helpers";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 
@@ -15,49 +18,38 @@ export interface CategoryFormInput {
 
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-export async function createCategory(
-  input: CategoryFormInput,
-): Promise<ActionResult<{ id: string }>> {
-  const auth = await authorize("editContent");
-  if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .insert({
-      name: input.name.trim().slice(0, 200),
-      name_ar: input.name_ar.trim().slice(0, 200) || null,
-      slug: input.slug.trim(),
-      image: input.image?.trim() || null,
-      position: input.position,
-    })
-    .select("id")
-    .single();
-
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/categories");
-  refreshStorefront();
-  return { ok: true, id: data.id };
+function toColumns(input: CategoryFormInput) {
+  return {
+    name: input.name.trim().slice(0, 200),
+    name_ar: input.name_ar.trim().slice(0, 200) || null,
+    slug: input.slug.trim(),
+    image: input.image?.trim() || null,
+    position: input.position,
+  };
 }
 
-export async function updateCategory(
-  id: string,
-  input: CategoryFormInput,
-): Promise<ActionResult> {
+export async function createCategory(input: CategoryFormInput): Promise<ActionResult<{ id: string }>> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("categories")
-    .update({
-      name: input.name.trim().slice(0, 200),
-      name_ar: input.name_ar.trim().slice(0, 200) || null,
-      slug: input.slug.trim(),
-      image: input.image?.trim() || null,
-      position: input.position,
-    })
-    .eq("id", id);
+  const id = newId();
+  try {
+    await db.insert(categories).values({ id, ...toColumns(input) });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "category") };
+  }
+  revalidatePath("/admin/categories");
+  refreshStorefront();
+  return { ok: true, id };
+}
 
-  if (error) return { ok: false, error: error.message };
+export async function updateCategory(id: string, input: CategoryFormInput): Promise<ActionResult> {
+  const auth = await authorize("editContent");
+  if (!auth.ok) return auth;
+  try {
+    await db.update(categories).set(toColumns(input)).where(eq(categories.id, id));
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "category") };
+  }
   revalidatePath("/admin/categories");
   refreshStorefront();
   return { ok: true };
@@ -66,9 +58,11 @@ export async function updateCategory(
 export async function deleteCategory(id: string): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { error } = await supabase.from("categories").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  try {
+    await db.delete(categories).where(eq(categories.id, id));
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "category") };
+  }
   revalidatePath("/admin/categories");
   refreshStorefront();
   return { ok: true };

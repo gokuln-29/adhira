@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { MonoLabel } from "@/components/ui/mono-label";
 import { OrderStatusSelect } from "@/components/admin/orders/order-status-select";
 import { getOrderByNumberAdmin } from "@/lib/data/admin/orders";
+import { PaymentPanel } from "@/components/admin/orders/payment-panel";
 import { DepositPanel } from "@/components/admin/orders/deposit-panel";
 import { getCurrentAdmin, can } from "@/lib/admin/auth";
 import { formatAED } from "@/lib/pricing";
@@ -102,6 +103,12 @@ export default async function AdminOrderDetailPage({
         </Card>
 
         <div className="flex flex-col gap-6">
+          <PaymentPanel
+            number={order.number}
+            method={order.payment_method}
+            status={order.payment_status}
+            canMarkPaid={can(admin, "handleOrders")}
+          />
           {order.deposit_total > 0 && order.deposit_status !== "none" && (
             <DepositPanel
               number={order.number}
@@ -110,6 +117,24 @@ export default async function AdminOrderDetailPage({
               canRefund={can(admin, "editContent")}
             />
           )}
+          <Card className="p-6">
+            <MonoLabel muted={false} className="mb-3">
+              History
+            </MonoLabel>
+            <ul className="flex flex-col gap-2 text-xs">
+              {order.history.map((h, i) => (
+                <li key={i} className="flex flex-col">
+                  <span>
+                    {h.kind}: {h.from_value ?? "—"} → <b>{h.to_value}</b>
+                  </span>
+                  <span className="text-(--color-muted)">
+                    {h.actor} · {new Date(h.created_at).toLocaleString("en-GB", { timeZone: "Asia/Dubai" })}
+                    {h.note ? ` · ${h.note}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
           <Card className="p-6">
             <MonoLabel muted={false} className="mb-3">
               Customer

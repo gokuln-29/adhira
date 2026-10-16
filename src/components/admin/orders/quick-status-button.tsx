@@ -7,10 +7,10 @@ import type { OrderStatus } from "@/lib/constants/order";
 
 // The normal life of an order, so the common case is one click.
 const NEXT: Partial<Record<OrderStatus, { status: OrderStatus; label: string }>> = {
-  pending: { status: "processing", label: "Start processing" },
-  paid: { status: "processing", label: "Start processing" },
-  processing: { status: "out_for_delivery", label: "Out for delivery" },
-  out_for_delivery: { status: "delivered", label: "Mark delivered" },
+  pending: { status: "confirmed", label: "Confirm order" },
+  confirmed: { status: "preparing", label: "Start preparing" },
+  preparing: { status: "dispatched", label: "Out for delivery" },
+  dispatched: { status: "delivered", label: "Mark delivered" },
 };
 
 export function QuickStatusButton({ number, status }: { number: string; status: OrderStatus }) {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/ui/input";
 import { updateOrderStatus } from "@/lib/actions/admin/orders";
-import { ORDER_STATUSES, type OrderStatus } from "@/lib/constants/order";
+import { ORDER_TRANSITIONS, type OrderStatus } from "@/lib/constants/order";
 
 export function OrderStatusSelect({
   number,
@@ -23,12 +23,13 @@ export function OrderStatusSelect({
       disabled={saving}
       onChange={async (e) => {
         setSaving(true);
-        await updateOrderStatus(number, e.target.value as OrderStatus);
+        const res = await updateOrderStatus(number, e.target.value as OrderStatus);
         setSaving(false);
+        if (!res.ok) alert(res.error);
         router.refresh();
       }}
     >
-      {ORDER_STATUSES.map((s) => (
+      {[status, ...ORDER_TRANSITIONS[status]].map((s) => (
         <option key={s} value={s}>
           {s.replace(/_/g, " ").toUpperCase()}
         </option>

@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq, inArray } from "drizzle-orm";
+import { db, type Tx } from "@/lib/db";
+import { product_images, products } from "@/lib/db/schema";
+import { dbErrorMessage, newId } from "@/lib/db/helpers";
 import { authorize } from "@/lib/admin/auth";
 import { refreshStorefront } from "@/lib/actions/admin/refresh-storefront";
 import type { ProductCardDetail } from "@/components/product/product-card";
@@ -42,21 +45,13 @@ export interface ProductFormInput {
 
 type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-async function replaceImages(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  productId: string,
-  images: ProductImageInput[],
-) {
-  const { error: deleteError } = await supabase
-    .from("product_images")
-    .delete()
-    .eq("product_id", productId);
-  if (deleteError) throw deleteError;
-
+// Replaces every image row for the product (simple and correct at this volume).
+async function replaceImages(tx: Tx, productId: string, images: ProductImageInput[]) {
+  await tx.delete(product_images).where(eq(product_images.product_id, productId));
   if (images.length === 0) return;
-
-  const { error: insertError } = await supabase.from("product_images").insert(
+  await tx.insert(product_images).values(
     images.map((img, i) => ({
+      id: newId(),
       product_id: productId,
       url: img.url,
       alt: img.alt,
@@ -64,7 +59,6 @@ async function replaceImages(
       is_primary: img.is_primary,
     })),
   );
-  if (insertError) throw insertError;
 }
 
 function toColumns(input: ProductInput) {
@@ -74,7 +68,7 @@ function toColumns(input: ProductInput) {
     short_description_ar: input.short_description_ar || null,
     slug: input.slug,
     short_description: input.short_description || null,
-    details: input.details as unknown as never,
+    details: input.details,
     base_price: input.base_price,
     discount_type: input.discount_type,
     discount_value: input.discount_value,
@@ -103,57 +97,42 @@ function validate(raw: ProductFormInput): { ok: true; input: ProductInput } | { 
   return { ok: true, input: parsed.data };
 }
 
-export async function createProduct(
-  raw: ProductFormInput,
-): Promise<ActionResult<{ id: string }>> {
+export async function createProduct(raw: ProductFormInput): Promise<ActionResult<{ id: string }>> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   const checked = validate(raw);
   if (!checked.ok) return checked;
   const input = checked.input;
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("products")
-    .insert(toColumns(input))
-    .select("id")
-    .single();
-
-  if (error) return { ok: false, error: error.message };
+  const id = newId();
 
   try {
-    await replaceImages(supabase, data.id, input.images);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to save images" };
+    await db.transaction(async (tx) => {
+      await tx.insert(products).values({ id, ...toColumns(input) });
+      await replaceImages(tx, id, input.images);
+    });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "product") };
   }
 
   revalidatePath("/admin/products");
   refreshStorefront();
-  return { ok: true, id: data.id };
+  return { ok: true, id };
 }
 
-export async function updateProduct(
-  id: string,
-  raw: ProductFormInput,
-): Promise<ActionResult> {
+export async function updateProduct(id: string, raw: ProductFormInput): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
   const checked = validate(raw);
   if (!checked.ok) return checked;
   const input = checked.input;
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("products")
-    .update(toColumns(input))
-    .eq("id", id);
-
-  if (error) return { ok: false, error: error.message };
 
   try {
-    await replaceImages(supabase, id, input.images);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to save images" };
+    await db.transaction(async (tx) => {
+      await tx.update(products).set(toColumns(input)).where(eq(products.id, id));
+      await replaceImages(tx, id, input.images);
+    });
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "product") };
   }
 
   revalidatePath("/admin/products");
@@ -165,23 +144,28 @@ export async function updateProduct(
 export async function deleteProduct(id: string): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  try {
+    await db.delete(products).where(eq(products.id, id));
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "product") };
+  }
   revalidatePath("/admin/products");
   refreshStorefront();
   return { ok: true };
 }
 
-export async function bulkUpdateProductStatus(
-  ids: string[],
-  status: "draft" | "active",
-): Promise<ActionResult> {
+const MAX_BULK = 200;
+
+export async function bulkUpdateProductStatus(ids: string[], status: "draft" | "active"): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { error } = await supabase.from("products").update({ status }).in("id", ids);
-  if (error) return { ok: false, error: error.message };
+  if (ids.length === 0 || ids.length > MAX_BULK) return { ok: false, error: "Select between 1 and 200 products." };
+  if (status !== "draft" && status !== "active") return { ok: false, error: "Unknown status." };
+  try {
+    await db.update(products).set({ status }).where(inArray(products.id, ids));
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "product") };
+  }
   revalidatePath("/admin/products");
   refreshStorefront();
   return { ok: true };
@@ -190,9 +174,12 @@ export async function bulkUpdateProductStatus(
 export async function bulkDeleteProducts(ids: string[]): Promise<ActionResult> {
   const auth = await authorize("editContent");
   if (!auth.ok) return auth;
-  const supabase = await createClient();
-  const { error } = await supabase.from("products").delete().in("id", ids);
-  if (error) return { ok: false, error: error.message };
+  if (ids.length === 0 || ids.length > MAX_BULK) return { ok: false, error: "Select between 1 and 200 products." };
+  try {
+    await db.delete(products).where(inArray(products.id, ids));
+  } catch (err) {
+    return { ok: false, error: dbErrorMessage(err, "product") };
+  }
   revalidatePath("/admin/products");
   refreshStorefront();
   return { ok: true };

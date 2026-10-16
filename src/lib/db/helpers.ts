@@ -16,3 +16,10 @@ export function isDuplicateKey(err: unknown): boolean {
 
 /** Escape LIKE wildcards in user input. */
 export const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** Friendly, non-leaky message for a failed admin write; the detail goes to the server log. */
+export function dbErrorMessage(err: unknown, what: string): string {
+  if (isDuplicateKey(err)) return `Another ${what} already uses that slug, code or name.`;
+  console.error(`[db] ${what} write failed`, err);
+  return `Couldn't save the ${what}. Please try again.`;
+}
